@@ -8,9 +8,11 @@ WORKDIR /workspace
 COPY package.json package-lock.json .npmrc ./
 
 # The imported lockfile can contain Replit's internal package host. Replace it
-# inside the image so Docker builds remain portable outside Replit.
+# inside the image so Docker builds remain portable outside Replit. The
+# Playwright image ships a newer npm than the lockfile's original environment;
+# npm install repairs optional-platform metadata while preserving package-lock.
 RUN sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json \
-  && npm ci --no-audit --no-fund
+  && npm install --no-audit --no-fund
 
 COPY . .
 

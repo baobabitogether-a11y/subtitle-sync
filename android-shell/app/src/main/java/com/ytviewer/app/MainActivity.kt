@@ -52,8 +52,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     companion object {
         private const val TAG = "YT_CAPTION_INTERCEPTOR"
-        // Replace with your production URL or local development server
-        private const val APP_URL = "https://ais-pre-vetwkgdvuyqyk43i2j2cfg-450223931914.europe-west2.run.app"
+        // Used only when an APK is launched without bundled web assets.
+        // The normal Android build creates the local bundle automatically.
+        private const val APP_URL = "https://mostuf2556.github.io/subtitle-sync/app/"
     }
 
     @SuppressLint("SetJavaScriptEnabled")

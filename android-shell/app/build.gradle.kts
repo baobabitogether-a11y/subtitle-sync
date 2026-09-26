@@ -3,6 +3,21 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val webAssetsIndex = file("src/main/assets/index.html")
+val prepareWebAssets by tasks.registering(Exec::class) {
+    description = "Build the web app when the Android bundle has no generated assets."
+    group = "build"
+    workingDir(rootProject.projectDir.parentFile)
+    commandLine("npm", "run", "build:android-assets")
+    onlyIf {
+        !webAssetsIndex.isFile
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(prepareWebAssets)
+}
+
 android {
     namespace = "com.ytviewer.app"
     compileSdk = 34

@@ -8,6 +8,9 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   vite: {
+    // Keep the generated web bundle usable under GitHub Pages subpaths and
+    // when it is loaded from Android's appassets origin.
+    base: "./",
     server: {
       host: "0.0.0.0",
       port: 3000,

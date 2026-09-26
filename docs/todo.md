@@ -1,11 +1,11 @@
 # Current task
 
-## Task 4: Align and verify web and Android E2E coverage
+## Task 6: Fix CI dependency installation and Android startup
 
-Replace stale selectors and assumptions from the previous app with tests for the current Parallel Subtitles UI. The Android test will inject the native bridge that the WebView provides and assert the selected language codes sent to it.
+The Docker Playwright image currently fails before tests because its newer npm rejects optional-platform lockfile metadata. The Android shell also falls back to a 404 remote URL when an APK is built without generated assets.
 
 ## Done looks like
 
-- Web smoke tests use the current app's title, panels, fixtures, and language selector.
-- Android emulation verifies the bridge receives the selected language list.
-- The Playwright web and emulation projects pass when Chromium is available.
+- Docker E2E dependency installation reaches Playwright.
+- Android builds generate web assets when `src/main/assets/index.html` is absent.
+- GitHub Pages fallback assets resolve under the deployed subpath.
