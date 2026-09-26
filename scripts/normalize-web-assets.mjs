@@ -12,7 +12,13 @@ if (!fs.existsSync(indexPath)) {
 let html = fs.readFileSync(indexPath, "utf8");
 html = html
   .replaceAll('="/./assets/', '="./assets/')
-  .replaceAll('="/favicon.ico"', '="./favicon.ico"');
+  .replaceAll('="/assets/', '="./assets/')
+  .replaceAll('"/./assets/', '"./assets/')
+  .replaceAll('"/assets/', '"./assets/')
+  .replaceAll("'/./assets/", "'./assets/")
+  .replaceAll("'/assets/", "'./assets/")
+  .replaceAll('="/favicon.ico"', '="./favicon.ico"')
+  .replaceAll('"/favicon.ico"', '"./favicon.ico"');
 fs.writeFileSync(indexPath, html);
 
 console.log(`Normalized web asset paths in ${path.relative(process.cwd(), indexPath)}`);

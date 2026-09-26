@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         private const val TAG = "YT_CAPTION_INTERCEPTOR"
         // Used only when an APK is launched without bundled web assets.
         // The normal Android build creates the local bundle automatically.
-        private const val APP_URL = "https://mostuf2556.github.io/subtitle-sync/app/"
+        private const val APP_URL = "https://mostuf2556.github.io/Youtubenet6/app/"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -162,8 +162,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
                 // 2. Intercept bundled web assets for offline/hybrid hosting
                 if (host == "appassets.androidplatform.net") {
-                    val cleanPath = path.removePrefix("/")
-                    val assetPath = if (cleanPath.isEmpty() || cleanPath == "/") "index.html" else cleanPath
+                    var cleanPath = path.trim()
+                    while (cleanPath.startsWith("/") || cleanPath.startsWith("./")) {
+                        cleanPath = cleanPath.removePrefix("/").removePrefix("./")
+                    }
+                    val assetPath = if (cleanPath.isEmpty() || cleanPath == "index.html") "index.html" else cleanPath
                     try {
                         val inputStream = assets.open(assetPath)
                         val mimeType = when {
@@ -184,8 +187,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         )
                         return WebResourceResponse(mimeType, "UTF-8", 200, "OK", headers, inputStream)
                     } catch (e: Exception) {
-                        // Fallback: if it's an extensionless SPA route, serve index.html
-                        if (!assetPath.contains(".")) {
+                        Log.w(TAG, "Asset not found ($assetPath): ${e.message}")
+                        // Fallback 1: if it's an extensionless SPA route or starts with app/, serve index.html
+                        if (!assetPath.contains(".") || assetPath.startsWith("app/")) {
                             try {
                                 val indexStream = assets.open("index.html")
                                 return WebResourceResponse("text/html", "UTF-8", 200, "OK", mapOf("Access-Control-Allow-Origin" to "*"), indexStream)

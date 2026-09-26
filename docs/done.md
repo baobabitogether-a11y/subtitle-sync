@@ -34,3 +34,17 @@
 - Made Android builds generate web assets automatically when the bundle is absent.
 - Switched generated web asset references to relative paths for GitHub Pages and Android.
 - Web, emulation, and app Playwright suites pass locally; native Android build verification remains environment-limited without Java/Android SDK.
+
+## Task 7: Fix README and restore functional APK update script and curl command
+
+- Restored comprehensive README.md matching `https://github.com/mostuf2556/Youtubenet6` with the single curl install command and repository badges.
+- Configured `update.apk.sh` with active fallback resolution and package target `com.ytviewer.app`.
+- Added `install-apk.sh` and updated `scripts/update-readme.mjs` to target `mostuf2556/Youtubenet6`.
+- Verified bash syntax and repository synchronization.
+
+## Task 8: Fix Android APK blank screen issue
+
+- Updated `MainActivity.kt` remote fallback APP_URL to `https://mostuf2556.github.io/Youtubenet6/app/`.
+- Fixed asset path normalization in `MainActivity.kt` to strip leading `/` and `./` before `assets.open()`, preventing `FileNotFoundException`.
+- Enhanced `scripts/normalize-web-assets.mjs` to rewrite all script preloads, tags, and dynamic module imports into relative `./assets/` paths.
+- Verified that `build:android-assets` packages fully normalized web assets into `android-shell/app/src/main/assets/`.
