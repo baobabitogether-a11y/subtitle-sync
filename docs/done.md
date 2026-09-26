@@ -27,3 +27,10 @@
 - Added `docker/manage.sh` for building and running web, emulation, or all E2E suites.
 - Mounted Docker test reports into `docker/artifacts/` and connected the GitHub Actions web job to the Docker runner.
 - Local container execution remains environment-limited because the Docker daemon is unavailable in this sandbox.
+
+## Task 6: Fix CI dependency installation and Android startup
+
+- Updated the Playwright Docker image install to work with its newer npm version.
+- Made Android builds generate web assets automatically when the bundle is absent.
+- Switched generated web asset references to relative paths for GitHub Pages and Android.
+- Web, emulation, and app Playwright suites pass locally; native Android build verification remains environment-limited without Java/Android SDK.
