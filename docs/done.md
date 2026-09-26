@@ -8,7 +8,7 @@
 
 ## Task 2: Import and verify the GitHub Actions delivery flows
 
-- Confirmed the six workflows from `mostuf2556/Youtubenet6` are present locally.
+- Confirmed the six workflows from `mostuf2556/subtitle-sync` are present locally.
 - Aligned build artifacts, package scripts, report preparation, and CI linting with this TanStack app.
 - Lint, build, and static report-integrity checks passed.
 - Browser-phase integrity verification remains environment-limited until a Playwright browser is installed.
@@ -37,14 +37,21 @@
 
 ## Task 7: Fix README and restore functional APK update script and curl command
 
-- Restored comprehensive README.md matching `https://github.com/mostuf2556/Youtubenet6` with the single curl install command and repository badges.
+- Restored comprehensive README.md matching `https://github.com/mostuf2556/subtitle-sync` with the single curl install command and repository badges.
 - Configured `update.apk.sh` with active fallback resolution and package target `com.ytviewer.app`.
-- Added `install-apk.sh` and updated `scripts/update-readme.mjs` to target `mostuf2556/Youtubenet6`.
+- Added `install-apk.sh` and updated `scripts/update-readme.mjs` to target `mostuf2556/subtitle-sync`.
 - Verified bash syntax and repository synchronization.
 
 ## Task 8: Fix Android APK blank screen issue
 
-- Updated `MainActivity.kt` remote fallback APP_URL to `https://mostuf2556.github.io/Youtubenet6/app/`.
+- Updated `MainActivity.kt` remote fallback APP_URL to `https://mostuf2556.github.io/subtitle-sync/app/`.
 - Fixed asset path normalization in `MainActivity.kt` to strip leading `/` and `./` before `assets.open()`, preventing `FileNotFoundException`.
 - Enhanced `scripts/normalize-web-assets.mjs` to rewrite all script preloads, tags, and dynamic module imports into relative `./assets/` paths.
 - Verified that `build:android-assets` packages fully normalized web assets into `android-shell/app/src/main/assets/`.
+
+## Task 9: Replace youtubenet6 with subtitle-sync across the application
+
+- Replaced all occurrences of `youtubenet6` with `subtitle-sync` across `MainActivity.kt`, `src/utils/apkUpdater.ts`, `README.md`, `update.apk.sh`, `install-apk.sh`, `scripts/update-readme.mjs`, and `scripts/verify-ota-updater.ts`.
+- Verified that `verify-ota-updater` (19/19 passed), `verify-md-links`, `verify-caption-formats`, and `verify-reports-integrity` all pass with zero errors.
+- Verified clean compilation and linting.
+

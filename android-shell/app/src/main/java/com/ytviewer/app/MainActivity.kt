@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         private const val TAG = "YT_CAPTION_INTERCEPTOR"
         // Used only when an APK is launched without bundled web assets.
         // The normal Android build creates the local bundle automatically.
-        private const val APP_URL = "https://mostuf2556.github.io/Youtubenet6/app/"
+        private const val APP_URL = "https://mostuf2556.github.io/subtitle-sync/app/"
     }
 
     @SuppressLint("SetJavaScriptEnabled")

@@ -77,17 +77,17 @@ async function runOtaUpdaterVerification() {
       name: 'YouTube Viewer v1.0.25',
       published_at: new Date().toISOString(),
       body: 'Latest OTA release artifact update',
-      html_url: 'https://github.com/mostuf2556/youtubenet6/releases/tag/v1.0.25',
+      html_url: 'https://github.com/mostuf2556/subtitle-sync/releases/tag/v1.0.25',
       assets: [
         {
           name: 'web-dist.zip',
           size: 5242880,
-          browser_download_url: 'https://github.com/mostuf2556/youtubenet6/releases/download/v1.0.25/web-dist.zip',
+          browser_download_url: 'https://github.com/mostuf2556/subtitle-sync/releases/download/v1.0.25/web-dist.zip',
         },
         {
           name: 'YouTube-Viewer-debug.apk',
           size: 15728640,
-          browser_download_url: 'https://github.com/mostuf2556/youtubenet6/releases/download/v1.0.25/YouTube-Viewer-debug.apk',
+          browser_download_url: 'https://github.com/mostuf2556/subtitle-sync/releases/download/v1.0.25/YouTube-Viewer-debug.apk',
         },
       ],
     },

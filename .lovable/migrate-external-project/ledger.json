@@ -2,7 +2,7 @@
   "capabilities": [
     {
       "capability": "Current web views in Android",
-      "source": "Youtubenet6 Android WebView bundle",
+      "source": "subtitle-sync Android WebView bundle",
       "outcome": "migrate",
       "status": "pending",
       "next_action": "Package the current prerendered interface into Android assets"

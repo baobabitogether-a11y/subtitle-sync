@@ -15,7 +15,7 @@ export MSYS_NO_PATHCONV=1
 export MSYS2_ARG_CONV_EXCL="*"
 
 REPO_OWNER="mostuf2556"
-REPO_NAME="Youtubenet6"
+REPO_NAME="subtitle-sync"
 ALT_REPO_OWNER="mostuf25561"
 ALT_REPO_NAME="youtubenet3"
 FALLBACK_REPO_OWNER="baobabitogether-a11y"

@@ -9,8 +9,8 @@
 
 set -uo pipefail
 
-REPO_OWNER="baobabitogether-a11y"
-REPO_NAME="youtubenet"
+REPO_OWNER="mostuf2556"
+REPO_NAME="subtitle-sync"
 VERSION="${1:-v1.0.9}"
 APK_NAME="YouTube-Viewer-debug.apk"
 PACKAGE_NAME="com.ytviewer.app"
