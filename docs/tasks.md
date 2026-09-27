@@ -1,5 +1,13 @@
 # Tasks
 
+## Task 17: Restore default language subtitle fetching and favorite languages `tlang` replacement on Android
+
+- [ ] **Subtask 17.1: Restore default language subtitle fetching and favorite languages `tlang` replacement on Android**: When observing the network request for default subtitles, ensure the default language track is preserved/fetched without an invalid `tlang`, and replace `tlang` with each favorite language's code to fetch all favorite languages as implemented in `mostuf2556/Youtubenet6`. Add dedicated tests, commit before execution, test, and verify.
+
+## Task 18: Fix SSR-Client hydration mismatch in `targetLanguages`
+
+- [x] **Subtask 18.1: Synchronize SSR and Client initial render for `targetLanguages` and dynamic client-only state**: Ensure initial server rendering and client hydration pass share the deterministic default state without accessing client-only localStorage before mount, deferring localStorage synchronization to post-hydration. Add dedicated regression test, commit before execution, test, and verify.
+
 ## Task 16: Align favorite languages, TTS settings, video reset, multi-track audio mode, and auto-scroll default with mostuf2556/Youtubenet6
 
 - [x] **Subtask 16.1: Favorite languages and main screen controls**: Expose favorite/desired languages selector on web demo (fixture tracks) and Android (catalog with `tlang` fetching). On the main screen, present only favorite languages for show/hide, speech toggles, ordering, and per-language TTS speech rate and voice selection.

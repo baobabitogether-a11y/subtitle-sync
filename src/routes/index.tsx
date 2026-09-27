@@ -223,17 +223,7 @@ function Index() {
   const [strategy, setStrategy] = useState<Strategy>("sentence");
   const [shown, setShown] = useState<string[]>(["en", "he", "it"]);
   const [spoken, setSpoken] = useState<string[]>(["en", "it"]);
-  const [targetLanguages, setTargetLanguages] = useState<string[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = getUserLearningLanguages();
-      if (saved && saved.length > 0) return saved;
-    }
-    const isAndroidEnv =
-      typeof window !== "undefined" &&
-      (Boolean(nativeShell()) ||
-        new URLSearchParams(window.location.search).get("android") === "true");
-    return isAndroidEnv ? ["he", "it"] : LANGS.map((l) => l.code);
-  });
+  const [targetLanguages, setTargetLanguages] = useState<string[]>(() => LANGS.map((l) => l.code));
 
   const handleTargetLanguagesChange = (newTargetLangs: string[]) => {
     setTargetLanguages(newTargetLangs);
@@ -250,12 +240,12 @@ function Index() {
   const themeWasSelectedRef = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [pauseMode, setPauseMode] = useState(true);
-  const [audioTrackMode, setAudioTrackModeState] = useState(() => getAudioTrackMode());
+  const [audioTrackMode, setAudioTrackModeState] = useState(false);
   const onAudioTrackModeChange = (enabled: boolean) => {
     setAudioTrackModeState(enabled);
     setAudioTrackMode(enabled);
   };
-  const [autoFocus, setAutoFocusState] = useState(() => getAutoScrollSetting());
+  const [autoFocus, setAutoFocusState] = useState(false);
   const onAutoFocusChange = (enabled: boolean) => {
     setAutoFocusState(enabled);
     setAutoScrollSetting(enabled);
@@ -388,6 +378,18 @@ function Index() {
 
   useEffect(() => {
     setIsHydrated(true);
+    // Sync client-persisted preferences post-hydration to eliminate SSR mismatches
+    const savedLangs = getUserLearningLanguages();
+    if (savedLangs && savedLangs.length > 0) {
+      setTargetLanguages(savedLangs);
+    } else if (
+      Boolean(nativeShell()) ||
+      new URLSearchParams(window.location.search).get("android") === "true"
+    ) {
+      setTargetLanguages(["he", "it"]);
+    }
+    setAudioTrackModeState(getAudioTrackMode());
+    setAutoFocusState(getAutoScrollSetting());
   }, []);
 
   useEffect(() => {
@@ -855,13 +857,14 @@ function Index() {
                       <label htmlFor="target-language-select" className="font-medium text-sm">
                         Favorite languages
                       </label>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                         {targetLanguages.length} selected
                       </span>
                     </div>
                     <select
                       id="target-language-select"
                       aria-label="Target languages"
+                      suppressHydrationWarning
                       multiple
                       size={
                         isAndroid ? Math.min(SUPPORTED_LANGUAGES_CATALOG.length, 6) : LANGS.length

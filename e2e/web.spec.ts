@@ -66,4 +66,30 @@ test.describe("Parallel Subtitles web app", () => {
     await page.locator("#auto-scroll-toggle").uncheck();
     await expect(page.locator("#auto-scroll-toggle")).not.toBeChecked();
   });
+
+  test("does not produce React hydration mismatch on the Languages panel or initial state", async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await page.goto("./");
+    await expect(page.locator('header[data-app-hydrated="true"]')).toBeVisible();
+
+    const hydrationErrors = consoleErrors.filter((msg) =>
+      msg.toLowerCase().includes("hydration") ||
+      msg.toLowerCase().includes("server rendered text") ||
+      msg.toLowerCase().includes("did not match") ||
+      msg.toLowerCase().includes("react error #418") ||
+      msg.toLowerCase().includes("react error #423")
+    );
+
+    expect(hydrationErrors).toEqual([]);
+
+    const languagesPanel = page.locator("details").filter({ hasText: "Languages" });
+    await expect(languagesPanel).toBeVisible();
+    await expect(languagesPanel.locator("#target-language-select")).toBeVisible();
+  });
 });
