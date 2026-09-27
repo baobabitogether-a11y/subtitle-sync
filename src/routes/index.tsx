@@ -19,13 +19,18 @@ import {
   parseVideoId,
   timedTextVideoId,
 } from "@/lib/native-captions";
+import {
+  SUPPORTED_LANGUAGES_CATALOG,
+  getUserLearningLanguages,
+  setUserLearningLanguages,
+} from "@/utils/appSettings";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Parallel Subtitles — learn languages from video" },
+      { title: "Parallel Subtitles" },
       {
         name: "description",
         content:
@@ -34,7 +39,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Parallel Subtitles" },
       {
         property: "og:description",
-        content: "Sentence-aligned multilingual subtitles with pause-and-speak playback.",
+        content:
+          "Align json3 subtitles into parallel sentences and hear each language spoken between video sections.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -178,8 +184,25 @@ function speak(
   });
 }
 
+function getLanguageMeta(code: string): { code: string; name: string; tts: string } {
+  const fromLangs = LANGS.find((l) => l.code === code);
+  if (fromLangs) return fromLangs;
+  const fromCatalog = SUPPORTED_LANGUAGES_CATALOG.find((l) => l.code === code);
+  if (fromCatalog) {
+    const tts = code.includes("-") ? code : `${code}-${code.toUpperCase()}`;
+    return { code, name: fromCatalog.name, tts };
+  }
+  return { code, name: code.toUpperCase(), tts: code };
+}
+
 function Index() {
-  const [isAndroid, setIsAndroid] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      Boolean(nativeShell()) ||
+      new URLSearchParams(window.location.search).get("android") === "true"
+    );
+  });
   const [videoId, setVideoId] = useState(DEMO_VIDEO);
   const [videoInput, setVideoInput] = useState("");
   const [captionStatus, setCaptionStatus] = useState("");
@@ -189,7 +212,19 @@ function Index() {
   const [strategy, setStrategy] = useState<Strategy>("sentence");
   const [shown, setShown] = useState<string[]>(["en", "he", "it"]);
   const [spoken, setSpoken] = useState<string[]>(["en", "it"]);
-  const [targetLanguages, setTargetLanguages] = useState<string[]>(["he", "it"]);
+  const [targetLanguages, setTargetLanguages] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = getUserLearningLanguages();
+      if (saved && saved.length > 0) return saved;
+    }
+    return ["he", "it"];
+  });
+
+  const handleTargetLanguagesChange = (newTargetLangs: string[]) => {
+    setTargetLanguages(newTargetLangs);
+    setUserLearningLanguages(newTargetLangs);
+    setShown((prev) => Array.from(new Set([...prev, ...newTargetLangs])));
+  };
   const [languageOrder, setLanguageOrder] = useState(() => LANGS.map((lang) => lang.code));
   const [rates, setRates] = useState<Record<string, number>>(() =>
     Object.fromEntries(LANGS.map((lang) => [lang.code, 1])),
@@ -253,8 +288,7 @@ function Index() {
         new URL(payload.url).searchParams.get("tlang") ??
         new URL(payload.url).searchParams.get("lang");
       const json = parseJson3(payload.rawData);
-      if (lang && json && LANGS.some((l) => l.code === lang))
-        setTracks((prev) => ({ ...prev, [lang]: json }));
+      if (lang && json) setTracks((prev) => ({ ...prev, [lang]: json }));
     };
     return () => {
       delete window.onNativeCaptionsInterceptedBase64;
@@ -281,12 +315,16 @@ function Index() {
         }
       }
       if (!cancelled) {
-        setTracks((previous) => ({ ...previous, ...next }));
-        setCaptionStatus(
-          Object.keys(next).length
-            ? `${Object.keys(next).length} live language tracks loaded.`
-            : "No live captions returned. Enable captions on the video or try another video.",
-        );
+        setTracks((previous) => {
+          const merged = { ...previous, ...next };
+          const count = Object.keys(merged).length;
+          setCaptionStatus(
+            count
+              ? `${count} live language tracks loaded.`
+              : "No live captions returned. Enable captions on the video or try another video.",
+          );
+          return merged;
+        });
       }
     };
     setCaptionStatus("Fetching live subtitles for selected languages…");
@@ -365,10 +403,33 @@ function Index() {
     [tracks, pivot, strategy],
   );
 
+  const activeCatalog = useMemo(() => {
+    if (!isAndroid) return LANGS;
+    const activeCodes = new Set([
+      ...targetLanguages,
+      ...shown,
+      ...spoken,
+      pivot,
+      ...(tracks ? Object.keys(tracks) : []),
+    ]);
+    return Array.from(activeCodes).map(getLanguageMeta);
+  }, [isAndroid, targetLanguages, shown, spoken, pivot, tracks]);
+
+  useEffect(() => {
+    if (!isAndroid) return;
+    setLanguageOrder((prev) => {
+      const existing = new Set(prev);
+      const toAdd = activeCatalog.map((l) => l.code).filter((c) => !existing.has(c));
+      return toAdd.length ? [...prev, ...toAdd] : prev;
+    });
+  }, [isAndroid, activeCatalog]);
+
   // Keep latest values for the polling loop.
-  const orderedLangs = languageOrder
-    .map((code) => LANGS.find((lang) => lang.code === code))
-    .filter((lang): lang is (typeof LANGS)[number] => Boolean(lang));
+  const orderedLangs = useMemo(() => {
+    return languageOrder
+      .map((code) => activeCatalog.find((lang) => lang.code === code))
+      .filter((lang): lang is { code: string; name: string; tts: string } => Boolean(lang));
+  }, [languageOrder, activeCatalog]);
   const st = useRef({ rows, spoken, rates, voiceSelections, pauseMode, orderedLangs });
   st.current = { rows, spoken, rates, voiceSelections, pauseMode, orderedLangs };
 
@@ -656,7 +717,7 @@ function Index() {
                       onChange={(e) => setPivot(e.target.value)}
                       className="rounded-md border border-input bg-background px-2 py-1"
                     >
-                      {LANGS.map((l) => (
+                      {activeCatalog.map((l) => (
                         <option key={l.code} value={l.code}>
                           {l.name}
                         </option>
@@ -668,37 +729,50 @@ function Index() {
 
               {panelId === "languages" && (
                 <>
-                  <div className="mb-4 space-y-2 border-b border-border pb-4">
-                    <label htmlFor="target-language-select" className="font-medium">
-                      Target languages
-                    </label>
-                    <select
-                      id="target-language-select"
-                      aria-label="Target languages"
-                      multiple
-                      size={Math.min(LANGS.length, 6)}
-                      value={targetLanguages}
-                      onChange={(event) => {
-                        const next = Array.from(
-                          event.target.selectedOptions,
-                          (option) => option.value,
-                        );
-                        setTargetLanguages(next);
-                        setShown(next);
-                      }}
-                      className="w-full rounded-md border border-input bg-background px-2 py-1.5"
-                    >
-                      {LANGS.map((lang) => (
-                        <option key={lang.code} value={lang.code}>
-                          {lang.name}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-muted-foreground">
-                      Select one or more languages. Android fetches each selected translation track
-                      from the observed YouTube captions request.
-                    </p>
-                  </div>
+                  {isAndroid ? (
+                    <div className="mb-4 space-y-2 border-b border-border pb-4">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="target-language-select" className="font-medium text-sm">
+                          Learning languages
+                        </label>
+                        <span className="text-xs text-muted-foreground">
+                          {targetLanguages.length} selected
+                        </span>
+                      </div>
+                      <select
+                        id="target-language-select"
+                        aria-label="Target languages"
+                        multiple
+                        size={Math.min(SUPPORTED_LANGUAGES_CATALOG.length, 6)}
+                        value={targetLanguages}
+                        onChange={(event) => {
+                          const next = Array.from(
+                            event.target.selectedOptions,
+                            (option) => option.value,
+                          );
+                          handleTargetLanguagesChange(next);
+                        }}
+                        className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                      >
+                        {SUPPORTED_LANGUAGES_CATALOG.map((lang) => (
+                          <option key={lang.code} value={lang.code}>
+                            {lang.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        Select desired languages to learn from all 84 supported languages. Android
+                        fetches each translation track via tlang.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mb-4 flex items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      <span>Fixture demo mode: constant target languages &amp; subtitles</span>
+                      <span className="font-medium uppercase tracking-wider">
+                        {LANGS.length} languages
+                      </span>
+                    </div>
+                  )}
                   <table className="w-full">
                     <thead>
                       <tr className="text-xs text-muted-foreground">

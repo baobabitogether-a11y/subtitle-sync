@@ -14,6 +14,7 @@
 ## Work tracking
 
 - Break every new prompt into clear tasks and smaller subtasks in `docs/tasks.md`.
+- Always confirm before updating `docs/tasks.md`.
 - Always confirm before updating `docs/todo.md`.
 - For each task, describe the active work in `docs/todo.md`.
 - Commit the task's changes before testing them.

@@ -4,5 +4,7 @@ test("app smoke test renders the subtitle workspace", async ({ page }) => {
   await page.goto("./");
   await expect(page).toHaveTitle(/Parallel Subtitles/i);
   await expect(page.getByRole("heading", { name: "Parallel Subtitles", exact: true })).toBeVisible();
-  await expect(page.locator("#target-language-select")).toHaveValues(["he", "it"]);
+  const languagesPanel = page.locator("details").filter({ hasText: "Languages" });
+  await expect(languagesPanel).toBeVisible();
+  await expect(languagesPanel.locator("table tbody tr")).toHaveCount(6);
 });

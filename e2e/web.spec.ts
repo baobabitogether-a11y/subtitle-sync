@@ -7,21 +7,16 @@ test.describe("Parallel Subtitles web app", () => {
     await expect(page.locator('header[data-app-hydrated="true"]')).toBeVisible();
   });
 
-  test("loads fixture subtitles and exposes the dynamic target-language list", async ({ page }) => {
-    const targetLanguages = page.locator("#target-language-select");
-    await expect(targetLanguages).toBeVisible();
-
-    const optionValues = await targetLanguages.locator("option").evaluateAll((options) =>
-      options.map((option) => (option as HTMLOptionElement).value),
-    );
-    expect(optionValues).toEqual(expect.arrayContaining(["en", "he", "ar", "it", "es", "ru"]));
-
+  test("loads fixture subtitles with constant target-language tracks", async ({ page }) => {
     const subtitleTable = page.locator("details").filter({ hasText: "Parallel subtitles" });
     await expect(subtitleTable.locator("tbody tr").first()).toBeVisible();
 
-    await targetLanguages.selectOption(["es"]);
-    await expect(targetLanguages).toHaveValues(["es"]);
-    await expect(subtitleTable.locator("thead")).toContainText("Spanish");
+    const languagesPanel = page.locator("details").filter({ hasText: "Languages" });
+    await expect(languagesPanel.locator("table")).toBeVisible();
+    await expect(languagesPanel.locator("table tbody tr")).toHaveCount(6);
+
+    // On web-app, target languages and subtitles are fixtures and constants; no live Android selector
+    await expect(page.locator("#target-language-select")).toHaveCount(0);
   });
 
   test("switches themes without losing the language controls", async ({ page }) => {
@@ -30,7 +25,7 @@ test.describe("Parallel Subtitles web app", () => {
 
     await darkButton.click();
     await expect(darkButton).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("#target-language-select")).toBeVisible();
+    await expect(page.locator("details").filter({ hasText: "Languages" })).toBeVisible();
 
     await themeControls.getByRole("button", { name: "light", exact: true }).click();
     await expect(page.locator("html")).not.toHaveClass(/dark/);
