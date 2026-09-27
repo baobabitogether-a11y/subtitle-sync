@@ -126,6 +126,21 @@
 - Added dedicated test suite `scripts/verify-audio-track-mode.ts` (`npm run test:audio-track`) and dedicated Playwright test in `e2e/web.spec.ts`.
 - Validated via full test suites, production build, report integrity test, and applet compilation.
 
+### Subtask 16.4: Disable auto-focus and scroll by default
+- Changed auto-focus and auto-scroll state (`autoFocus` / `autoScroll`) to default to `false` (OFF).
+- Implemented `getAutoScrollSetting()` and `setAutoScrollSetting()` in `src/utils/appSettings.ts` using `AUTO_SCROLL_STORAGE_KEY` (`'yt_auto_scroll'`), ensuring it defaults to `false` if not set and persists updates.
+- Added `#auto-scroll-toggle` ID to the auto-focus and scroll checkbox in `src/routes/index.tsx` and connected it to `onAutoFocusChange`.
+- Created dedicated test suite `scripts/verify-auto-scroll.ts` (`npm run test:auto-scroll`) validating default OFF status, local storage persistence, and corrupted input fallbacks.
+- Added dedicated Playwright test in `e2e/web.spec.ts` (`"toggles auto-focus and scroll and verifies default is OFF"`).
+- Documented in `docs/files.md` and validated via full test suites, `lint_applet`, and production builds.
+
+### Subtask 16.5: E2E testing & verification
+- Updated and unified test suites (`e2e/web.spec.ts`, `e2e/app.spec.ts`, `e2e/emulation.spec.ts`, `cypress/e2e/web.cy.ts`).
+- Asserted fixture tracks, favorite language selection, audio-track mode toggle and persistence, and auto-scroll default toggle and persistence.
+- Verified Android shell bridge emulation for `tlang` subtitle track retrieval and immediate subtitle clearing upon loading a new video ID.
+- Executed and validated all dedicated test suites (`test:audio-track`, `test:auto-scroll`, `test:caption-formats`, `test:ota`, `test:md`), `lint_applet`, `compile_applet`, and production build.
+- Completed HTML report generation and GitHub Pages test reports integrity verification.
+
 
 
 
