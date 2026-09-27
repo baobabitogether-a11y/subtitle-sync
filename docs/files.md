@@ -53,13 +53,14 @@ This document maintains the registry of codebase files, their specific roles, ar
 
 | File Path | Role | Feature & Responsibilities |
 |---|---|---|
-| `e2e/web.spec.ts` | Playwright Web Test | Tests web demo fixture loading, theme toggling, and favorite language controls. |
+| `e2e/web.spec.ts` | Playwright Web Test | Tests web demo fixture loading, theme toggling, favorite language controls, and SSR hydration consistency. |
 | `e2e/app.spec.ts` | Playwright App Smoke Test | Verifies core UI rendering and table layout integrity. |
 | `e2e/emulation.spec.ts` | Android Native Shell Emulation Test | Simulates Android bridge timedtext interception and `tlang` subtitle track retrieval. |
 | `scripts/verify-caption-formats.ts` | Caption Format Verification | Asserts valid JSON3 structure across all repository subtitle fixtures. |
 | `scripts/verify-ota-updater.ts` | OTA Updater Test Suite | Tests version comparison, GitHub release artifact resolution, and bundle application. |
 | `scripts/verify-audio-track-mode.ts` | Audio-Track Repeat Mode Test Suite | Validates default OFF state, preference persistence, audio track matching, and repeat pipeline. |
 | `scripts/verify-auto-scroll.ts` | Auto-Scroll Setting Test Suite | Validates default OFF state, storage persistence, and safe fallback handling. |
+| `scripts/verify-hydration.ts` | SSR Hydration Determinism Test | Validates deterministic default language state consistency. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
 | `scripts/verify-reports-integrity.mjs` | Test Report Integrity Validator | Asserts presence and integrity of browsable HTML test reports and media assets. |
 | `scripts/prepare-report.mjs` | Report Bundle Generator | Assembles unified Cypress, Playwright, and Android emulator HTML report artifacts. |

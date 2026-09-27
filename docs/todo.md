@@ -1,10 +1,12 @@
-# Current task
+# Active Sub-task
 
-All subtasks for **Task 16: Align favorite languages, TTS settings, video reset, multi-track audio mode, and auto-scroll default with mostuf2556/Youtubenet6** have been successfully executed, tested, committed, and verified.
+## Subtask 18.1: Synchronize SSR and Client initial render for `targetLanguages` and dynamic client-only state
 
-## Completed in Task 16:
-- [x] Subtask 16.1: Favorite languages and main screen controls
-- [x] Subtask 16.2: Clear columns on new video on Android
-- [x] Subtask 16.3: YouTube multi-audio track repeat mode
-- [x] Subtask 16.4: Disable auto-focus and scroll by default
-- [x] Subtask 16.5: E2E testing & verification
+- **Goal**: Prevent hydration mismatch error between server render and client mount in `src/routes/index.tsx`.
+- **Implementation**:
+  - Keep `targetLanguages` initialized to deterministic default during SSR and initial client render without reading differing `localStorage` values during the synchronous render pass.
+  - Sync stored user learning languages from `getUserLearningLanguages()` in a `useEffect` on mount.
+  - Also ensure other client-stored states (like `autoScroll`, `audioTrackMode`, etc.) avoid hydration discrepancies or suppress hydration warnings on dynamic badge/count elements where appropriate.
+  - Add dedicated regression test covering SSR vs client initial language state consistency.
+  - Commit changes and tests before running verification.
+  - Execute tests and verify clean build and lint.
