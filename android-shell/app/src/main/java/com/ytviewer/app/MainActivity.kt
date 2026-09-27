@@ -203,6 +203,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 return super.shouldInterceptRequest(view, request)
             }
 
+            override fun shouldOverrideUrlLoading(
+                view: WebView?,
+                request: WebResourceRequest?
+            ): Boolean {
+                val uri = request?.url ?: return false
+                val host = uri.host ?: ""
+                // Keep internal app assets and fallback host in WebView
+                if (host == "appassets.androidplatform.net" || host.contains("github.io")) {
+                    return false
+                }
+                // Allow YouTube player domains to load embedded inside WebView
+                if (host.contains("youtube.com") || host.contains("googlevideo.com") || host.contains("ytimg.com")) {
+                    return false
+                }
+                // For other links, open external browser
+                return try {
+                    val browserIntent = Intent(Intent.ACTION_VIEW, uri)
+                    startActivity(browserIntent)
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+            }
+
             override fun onReceivedError(
                 view: WebView?,
                 request: WebResourceRequest?,
@@ -242,8 +266,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         if (hasBundledAssets) {
-            Log.i(TAG, "Loading bundled offline web assets from appassets.androidplatform.net/index.html$querySuffix")
-            webView.loadUrl("https://appassets.androidplatform.net/index.html$querySuffix")
+            Log.i(TAG, "Loading bundled offline web assets from appassets.androidplatform.net/$querySuffix")
+            webView.loadUrl("https://appassets.androidplatform.net/$querySuffix")
         } else {
             Log.i(TAG, "Loading remote web URL: $APP_URL$querySuffix")
             webView.loadUrl("$APP_URL$querySuffix")
@@ -275,7 +299,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
             val querySuffix = "?url=" + android.net.Uri.encode(sharedText)
             if (hasBundledAssets) {
-                webView.loadUrl("https://appassets.androidplatform.net/index.html$querySuffix")
+                webView.loadUrl("https://appassets.androidplatform.net/$querySuffix")
             } else {
                 webView.loadUrl("$APP_URL$querySuffix")
             }

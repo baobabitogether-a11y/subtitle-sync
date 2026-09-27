@@ -287,7 +287,21 @@ const appDestDir = path.join(reportsDir, 'app');
 if (fs.existsSync(distDir)) {
   fs.rmSync(appDestDir, { recursive: true, force: true });
   fs.cpSync(distDir, appDestDir, { recursive: true });
-  console.log('Copied built web application to cypress/reports/app');
+  const appIndexHtml = path.join(appDestDir, 'index.html');
+  if (fs.existsSync(appIndexHtml)) {
+    let html = fs.readFileSync(appIndexHtml, 'utf8');
+    html = html
+      .replaceAll('="/./assets/', '="./assets/')
+      .replaceAll('="/assets/', '="./assets/')
+      .replaceAll('"/./assets/', '"./assets/')
+      .replaceAll('"/assets/', '"./assets/')
+      .replaceAll("'/./assets/", "'./assets/")
+      .replaceAll("'/assets/", "'./assets/")
+      .replaceAll('="/favicon.ico"', '="./favicon.ico"')
+      .replaceAll('"/favicon.ico"', '"./favicon.ico"');
+    fs.writeFileSync(appIndexHtml, html);
+  }
+  console.log('Copied and normalized built web application to cypress/reports/app');
 }
 
 // 4c. Copy built mini demo into cypress/reports/demo

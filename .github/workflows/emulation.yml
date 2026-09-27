@@ -39,11 +39,19 @@ jobs:
           node-version: 22
 
       - name: Normalize package registry URLs
-        run: sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+        run: |
+          if [ -f package-lock.json ]; then
+            sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+          fi
 
       - name: Install Web Dependencies for Native Bridge E2E
         timeout-minutes: 3
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Install Chromium for Native Bridge E2E
         timeout-minutes: 3
@@ -95,12 +103,20 @@ jobs:
 
       - name: Normalize package registry URLs (Fallback)
         if: steps.stage_apk.outputs.have_apk != 'true'
-        run: sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+        run: |
+          if [ -f package-lock.json ]; then
+            sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+          fi
 
       - name: Install Web Dependencies (Fallback)
         if: steps.stage_apk.outputs.have_apk != 'true'
         timeout-minutes: 3
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Build Web Application (Fallback)
         if: steps.stage_apk.outputs.have_apk != 'true'

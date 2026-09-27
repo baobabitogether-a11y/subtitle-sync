@@ -72,6 +72,30 @@ const PANELS: { id: PanelId; title: string }[] = [
   { id: "subtitles", title: "Parallel subtitles" },
 ];
 
+function cancelSpeech() {
+  if (typeof window !== "undefined" && window.AndroidNativeShell?.stopSpeaking) {
+    try {
+      window.AndroidNativeShell.stopSpeaking();
+    } catch {}
+  }
+  if (typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis?.cancel) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch {}
+  }
+}
+
+const getFixturesUrl = (video: string, lang: string) => {
+  if (typeof window !== "undefined") {
+    const pathname = window.location.pathname;
+    const appMatch = pathname.match(/^(.*\/app)(?:\/|$)/);
+    if (appMatch) {
+      return `${appMatch[1]}/fixtures/${video}/${lang}.json`;
+    }
+  }
+  return `/fixtures/${video}/${lang}.json`;
+};
+
 function speak(
   text: string,
   lang: string,
@@ -82,30 +106,63 @@ function speak(
 ) {
   return new Promise<void>((res) => {
     if (!text) return res();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang;
-    u.rate = rate;
-    const voices = speechSynthesis.getVoices();
-    const v =
-      voices.find((x) => x.voiceURI === voiceURI) ??
-      voices.find((x) => x.lang.replace("_", "-").startsWith(lang.slice(0, 2)));
-    if (v) u.voice = v;
-    u.onboundary = (event) => {
-      if (event.name !== "word") return;
-      const remainder = text.slice(event.charIndex);
-      const wordLength = event.charLength || remainder.match(/^\S+/)?.[0].length || 1;
-      onProgress({
-        lang: lang.slice(0, 2),
-        row,
-        start: event.charIndex,
-        end: event.charIndex + wordLength,
-      });
-    };
-    u.onend = u.onerror = () => {
+
+    if (typeof window !== "undefined" && window.AndroidNativeShell?.speak) {
+      try {
+        const handled = window.AndroidNativeShell.speak(text, lang, rate);
+        if (handled) {
+          onProgress({
+            lang: lang.slice(0, 2),
+            row,
+            start: 0,
+            end: text.length,
+          });
+          const estDurationMs = Math.max(800, (text.length / 10) * (1000 / (rate || 1)));
+          setTimeout(() => {
+            onProgress(null);
+            res();
+          }, estDurationMs);
+          return;
+        }
+      } catch (e) {
+        console.warn("Android native TTS bridge failed, falling back to Web Speech", e);
+      }
+    }
+
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || !window.speechSynthesis) {
+      return res();
+    }
+
+    try {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang;
+      u.rate = rate;
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const v =
+        voices.find((x) => x.voiceURI === voiceURI) ??
+        voices.find((x) => x.lang?.replace("_", "-").startsWith(lang.slice(0, 2)));
+      if (v) u.voice = v;
+      u.onboundary = (event) => {
+        if (event.name !== "word") return;
+        const remainder = text.slice(event.charIndex);
+        const wordLength = event.charLength || remainder.match(/^\S+/)?.[0].length || 1;
+        onProgress({
+          lang: lang.slice(0, 2),
+          row,
+          start: event.charIndex,
+          end: event.charIndex + wordLength,
+        });
+      };
+      u.onend = u.onerror = () => {
+        onProgress(null);
+        res();
+      };
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      console.warn("Speech synthesis error:", e);
       onProgress(null);
       res();
-    };
-    speechSynthesis.speak(u);
+    }
   });
 }
 
@@ -244,17 +301,30 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    const refreshVoices = () => setVoices(window.speechSynthesis.getVoices());
+    if (typeof window === "undefined" || !("speechSynthesis" in window) || !window.speechSynthesis) {
+      return;
+    }
+    const refreshVoices = () => {
+      try {
+        setVoices(window.speechSynthesis.getVoices());
+      } catch {}
+    };
     refreshVoices();
-    window.speechSynthesis.addEventListener("voiceschanged", refreshVoices);
-    return () => window.speechSynthesis.removeEventListener("voiceschanged", refreshVoices);
+    try {
+      window.speechSynthesis.addEventListener("voiceschanged", refreshVoices);
+      return () => {
+        try {
+          window.speechSynthesis.removeEventListener("voiceschanged", refreshVoices);
+        } catch {}
+      };
+    } catch {}
   }, []);
 
   useEffect(() => {
     if (isAndroid) return;
     Promise.all(
       LANGS.map((l) =>
-        fetch(`/fixtures/${DEMO_VIDEO}/${l.code}.json`)
+        fetch(getFixturesUrl(DEMO_VIDEO, l.code))
           .then((response) => (response.ok ? response.json() : null))
           .then((j) => (j ? ([l.code, j] as const) : null))
           .catch(() => null),
@@ -334,7 +404,7 @@ function Index() {
     }, 150);
     return () => {
       clearInterval(iv);
-      speechSynthesis.cancel();
+      cancelSpeech();
       player.current?.destroy?.();
       player.current = null;
     };
@@ -348,7 +418,7 @@ function Index() {
   }, [active, autoFocus]);
 
   const seek = (r: Row, i: number) => {
-    speechSynthesis.cancel();
+    cancelSpeech();
     busy.current = false;
     lastRow.current = i;
     player.current?.seekTo(r.start / 1000, true);

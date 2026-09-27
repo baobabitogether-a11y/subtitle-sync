@@ -41,11 +41,19 @@ jobs:
           node-version: 22
 
       - name: Normalize package registry URLs
-        run: sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+        run: |
+          if [ -f package-lock.json ]; then
+            sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+          fi
 
       - name: Install Web Dependencies
         timeout-minutes: 3
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Install Playwright Browsers with OS Dependencies
         timeout-minutes: 3

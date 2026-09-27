@@ -13,6 +13,15 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // If an unknown path or static suffix (like index.html) is loaded, redirect to home
+    if (typeof window !== "undefined") {
+      router.navigate({ to: "/" });
+    }
+  }, [router]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
