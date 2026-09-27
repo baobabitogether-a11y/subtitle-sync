@@ -87,4 +87,22 @@
 - Updated `.github/workflows/deploy-demo.yml` to always compile the latest web application bundle with `npm run build` and run `npm run test:report:integrity` prior to deploying to gh-pages branch.
 - Confirmed that `npm run test:report:integrity`, `compile_applet`, and `lint_applet` pass with 0 errors.
 
+## Task 14: Migrate imported repository according to github-import-migration skill
+
+- Audited project structure against `/skills/system_skills/github_import_migration/SKILL.md` and classified runtime as Web (Node.js).
+- Removed redundant foreign lockfile (`bun.lock`) to maintain npm-only consistency.
+- Created `.env.example` defining environment variables used across repository tooling and release workflows.
+- Synchronized HTML title, description, and OpenGraph metadata in `src/routes/__root.tsx` and `src/routes/index.tsx` to match `metadata.json`.
+- Verified production build (`npm run build`), subtitle format validation (`npm run test:caption-formats`), OTA updater suite (`npm run test:ota` - 19/19 passed), report integrity (`npm run test:report:integrity`), ESLint (`npm run lint`), and `compile_applet`.
+
+## Task 15: Separate web-app constant fixtures from Android dynamic learning languages selection via tlang
+
+- Differentiated web-app and Android runtime modes: on the web-app, target languages and subtitles are kept strictly as constant fixtures (`LANGS`), while on Android (`isAndroid`), the learning languages selection UI is exposed.
+- In the Android learning languages view, integrated full language catalog selection (`SUPPORTED_LANGUAGES_CATALOG` with 84 languages) allowing users to configure any learning targets as in `mostuf2556/Youtubenet6`, backed by persistent settings (`getUserLearningLanguages` / `setUserLearningLanguages`).
+- Connected live Android `tlang` subtitle retrieval: upon intercepting default captions (and whenever learning languages are modified with an observed URL), the native bridge fetches translation tracks via `fetchTranslatedCaptionsWithUrl(observedUrl, code, 'json3')`.
+- Aligned E2E specifications across `e2e/web.spec.ts` (verifying constant fixture tracks without live select), `e2e/app.spec.ts`, and `e2e/emulation.spec.ts` (verifying Android bridge tlang calls).
+- Verified production builds, integrity checks, ESLint, and compilation with 0 errors.
+
+
+
 
