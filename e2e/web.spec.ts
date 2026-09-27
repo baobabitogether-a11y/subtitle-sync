@@ -15,8 +15,8 @@ test.describe("Parallel Subtitles web app", () => {
     await expect(languagesPanel.locator("table")).toBeVisible();
     await expect(languagesPanel.locator("table tbody tr")).toHaveCount(6);
 
-    // On web-app, target languages and subtitles are fixtures and constants; no live Android selector
-    await expect(page.locator("#target-language-select")).toHaveCount(0);
+    // On web-app, target/favorite languages selector is exposed and contains fixture tracks
+    await expect(page.locator("#target-language-select")).toBeVisible();
   });
 
   test("switches themes without losing the language controls", async ({ page }) => {
@@ -29,5 +29,41 @@ test.describe("Parallel Subtitles web app", () => {
 
     await themeControls.getByRole("button", { name: "light", exact: true }).click();
     await expect(page.locator("html")).not.toHaveClass(/dark/);
+  });
+
+  test("toggles audio-track mode and verifies default is OFF", async ({ page }) => {
+    const audioTrackToggle = page.locator("#audio-track-mode-toggle");
+    await expect(audioTrackToggle).toBeVisible();
+    await expect(audioTrackToggle).not.toBeChecked();
+
+    // Toggle on
+    await audioTrackToggle.check();
+    await expect(audioTrackToggle).toBeChecked();
+
+    // Reload page and assert persistence
+    await page.reload();
+    await expect(page.locator("#audio-track-mode-toggle")).toBeChecked();
+
+    // Toggle back off
+    await page.locator("#audio-track-mode-toggle").uncheck();
+    await expect(page.locator("#audio-track-mode-toggle")).not.toBeChecked();
+  });
+
+  test("toggles auto-focus and scroll and verifies default is OFF", async ({ page }) => {
+    const autoScrollToggle = page.locator("#auto-scroll-toggle");
+    await expect(autoScrollToggle).toBeVisible();
+    await expect(autoScrollToggle).not.toBeChecked();
+
+    // Toggle on
+    await autoScrollToggle.check();
+    await expect(autoScrollToggle).toBeChecked();
+
+    // Reload page and assert persistence
+    await page.reload();
+    await expect(page.locator("#auto-scroll-toggle")).toBeChecked();
+
+    // Toggle back off
+    await page.locator("#auto-scroll-toggle").uncheck();
+    await expect(page.locator("#auto-scroll-toggle")).not.toBeChecked();
   });
 });

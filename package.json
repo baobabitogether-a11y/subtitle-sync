@@ -27,6 +27,8 @@
     "test:md": "tsx scripts/verify-md-links.ts",
     "test:caption-formats": "tsx scripts/verify-caption-formats.ts",
     "test:ota": "tsx scripts/verify-ota-updater.ts",
+    "test:audio-track": "tsx scripts/verify-audio-track-mode.ts",
+    "test:auto-scroll": "tsx scripts/verify-auto-scroll.ts",
     "test:android": "bash scripts/run-android-e2e.sh",
     "test:android:report": "node scripts/generate-android-report.mjs",
     "test:report:integrity": "node scripts/verify-reports-integrity.mjs"

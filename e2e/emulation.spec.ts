@@ -91,4 +91,49 @@ test.describe("Android native subtitle emulation", () => {
     );
     await expect(page.getByRole("status")).toContainText("live language tracks loaded");
   });
+
+  test("clears existing subtitle tracks and columns when loading a new video on Android", async ({
+    page,
+  }) => {
+    // 1. Wait for default subtitles to load
+    await expect(page.getByRole("status")).toContainText("live language tracks loaded");
+    const subtitleTable = page.locator("details").filter({ hasText: "Parallel subtitles" });
+    await expect(subtitleTable.locator("tbody tr").first()).toBeVisible();
+
+    // 2. Load a new video ID via onNativeSharedLinkReceived
+    await page.evaluate(() => {
+      const win = window as typeof window & { onNativeSharedLinkReceived?: (link: string) => void };
+      win.onNativeSharedLinkReceived?.("https://www.youtube.com/watch?v=c0pUbsq9FLk");
+    });
+
+    // 3. Existing tracks and columns must be cleared immediately; empty state message displayed
+    await expect(subtitleTable.locator("table")).toHaveCount(0);
+    await expect(subtitleTable).toContainText("Waiting for subtitles…");
+    await expect(page.getByRole("status")).toContainText("Waiting for YouTube captions");
+
+    // 4. Simulate arrival of intercepted captions for the new video
+    await page.evaluate(() => {
+      const win = window as typeof window & {
+        onNativeCaptionsInterceptedBase64?: (encoded: string) => void;
+      };
+      const payload = {
+        url: "https://www.youtube.com/api/timedtext?v=c0pUbsq9FLk&lang=en&fmt=json3",
+        rawData: JSON.stringify({
+          events: [
+            {
+              tStartMs: 0,
+              dDurationMs: 4000,
+              segs: [{ utf8: "New video English subtitle" }],
+            },
+          ],
+        }),
+      };
+      win.onNativeCaptionsInterceptedBase64?.(btoa(JSON.stringify(payload)));
+    });
+
+    // 5. Fresh subtitles and columns are loaded for the new video
+    await expect(subtitleTable.locator("table")).toBeVisible();
+    await expect(subtitleTable.locator("tbody tr").first()).toBeVisible();
+    await expect(subtitleTable).toContainText("New video English subtitle");
+  });
 });
