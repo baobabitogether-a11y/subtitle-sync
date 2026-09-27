@@ -23,6 +23,8 @@
 
 ## Project-specific delivery
 
+- This project should remain identical in architecture, tooling, workflows, scripts, and conventions to [mostuf2556/Youtubenet6](https://github.com/mostuf2556/Youtubenet6), with deliberate differences limited strictly to the views and the subtitles parser.
+- For every issue, bug, or configuration discrepancy encountered, inspect and compare against the corresponding solution implemented in `https://github.com/mostuf2556/Youtubenet6`.
 - Preserve the existing application stack and repository structure.
 - Keep GitHub Actions, GitHub Pages reports, the web demo, and Android emulator coverage working together.
 - Do not add credentials or invent external service values; document and request anything required.

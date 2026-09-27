@@ -31,13 +31,26 @@ export const getRouter = () => {
     }
   }
 
+  const basepath = getBasepath();
   const router = createRouter({
     routeTree,
-    basepath: getBasepath(),
+    basepath,
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
   });
+
+  const origUpdate = router.update.bind(router);
+  router.update = (newOptions: any) => {
+    if (newOptions) {
+      if (basepath) {
+        newOptions.basepath = basepath;
+      } else if (newOptions.basepath === ".") {
+        newOptions.basepath = undefined;
+      }
+    }
+    return origUpdate(newOptions);
+  };
 
   return router;
 };

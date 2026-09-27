@@ -33,6 +33,7 @@ const criticalFiles = [
   { path: 'mochawesome.html', minSize: 500 },
   { path: 'demo/index.html', minSize: 500 },
   { path: 'playwright/index.html', minSize: 200 },
+  { path: 'app/index.html', minSize: 500 },
   { path: 'assets/test1-video.webm', minSize: 10000 },
   { path: 'assets/test2-video.webm', minSize: 10000 },
   { path: 'assets/test1-video.mp4', minSize: 10000 },
@@ -80,19 +81,23 @@ const mimeTypes = {
 
 const server = http.createServer((req, res) => {
   let cleanUrl = req.url.split('?')[0].split('#')[0];
-  if (cleanUrl === '/') cleanUrl = '/index.html';
-  const filePath = path.join(reportsDir, cleanUrl);
+  if (cleanUrl.startsWith('/subtitle-sync/')) {
+    cleanUrl = cleanUrl.replace(/^\/subtitle-sync/, '');
+  } else if (cleanUrl === '/subtitle-sync') {
+    cleanUrl = '/index.html';
+  }
+  if (cleanUrl === '/' || cleanUrl === '') cleanUrl = '/index.html';
+  let filePath = path.join(reportsDir, cleanUrl);
 
   if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
     const fallback = path.join(filePath, 'index.html');
     if (fs.existsSync(fallback)) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      fs.createReadStream(fallback).pipe(res);
+      filePath = fallback;
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end(`404 Not Found: ${req.url}`);
       return;
     }
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end(`404 Not Found: ${req.url}`);
-    return;
   }
 
   const stat = fs.statSync(filePath);
@@ -158,6 +163,10 @@ try {
         consoleErrors.push(text);
       }
     }
+  });
+
+  page.on('pageerror', err => {
+    consoleErrors.push(`PageError: ${err.message}`);
   });
 
   page.on('requestfailed', req => {
@@ -294,6 +303,64 @@ try {
   }
   const demoSub = await page.$eval('#demo-sub-primary', el => el.textContent);
   console.log(`  ✓ Demo subtitle line loaded: "${demoSub}"`);
+
+  // Test Page 4: Standalone Mochawesome Suite Report (/mochawesome.html)
+  console.log('\n--- Verifying Mochawesome Report (/mochawesome.html) ---');
+  const mochaRes = await page.goto(`${baseUrl}/mochawesome.html`, { waitUntil: 'domcontentloaded' });
+  if (!mochaRes || mochaRes.status() !== 200) {
+    throw new Error(`Failed to load /mochawesome.html: HTTP status ${mochaRes ? mochaRes.status() : 'null'}`);
+  }
+  console.log('  ✓ Mochawesome suite report verified (HTTP 200)');
+
+  // Test Page 5: Playwright Trace Report (/playwright/index.html)
+  console.log('\n--- Verifying Playwright Report (/playwright/index.html) ---');
+  const pwRes = await page.goto(`${baseUrl}/playwright/index.html`, { waitUntil: 'domcontentloaded' });
+  if (!pwRes || pwRes.status() !== 200) {
+    throw new Error(`Failed to load /playwright/index.html: HTTP status ${pwRes ? pwRes.status() : 'null'}`);
+  }
+  console.log('  ✓ Playwright report page verified (HTTP 200)');
+
+  // Test Page 6: Live Web Application under GitHub Pages Basepath (/subtitle-sync/app/ and /subtitle-sync/app/index.html)
+  console.log('\n--- Verifying Live Web Application under GitHub Pages Path (/subtitle-sync/app/) ---');
+  const ghAppRes = await page.goto(`${baseUrl}/subtitle-sync/app/`, { waitUntil: 'networkidle' });
+  if (!ghAppRes || ghAppRes.status() !== 200) {
+    throw new Error(`Failed to load /subtitle-sync/app/: HTTP status ${ghAppRes ? ghAppRes.status() : 'null'}`);
+  }
+  await page.waitForTimeout(1000);
+  const ghAppBodyText = await page.evaluate(() => document.body.innerText);
+  if (ghAppBodyText.length < 500) {
+    throw new Error(`Expected /subtitle-sync/app/ to render full UI, but body text was only ${ghAppBodyText.length} chars (blank screen detected)`);
+  }
+  const hasAppTitle = ghAppBodyText.includes('Parallel Subtitles') || ghAppBodyText.includes('Subtitles');
+  if (!hasAppTitle) {
+    throw new Error('/subtitle-sync/app/ did not render expected application title or subtitle panels');
+  }
+  console.log(`  ✓ Live web app at /subtitle-sync/app/ fully rendered (${ghAppBodyText.length} text bytes, 0 blank screen)`);
+
+  // Also verify /subtitle-sync/app/index.html cleanly normalizes and renders
+  const ghAppIndexRes = await page.goto(`${baseUrl}/subtitle-sync/app/index.html`, { waitUntil: 'networkidle' });
+  if (!ghAppIndexRes || ghAppIndexRes.status() !== 200) {
+    throw new Error(`Failed to load /subtitle-sync/app/index.html: HTTP status ${ghAppIndexRes ? ghAppIndexRes.status() : 'null'}`);
+  }
+  await page.waitForTimeout(500);
+  const ghAppIndexBodyText = await page.evaluate(() => document.body.innerText);
+  if (ghAppIndexBodyText.length < 500) {
+    throw new Error(`Expected /subtitle-sync/app/index.html to render full UI, but body text was only ${ghAppIndexBodyText.length} chars`);
+  }
+  console.log(`  ✓ Live web app at /subtitle-sync/app/index.html verified (${ghAppIndexBodyText.length} text bytes)`);
+
+  // Test Page 7: Live Web Application under Direct Path (/app/ and /app/index.html)
+  console.log('\n--- Verifying Live Web Application under Direct Path (/app/) ---');
+  const directAppRes = await page.goto(`${baseUrl}/app/`, { waitUntil: 'networkidle' });
+  if (!directAppRes || directAppRes.status() !== 200) {
+    throw new Error(`Failed to load /app/: HTTP status ${directAppRes ? directAppRes.status() : 'null'}`);
+  }
+  await page.waitForTimeout(500);
+  const directAppBodyText = await page.evaluate(() => document.body.innerText);
+  if (directAppBodyText.length < 500) {
+    throw new Error(`Expected /app/ to render full UI, but body text was only ${directAppBodyText.length} chars`);
+  }
+  console.log(`  ✓ Live web app at /app/ fully rendered (${directAppBodyText.length} text bytes)`);
 
   // Final Assertions on Errors & Broken Links
   console.log('\n--- Verifying Console & Network Cleanliness ---');
