@@ -442,4 +442,36 @@ export function importFullAppState(jsonString: string): {
   }
 }
 
+export const AUTO_SCROLL_STORAGE_KEY = 'yt_auto_scroll';
+
+/**
+ * Get whether auto-focus and scroll to current subtitle is enabled.
+ * Defaults to FALSE (off) as required by Subtask 16.4.
+ */
+export function getAutoScrollSetting(): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return false;
+  }
+  try {
+    return window.localStorage.getItem(AUTO_SCROLL_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Persist auto-focus and scroll to current subtitle setting.
+ */
+export function setAutoScrollSetting(enabled: boolean): void {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, enabled ? 'true' : 'false');
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+}
+
+
 

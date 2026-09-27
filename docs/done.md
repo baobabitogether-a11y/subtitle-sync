@@ -103,6 +103,45 @@
 - Aligned E2E specifications across `e2e/web.spec.ts` (verifying constant fixture tracks without live select), `e2e/app.spec.ts`, and `e2e/emulation.spec.ts` (verifying Android bridge tlang calls).
 - Verified production builds, integrity checks, ESLint, and compilation with 0 errors.
 
+## Task 16: Align favorite languages, TTS settings, video reset, multi-track audio mode, and auto-scroll default with mostuf2556/Youtubenet6
+
+### Subtask 16.1: Favorite languages and main screen controls
+- Exposed `#target-language-select` on both the web demo (populated from fixture tracks) and Android (populated from the 84-language catalog with live `tlang` fetching).
+- Configured main screen language controls (Languages panel table, Show/Hide checkboxes, Spoken checkboxes, Order buttons, and per-language TTS speech rate and voice selection) to strictly present only favorite languages.
+- Updated `e2e/web.spec.ts` to assert that `#target-language-select` is visible on the web demo.
+- Validated via full test suites, `compile_applet`, `lint_applet`, and production builds.
+
+### Subtask 16.2: Clear columns on new video on Android
+- Added immediate clearing of subtitle tracks (`setTracks(null)`), columns, active index, and speech synthesis when loading any video ID other than the default video on Android.
+- Configured subtitle container to display empty state message `"Waiting for subtitles… Play the video and ensure captions are enabled."` until the live timedtext URL is intercepted.
+- Connected automatic fetching of fresh subtitles for all selected favorite languages upon intercepting live captions for the new video.
+- Implemented dedicated Playwright test in `e2e/emulation.spec.ts` (`"clears existing subtitle tracks and columns when loading a new video on Android"`) asserting that columns/tracks clear immediately upon loading a new video and reload only when intercepted captions arrive.
+- Updated `AGENTS.md` requiring dedicated tests for verifying all features and subtasks.
+
+### Subtask 16.3: YouTube multi-audio track repeat mode
+- Decomposed multi-audio track repeat functionality into dedicated modular utility `src/utils/audioTrackManager.ts` following `AGENTS.md` modularity rules and registered in `docs/files.md`.
+- Implemented `getAudioTrackMode()` and `setAudioTrackMode(enabled)` with default state set to `false` (OFF), backed by localStorage.
+- Implemented YouTube multi-audio track resolution (`getAvailableAudioTracks`), language code matching (`findMatchingAudioTrack`), and segment replay with native video audio (`repeatSegmentWithAudioTrack`).
+- Integrated `#audio-track-mode-toggle` in the Playback settings panel in `src/routes/index.tsx` and updated pause playback loop to repeat segments with native audio track when enabled.
+- Added dedicated test suite `scripts/verify-audio-track-mode.ts` (`npm run test:audio-track`) and dedicated Playwright test in `e2e/web.spec.ts`.
+- Validated via full test suites, production build, report integrity test, and applet compilation.
+
+### Subtask 16.4: Disable auto-focus and scroll by default
+- Changed auto-focus and auto-scroll state (`autoFocus` / `autoScroll`) to default to `false` (OFF).
+- Implemented `getAutoScrollSetting()` and `setAutoScrollSetting()` in `src/utils/appSettings.ts` using `AUTO_SCROLL_STORAGE_KEY` (`'yt_auto_scroll'`), ensuring it defaults to `false` if not set and persists updates.
+- Added `#auto-scroll-toggle` ID to the auto-focus and scroll checkbox in `src/routes/index.tsx` and connected it to `onAutoFocusChange`.
+- Created dedicated test suite `scripts/verify-auto-scroll.ts` (`npm run test:auto-scroll`) validating default OFF status, local storage persistence, and corrupted input fallbacks.
+- Added dedicated Playwright test in `e2e/web.spec.ts` (`"toggles auto-focus and scroll and verifies default is OFF"`).
+- Documented in `docs/files.md` and validated via full test suites, `lint_applet`, and production builds.
+
+### Subtask 16.5: E2E testing & verification
+- Updated and unified test suites (`e2e/web.spec.ts`, `e2e/app.spec.ts`, `e2e/emulation.spec.ts`, `cypress/e2e/web.cy.ts`).
+- Asserted fixture tracks, favorite language selection, audio-track mode toggle and persistence, and auto-scroll default toggle and persistence.
+- Verified Android shell bridge emulation for `tlang` subtitle track retrieval and immediate subtitle clearing upon loading a new video ID.
+- Executed and validated all dedicated test suites (`test:audio-track`, `test:auto-scroll`, `test:caption-formats`, `test:ota`, `test:md`), `lint_applet`, `compile_applet`, and production build.
+- Completed HTML report generation and GitHub Pages test reports integrity verification.
+
+
 
 
 

@@ -14,13 +14,23 @@
 ## Work tracking
 
 - Break every new prompt into clear tasks and smaller subtasks in `docs/tasks.md`.
-- Always confirm before updating `docs/tasks.md`.
-- Always confirm before updating `docs/todo.md`.
-- For each task, describe the active work in `docs/todo.md`.
-- Commit the task's changes before testing them.
-- Test the task after the commit.
-- Once the task is complete, move its entry from `docs/tasks.md` to `docs/done.md`.
-- Keep `docs/todo.md` limited to the task currently being worked on.
+- Obtain explicit user confirmation before creating or updating `docs/tasks.md`.
+- Obtain explicit user confirmation before creating or updating `docs/todo.md`.
+- Keep `docs/todo.md` strictly focused: it must always contain only the single active sub-task currently being executed.
+- For each sub-task in `docs/todo.md`:
+  1. Implement the sub-task's changes.
+  2. Add or update dedicated tests covering the specific feature requirements.
+  3. Commit the changes and tests before executing them.
+  4. Test the changes thoroughly with the dedicated tests after the commit.
+  5. Present the results and obtain user confirmation before advancing to the next sub-task.
+- To verify any feature, always implement a dedicated test specifically validating the new behavior.
+- Move completed sub-tasks from `docs/todo.md` to `docs/done.md` and update `docs/tasks.md` only after receiving explicit user confirmation.
+
+## Code architecture and modularity
+
+- Maintain a documented inventory of files (e.g. in `docs/files.md`), detailing each file's specific role and feature scope.
+- Name every code file descriptively according to its exact function and feature responsibility.
+- Do not edit or concentrate code exclusively within a single main source file; decompose features, UI components, state management, and business logic into dedicated, modular files.
 
 ## Project-specific delivery
 

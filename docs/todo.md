@@ -1,10 +1,10 @@
 # Current task
 
-## Task 16: Align favorite languages, TTS settings, video reset, multi-track audio mode, and auto-scroll default with mostuf2556/Youtubenet6
+All subtasks for **Task 16: Align favorite languages, TTS settings, video reset, multi-track audio mode, and auto-scroll default with mostuf2556/Youtubenet6** have been successfully executed, tested, committed, and verified.
 
-### Subtasks:
-- [ ] Subtask 16.1: Favorite languages and main screen controls (selector visible on web and Android, main screen displays favorite languages with show/hide, spoken toggles, and TTS speed/voice controls per language).
-- [ ] Subtask 16.2: On Android, clear columns/tracks when loading any video other than the default before fetching subtitles for all favorite languages.
-- [ ] Subtask 16.3: Add option to switch to audio-track mode (repeating the video section using YouTube audio-tracks rather than TTS play), switched OFF by default.
-- [ ] Subtask 16.4: Switch off by default "Auto-focus and scroll to current subtitle".
-- [ ] Subtask 16.5: Update E2E test specs (`e2e/web.spec.ts`, `e2e/app.spec.ts`, `e2e/emulation.spec.ts`), commit changes, and run validation (`npm run build`, `npm run lint`, `npm run test:report:integrity`).
+## Completed in Task 16:
+- [x] Subtask 16.1: Favorite languages and main screen controls
+- [x] Subtask 16.2: Clear columns on new video on Android
+- [x] Subtask 16.3: YouTube multi-audio track repeat mode
+- [x] Subtask 16.4: Disable auto-focus and scroll by default
+- [x] Subtask 16.5: E2E testing & verification

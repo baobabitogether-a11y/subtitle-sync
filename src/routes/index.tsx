@@ -23,7 +23,14 @@ import {
   SUPPORTED_LANGUAGES_CATALOG,
   getUserLearningLanguages,
   setUserLearningLanguages,
+  getAutoScrollSetting,
+  setAutoScrollSetting,
 } from "@/utils/appSettings";
+import {
+  getAudioTrackMode,
+  setAudioTrackMode,
+  repeatSegmentWithAudioTrack,
+} from "@/utils/audioTrackManager";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
 
@@ -55,6 +62,10 @@ type YTPlayer = {
   seekTo(s: number, a: boolean): void;
   getCurrentTime(): number;
   getPlayerState(): number;
+  destroy?(): void;
+  getAvailableAudioTracks?(): unknown[];
+  setAudioTrack?(trackId: string): void;
+  getAudioTrack?(): unknown;
 };
 declare global {
   interface Window {
@@ -217,7 +228,11 @@ function Index() {
       const saved = getUserLearningLanguages();
       if (saved && saved.length > 0) return saved;
     }
-    return ["he", "it"];
+    const isAndroidEnv =
+      typeof window !== "undefined" &&
+      (Boolean(nativeShell()) ||
+        new URLSearchParams(window.location.search).get("android") === "true");
+    return isAndroidEnv ? ["he", "it"] : LANGS.map((l) => l.code);
   });
 
   const handleTargetLanguagesChange = (newTargetLangs: string[]) => {
@@ -235,7 +250,16 @@ function Index() {
   const themeWasSelectedRef = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [pauseMode, setPauseMode] = useState(true);
-  const [autoFocus, setAutoFocus] = useState(true);
+  const [audioTrackMode, setAudioTrackModeState] = useState(() => getAudioTrackMode());
+  const onAudioTrackModeChange = (enabled: boolean) => {
+    setAudioTrackModeState(enabled);
+    setAudioTrackMode(enabled);
+  };
+  const [autoFocus, setAutoFocusState] = useState(() => getAutoScrollSetting());
+  const onAutoFocusChange = (enabled: boolean) => {
+    setAutoFocusState(enabled);
+    setAutoScrollSetting(enabled);
+  };
   const [showVideoSubtitles, setShowVideoSubtitles] = useState(true);
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(() => PANELS.map((panel) => panel.id));
   const [openPanels, setOpenPanels] = useState<Record<PanelId, boolean>>({
@@ -257,7 +281,18 @@ function Index() {
     const openLink = (link: string) => {
       const id = parseVideoId(link);
       if (id) {
-        setVideoId(id);
+        setVideoId((prevId) => {
+          if (id !== prevId) {
+            setTracks(null);
+            setObservedUrl("");
+            setActive(-1);
+            setSpeakingLang(null);
+            setSpeakingRow(-1);
+            setSpeechProgress(null);
+            cancelSpeech();
+          }
+          return id;
+        });
         setVideoInput(link);
       }
     };
@@ -274,6 +309,11 @@ function Index() {
     if (!isAndroid) return;
     setTracks(null);
     setObservedUrl("");
+    setActive(-1);
+    setSpeakingLang(null);
+    setSpeakingRow(-1);
+    setSpeechProgress(null);
+    cancelSpeech();
     setCaptionStatus(
       "Waiting for YouTube captions. Play the video and enable captions if necessary.",
     );
@@ -416,22 +456,38 @@ function Index() {
   }, [isAndroid, targetLanguages, shown, spoken, pivot, tracks]);
 
   useEffect(() => {
-    if (!isAndroid) return;
     setLanguageOrder((prev) => {
       const existing = new Set(prev);
-      const toAdd = activeCatalog.map((l) => l.code).filter((c) => !existing.has(c));
+      const toAdd = targetLanguages.filter((c) => !existing.has(c));
       return toAdd.length ? [...prev, ...toAdd] : prev;
     });
-  }, [isAndroid, activeCatalog]);
+  }, [targetLanguages]);
 
-  // Keep latest values for the polling loop.
+  // Main screen presents only favorite languages for show/hide, speech toggles, ordering, and per-language TTS controls
   const orderedLangs = useMemo(() => {
+    const favoriteSet = new Set(targetLanguages);
     return languageOrder
-      .map((code) => activeCatalog.find((lang) => lang.code === code))
-      .filter((lang): lang is { code: string; name: string; tts: string } => Boolean(lang));
-  }, [languageOrder, activeCatalog]);
-  const st = useRef({ rows, spoken, rates, voiceSelections, pauseMode, orderedLangs });
-  st.current = { rows, spoken, rates, voiceSelections, pauseMode, orderedLangs };
+      .filter((code) => favoriteSet.has(code))
+      .map((code) => getLanguageMeta(code));
+  }, [languageOrder, targetLanguages]);
+  const st = useRef({
+    rows,
+    spoken,
+    rates,
+    voiceSelections,
+    pauseMode,
+    orderedLangs,
+    audioTrackMode,
+  });
+  st.current = {
+    rows,
+    spoken,
+    rates,
+    voiceSelections,
+    pauseMode,
+    orderedLangs,
+    audioTrackMode,
+  };
 
   const playerEl = useRef<HTMLDivElement>(null);
   const player = useRef<YTPlayer | null>(null);
@@ -457,12 +513,20 @@ function Index() {
       const p = player.current;
       if (!p?.getCurrentTime || busy.current) return;
       const ms = p.getCurrentTime() * 1000;
-      const { rows, spoken, rates, voiceSelections, pauseMode, orderedLangs } = st.current;
+      const {
+        rows,
+        spoken,
+        rates,
+        voiceSelections,
+        pauseMode,
+        orderedLangs,
+        audioTrackMode: isAudioTrackMode,
+      } = st.current;
       const idx = rows.findIndex((r) => ms >= r.start && ms < r.end);
       setActive(idx);
       const prev = lastRow.current;
       lastRow.current = idx;
-      // Crossed the end of a section while playing → pause and speak it.
+      // Crossed the end of a section while playing → pause and speak or repeat with native audio track.
       if (pauseMode && prev >= 0 && idx === prev + 1 && p.getPlayerState() === 1) {
         busy.current = true;
         p.pauseVideo();
@@ -470,18 +534,40 @@ function Index() {
         for (const l of langs) {
           setSpeakingLang(l.code);
           setSpeakingRow(prev);
-          await speak(
-            rows[prev]?.texts[l.code] ?? "",
-            l.tts,
-            rates[l.code] ?? 1,
-            voiceSelections[l.code] ?? "",
-            prev,
-            setSpeechProgress,
-          );
+          if (isAudioTrackMode) {
+            await repeatSegmentWithAudioTrack({
+              player: p,
+              startMs: rows[prev]?.start ?? 0,
+              endMs: rows[prev]?.end ?? 0,
+              targetLangCode: l.code,
+              checkCancelled: () => !busy.current,
+              onProgress: (prog) => {
+                setSpeechProgress({
+                  row: prev,
+                  lang: l.code,
+                  charIndex: 0,
+                  charLength: 0,
+                  totalLength: 100,
+                  percent: prog.percent,
+                });
+              },
+            });
+          } else {
+            await speak(
+              rows[prev]?.texts[l.code] ?? "",
+              l.tts,
+              rates[l.code] ?? 1,
+              voiceSelections[l.code] ?? "",
+              prev,
+              setSpeechProgress,
+            );
+          }
         }
         setSpeakingLang(null);
         setSpeakingRow(-1);
+        setSpeechProgress(null);
         busy.current = false;
+        p.seekTo(rows[idx]?.start ? rows[idx].start / 1000 : p.getCurrentTime(), true);
         p.playVideo();
       }
     }, 150);
@@ -536,7 +622,16 @@ function Index() {
     });
   };
 
-  const cols = orderedLangs.filter((l) => shown.includes(l.code));
+  const cols = useMemo(() => {
+    if (isAndroid && videoId !== DEMO_VIDEO && (!tracks || Object.keys(tracks).length === 0)) {
+      return [];
+    }
+    return orderedLangs.filter(
+      (l) =>
+        shown.includes(l.code) &&
+        (isAndroid && videoId !== DEMO_VIDEO ? Boolean(tracks?.[l.code]) : true),
+    );
+  }, [isAndroid, videoId, tracks, orderedLangs, shown]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -600,8 +695,20 @@ function Index() {
                       onSubmit={(event) => {
                         event.preventDefault();
                         const id = parseVideoId(videoInput);
-                        if (id) setVideoId(id);
-                        else setCaptionStatus("Enter a valid YouTube link or video ID.");
+                        if (id) {
+                          if (id !== videoId) {
+                            setTracks(null);
+                            setObservedUrl("");
+                            setActive(-1);
+                            setSpeakingLang(null);
+                            setSpeakingRow(-1);
+                            setSpeechProgress(null);
+                            cancelSpeech();
+                          }
+                          setVideoId(id);
+                        } else {
+                          setCaptionStatus("Enter a valid YouTube link or video ID.");
+                        }
                       }}
                     >
                       <input
@@ -650,13 +757,16 @@ function Index() {
                 <div className="space-y-3">
                   {speakingLang ? (
                     <p>
-                      Speaking <b>{LANGS.find((l) => l.code === speakingLang)?.name}</b>…
+                      {audioTrackMode ? "Repeating" : "Speaking"}{" "}
+                      <b>{LANGS.find((l) => l.code === speakingLang)?.name ?? speakingLang}</b>…
                     </p>
                   ) : (
                     <p className="text-muted-foreground">
                       Press play.{" "}
                       {pauseMode
-                        ? "The video pauses after each section and speaks it."
+                        ? audioTrackMode
+                          ? "The video pauses after each section and repeats it using native audio."
+                          : "The video pauses after each section and speaks it."
                         : "Continuous playback."}
                     </p>
                   )}
@@ -670,9 +780,20 @@ function Index() {
                   </label>
                   <label className="flex items-center gap-2">
                     <input
+                      id="audio-track-mode-toggle"
+                      type="checkbox"
+                      checked={audioTrackMode}
+                      onChange={(e) => onAudioTrackModeChange(e.target.checked)}
+                    />{" "}
+                    Audio-track mode (repeat segment with native video audio instead of synthesized
+                    TTS)
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      id="auto-scroll-toggle"
                       type="checkbox"
                       checked={autoFocus}
-                      onChange={(e) => setAutoFocus(e.target.checked)}
+                      onChange={(e) => onAutoFocusChange(e.target.checked)}
                     />{" "}
                     Auto-focus and scroll to current subtitle
                   </label>
@@ -729,50 +850,44 @@ function Index() {
 
               {panelId === "languages" && (
                 <>
-                  {isAndroid ? (
-                    <div className="mb-4 space-y-2 border-b border-border pb-4">
-                      <div className="flex items-center justify-between">
-                        <label htmlFor="target-language-select" className="font-medium text-sm">
-                          Learning languages
-                        </label>
-                        <span className="text-xs text-muted-foreground">
-                          {targetLanguages.length} selected
-                        </span>
-                      </div>
-                      <select
-                        id="target-language-select"
-                        aria-label="Target languages"
-                        multiple
-                        size={Math.min(SUPPORTED_LANGUAGES_CATALOG.length, 6)}
-                        value={targetLanguages}
-                        onChange={(event) => {
-                          const next = Array.from(
-                            event.target.selectedOptions,
-                            (option) => option.value,
-                          );
-                          handleTargetLanguagesChange(next);
-                        }}
-                        className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
-                      >
-                        {SUPPORTED_LANGUAGES_CATALOG.map((lang) => (
-                          <option key={lang.code} value={lang.code}>
-                            {lang.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-muted-foreground">
-                        Select desired languages to learn from all 84 supported languages. Android
-                        fetches each translation track via tlang.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mb-4 flex items-center justify-between rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                      <span>Fixture demo mode: constant target languages &amp; subtitles</span>
-                      <span className="font-medium uppercase tracking-wider">
-                        {LANGS.length} languages
+                  <div className="mb-4 space-y-2 border-b border-border pb-4">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="target-language-select" className="font-medium text-sm">
+                        Favorite languages
+                      </label>
+                      <span className="text-xs text-muted-foreground">
+                        {targetLanguages.length} selected
                       </span>
                     </div>
-                  )}
+                    <select
+                      id="target-language-select"
+                      aria-label="Target languages"
+                      multiple
+                      size={
+                        isAndroid ? Math.min(SUPPORTED_LANGUAGES_CATALOG.length, 6) : LANGS.length
+                      }
+                      value={targetLanguages}
+                      onChange={(event) => {
+                        const next = Array.from(
+                          event.target.selectedOptions,
+                          (option) => option.value,
+                        );
+                        handleTargetLanguagesChange(next);
+                      }}
+                      className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                    >
+                      {(isAndroid ? SUPPORTED_LANGUAGES_CATALOG : LANGS).map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-muted-foreground">
+                      {isAndroid
+                        ? "Select desired favorite languages to learn from all 84 supported languages. Android fetches each translation track via tlang."
+                        : `Select favorite languages from available demo tracks (${LANGS.length} available). Main screen controls present only favorite languages.`}
+                    </p>
+                  </div>
                   <table className="w-full">
                     <thead>
                       <tr className="text-xs text-muted-foreground">
@@ -886,8 +1001,12 @@ function Index() {
               )}
 
               {panelId === "subtitles" &&
-                (!tracks ? (
-                  <p className="p-2 text-muted-foreground">Loading subtitles…</p>
+                (!tracks || (isAndroid && videoId !== DEMO_VIDEO && cols.length === 0) ? (
+                  <p className="p-2 text-muted-foreground">
+                    {isAndroid && videoId !== DEMO_VIDEO
+                      ? "Waiting for subtitles… Play the video and ensure captions are enabled."
+                      : "Loading subtitles…"}
+                  </p>
                 ) : (
                   <div className="max-h-[calc(100vh-8rem)] overflow-auto">
                     <table className="w-full border-collapse text-sm">
