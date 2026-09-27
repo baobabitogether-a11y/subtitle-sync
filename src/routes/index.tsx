@@ -76,12 +76,20 @@ function cancelSpeech() {
   if (typeof window !== "undefined" && window.AndroidNativeShell?.stopSpeaking) {
     try {
       window.AndroidNativeShell.stopSpeaking();
-    } catch {}
+    } catch (_e) {
+      // Ignore Android TTS cancellation error
+    }
   }
-  if (typeof window !== "undefined" && "speechSynthesis" in window && window.speechSynthesis?.cancel) {
+  if (
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    window.speechSynthesis?.cancel
+  ) {
     try {
       window.speechSynthesis.cancel();
-    } catch {}
+    } catch (_e) {
+      // Ignore speech cancellation error
+    }
   }
 }
 
@@ -129,7 +137,11 @@ function speak(
       }
     }
 
-    if (typeof window === "undefined" || !("speechSynthesis" in window) || !window.speechSynthesis) {
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      !window.speechSynthesis
+    ) {
       return res();
     }
 
@@ -301,13 +313,19 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window) || !window.speechSynthesis) {
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      !window.speechSynthesis
+    ) {
       return;
     }
     const refreshVoices = () => {
       try {
         setVoices(window.speechSynthesis.getVoices());
-      } catch {}
+      } catch (_e) {
+        // Ignore getVoices errors
+      }
     };
     refreshVoices();
     try {
@@ -315,9 +333,13 @@ function Index() {
       return () => {
         try {
           window.speechSynthesis.removeEventListener("voiceschanged", refreshVoices);
-        } catch {}
+        } catch (_e) {
+          // Ignore removeEventListener errors
+        }
       };
-    } catch {}
+    } catch (_e) {
+      // Ignore addEventListener errors
+    }
   }, []);
 
   useEffect(() => {

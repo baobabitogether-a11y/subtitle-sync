@@ -43,17 +43,12 @@ jobs:
       - name: Normalize package registry URLs
         run: |
           if [ -f package-lock.json ]; then
-            sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+            sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json 2>/dev/null || true
           fi
 
       - name: Install Web Dependencies
         timeout-minutes: 3
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+        run: npm install
 
       - name: Install Playwright Browsers with OS Dependencies
         timeout-minutes: 3
@@ -70,14 +65,14 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Web Application & Prepare Subtitle Artifacts
-        timeout-minutes: 3
+        timeout-minutes: 5
         run: |
-          if [ ! -f "dist/index.html" ]; then
-            echo "⚙️ Pre-built web artifacts not found. Building web application..."
-            npm run build
-          fi
+          echo "⚙️ Compiling latest web application..."
+          npm run build
           echo "✅ Preparing reports and web demo artifact structure..."
           node scripts/prepare-report.mjs
+          echo "🔍 Verifying integrity of reports and web application..."
+          npm run test:report:integrity
 
       - name: Deploy Web Demo to GitHub Pages (gh-pages branch)
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()

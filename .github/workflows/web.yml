@@ -32,10 +32,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js for report preparation
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Normalize package registry URLs
+        run: |
+          if [ -f package-lock.json ]; then
+            sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json 2>/dev/null || true
+          fi
+
+      - name: Install Web Dependencies
+        timeout-minutes: 3
+        run: npm install
+
+      - name: Install Playwright Browsers with OS Dependencies
+        timeout-minutes: 3
+        run: npx playwright install --with-deps chromium
 
       - name: Compute Target Base URL (Deployed Site vs Local Server)
         id: target_url
@@ -61,18 +75,48 @@ jobs:
             echo "use_deployed=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Execute Playwright E2E Tests in Docker
+      - name: Download Web Build Artifact (Fallback for Local Server)
+        if: steps.target_url.outputs.use_deployed != 'true'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: web-dist
+          path: dist
+
+      - name: Build Web Application (Fallback for Local Server)
+        if: steps.target_url.outputs.use_deployed != 'true'
+        timeout-minutes: 3
+        run: |
+          if [ ! -f "dist/index.html" ]; then
+            echo "Building web application for local server..."
+            npm run build
+          fi
+
+      - name: Execute Playwright E2E Tests (Web Specs)
         timeout-minutes: 4
         env:
           PLAYWRIGHT_BASE_URL: ${{ steps.target_url.outputs.base_url }}
-        run: ./docker/manage.sh e2e web --timeout=60000
+        run: npx playwright test e2e/web.spec.ts --timeout=60000
 
-      - name: Collect Docker test outputs
-        if: always()
-        run: |
-          mkdir -p test-results playwright-report
-          cp -a docker/artifacts/test-results/. test-results/ 2>/dev/null || true
-          cp -a docker/artifacts/playwright-report/. playwright-report/ 2>/dev/null || true
+      - name: Run Cypress Tests against Deployed Website
+        if: steps.target_url.outputs.use_deployed == 'true'
+        timeout-minutes: 4
+        env:
+          CYPRESS_BASE_URL: ${{ steps.target_url.outputs.base_url }}
+        run: npm run test:cy:report:web
+        continue-on-error: true
+
+      - name: Run Cypress Tests with Local Server (Fallback)
+        if: steps.target_url.outputs.use_deployed != 'true'
+        timeout-minutes: 4
+        uses: cypress-io/github-action@v6
+        with:
+          install: false
+          start: npm start
+          wait-on: 'http://localhost:3000'
+          wait-on-timeout: 30
+          command: npm run test:cy:report:web
+        continue-on-error: true
 
       - name: Prepare Video & Step Screenshot Assets
         if: always()
@@ -98,10 +142,10 @@ jobs:
             test-results/
           retention-days: 14
 
-      - name: Upload Pages Report & Artifacts
+      - name: Upload Cypress Test Report & Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: pages-e2e-report
+          name: cypress-e2e-report
           path: cypress/reports/
           retention-days: 14
