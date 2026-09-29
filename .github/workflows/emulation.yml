@@ -153,7 +153,6 @@ jobs:
             adb shell screencap -p /sdcard/screen.png
             adb pull /sdcard/screen.png ./android-emulator-screenshot.png
             adb logcat -d -s "YT_CAPTION_INTERCEPTOR" "TTS_ENGINE" "ActivityTaskManager" | tail -n 60 > ./android-emulator-logcat.txt || true
-            node scripts/generate-android-report.mjs
             echo "Android Native Shell APK successfully booted and verified on Android Emulator (Option C)!"
 
       - name: Upload Android Emulator Artifacts
@@ -163,37 +162,7 @@ jobs:
           name: android-emulator-artifacts
           path: |
             android-emulator-screenshot.png
-            android-emulator-report.html
             android-emulator-logcat.txt
-            cypress/reports/android-emulator-report.html
             android-shell/app/build/outputs/apk/debug/*.apk
           if-no-files-found: ignore
           retention-days: 14
-
-      - name: Synchronize Android Report into Cypress Reports
-        if: always()
-        run: |
-          mkdir -p cypress/reports/assets
-          [ -f android-emulator-report.html ] && cp -f android-emulator-report.html cypress/reports/ || true
-          [ -f android-emulator-screenshot.png ] && cp -f android-emulator-screenshot.png cypress/reports/assets/ || true
-          node scripts/prepare-report.mjs
-
-      - name: Deploy Android Emulator Report to GitHub Pages (gh-pages)
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
-        continue-on-error: true
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./cypress/reports
-          publish_branch: gh-pages
-          keep_files: true
-
-      - name: Deploy Android Emulator Report to GitHub Pages (gh_pages)
-        if: always()
-        uses: peaceiris/actions-gh-pages@v4
-        continue-on-error: true
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./cypress/reports
-          publish_branch: gh_pages
-          keep_files: true

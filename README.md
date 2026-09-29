@@ -28,16 +28,11 @@ curl -fsSL https://raw.githubusercontent.com/mostuf25561/subtitle-sync/main/upda
 
 ## 🌐 GitHub Pages Links
 
-Access the live web demo, web end-to-end test runner, and Android emulator verification reports:
+Access the live web application:
 
 | Resource | Direct URL | Description |
 | :--- | :--- | :--- |
-| 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf25561.github.io/subtitle-sync/app/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
-| ⚡ **E2E Tests on Web (Cypress Runner)** | [**Open Cypress Runner**](https://mostuf25561.github.io/subtitle-sync/) | Interactive web test runner with DOM time-travel step inspection, pinned snapshots, video player with chapter markers, and test filters. |
-| 📱 **E2E Tests on Android Emulator** | [**Open Android Emulator Report**](https://mostuf25561.github.io/subtitle-sync/android-emulator-report.html) | Standalone report verifying native WebView `shouldInterceptRequest` on Google Pixel 7 (Android 14 / API 34), Logcat audit, and hardware TTS loop verification. |
-| 📱 **Android Emulation in Runner View** | [**Open in Runner (#android)**](https://mostuf25561.github.io/subtitle-sync/#android) | Direct tab switch inside the interactive Cypress runner dashboard. |
-| 📋 **Mochawesome Test Report** | [**Open Mochawesome Report**](https://mostuf25561.github.io/subtitle-sync/mochawesome.html) | Suite breakdown, pass/fail metrics, step timing breakdown, and test assertion logs. |
-| 🔍 **Playwright Trace Inspector** | [**Open Playwright Trace**](https://mostuf25561.github.io/subtitle-sync/playwright/index.html) | Network timeline, console events, and action waterfall inspector for web test execution. |
+| 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf25561.github.io/subtitle-sync/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
 
 ---
 

@@ -54,7 +54,14 @@ android-shell/captures/
 *.dex
 *.class
 *.ap_
-cypress/reports
+# Test outputs & reports
+cypress/reports/
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-results/
+android-emulator-report.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -22,20 +22,15 @@ test.describe("Android native subtitle emulation", () => {
         getLastObservedTimedTextUrl: () => url,
         fetchTranslatedCaptionsWithUrl: (requestUrl, language, format) => {
           nativeWindow.__nativeCaptionRequests?.push({ url: requestUrl, language, format });
-          return JSON.stringify({
-            events: [
-              {
-                tStartMs: 0,
-                dDurationMs: 4000,
-                segs: [{ utf8: `Live ${language} subtitle` }],
-              },
-              {
-                tStartMs: 4000,
-                dDurationMs: 4000,
-                segs: [{ utf8: `Next ${language} subtitle` }],
-              },
-            ],
-          });
+          const events = [];
+          for (let i = 0; i < 15; i++) {
+            events.push({
+              tStartMs: i * 4000,
+              dDurationMs: 4000,
+              segs: [{ utf8: `[${language.toUpperCase()}] Line ${i + 1} dialog` }],
+            });
+          }
+          return JSON.stringify({ events });
         },
       };
     }, observedUrl);
@@ -123,7 +118,7 @@ test.describe("Android native subtitle emulation", () => {
             {
               tStartMs: 0,
               dDurationMs: 4000,
-              segs: [{ utf8: "New video English subtitle" }],
+              segs: [{ utf8: "Intercepted dialog for new video" }],
             },
           ],
         }),
@@ -134,6 +129,34 @@ test.describe("Android native subtitle emulation", () => {
     // 5. Fresh subtitles and columns are loaded for the new video
     await expect(subtitleTable.locator("table")).toBeVisible();
     await expect(subtitleTable.locator("tbody tr").first()).toBeVisible();
-    await expect(subtitleTable).toContainText("New video English subtitle");
+    await expect(subtitleTable).toContainText("Intercepted dialog for new video");
+  });
+
+  test("dynamically loads and presents the first 10 lines of subtitles for each favorite language on Android", async ({
+    page,
+  }) => {
+    // 1. Wait for live tracks to load
+    await expect(page.getByRole("status")).toContainText("live language tracks loaded");
+    const subtitleTable = page.locator("details").filter({ hasText: "Parallel subtitles" });
+    await expect(subtitleTable.locator("table")).toBeVisible();
+
+    // 2. Verify Android pagination bar indicates first 10 lines
+    const paginationBar = page.getByTestId("android-subtitles-pagination-bar");
+    await expect(paginationBar).toBeVisible();
+    await expect(paginationBar).toContainText("First 10 lines of favorite languages");
+    await expect(paginationBar).toContainText("Lines 1–10 of");
+
+    // 3. Exactly 10 rows must be rendered in the table by default
+    const rows = subtitleTable.locator("tbody tr");
+    await expect(rows).toHaveCount(10);
+
+    // 4. Verify each row contains the corresponding line for the favorite languages
+    await expect(rows.first()).toContainText("Line 1 dialog");
+    await expect(rows.last()).toContainText("Line 10 dialog");
+
+    // 5. Switching limit to 'All' displays all 15 lines
+    const limitSelect = page.locator("#subtitles-limit-select");
+    await limitSelect.selectOption({ label: /All/i });
+    await expect(subtitleTable.locator("tbody tr")).toHaveCount(15);
   });
 });

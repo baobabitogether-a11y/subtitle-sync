@@ -1,5 +1,12 @@
 # Done tasks
 
+## Task 17: Restore default language subtitle fetching and favorite languages `tlang` replacement on Android
+
+- Preserved the default language track by fetching or retaining the base timedtext request without an invalid or empty `tlang` parameter.
+- Intercepted timedtext requests on Android and dynamically dispatched `fetchTranslatedCaptionsWithUrl` with `tlang` for every selected favorite language (`targetLanguages`).
+- Added `scripts/verify-native-captions.ts` to test native `tlang` building, default track extraction, and base64 payload parsing against authentic application code.
+- Verified test suite and ensured clean repository hygiene.
+
 ## Task 1: Establish the project work-tracking workflow
 
 - Rewrote `AGENTS.md` with the requested task lifecycle.
@@ -140,6 +147,34 @@
 - Verified Android shell bridge emulation for `tlang` subtitle track retrieval and immediate subtitle clearing upon loading a new video ID.
 - Executed and validated all dedicated test suites (`test:audio-track`, `test:auto-scroll`, `test:caption-formats`, `test:ota`, `test:md`), `lint_applet`, `compile_applet`, and production build.
 - Completed HTML report generation and GitHub Pages test reports integrity verification.
+
+## Task 19: Remove server dependencies and convert to pure client SPA
+
+### Subtask 19.1: Remove server dependencies and convert to pure client SPA
+- Removed `@tanstack/react-start`, `nitro`, and `@lovable.dev/vite-tanstack-config` from `package.json`.
+- Deleted server entry files `src/server.ts`, `src/start.ts`, and SSR helper files `src/lib/error-capture.ts` and `src/lib/error-page.ts`.
+- Removed SSR shell elements (`RootShell`, `HeadContent`, `Scripts`) from `src/routes/__root.tsx`.
+- Created root `index.html` mounting `<div id="root"></div>` and importing `/src/client.tsx`.
+- Updated `src/client.tsx` to mount with React 19 `createRoot(document.getElementById("root"))` using `<RouterProvider router={router} />`.
+- Updated `vite.config.ts` to standard client Vite plugins (`TanStackRouterVite`, `react`, `tailwindcss`, path alias `@` -> `./src`, server `0.0.0.0:3000`).
+- Updated `package.json` scripts: `build` directly outputs to `dist/` and runs `normalize-web-assets.mjs dist`.
+- Created dedicated test `scripts/verify-client-spa.ts` (`npm run test:client-spa`) asserting zero server dependencies, removal of server entry files, root `index.html` presence, `createRoot` client rendering, and clean `dist/index.html` build.
+- Updated `docs/files.md` with client SPA architecture and test inventory.
+
+## Task 20: Remove synthetic report generators, fake artifact scripts, and generated HTML files
+
+### Subtask 20.1: Remove synthetic report generators, fake artifact scripts, and generated HTML files
+- Deleted synthetic report scripts: `scripts/generate-android-report.mjs`, `scripts/prepare-report.mjs`, and `scripts/verify-reports-integrity.mjs`.
+- Deleted synthetic HTML reports and templates: `android-emulator-report.html`, `cypress/runner-template.html`, `cypress/reports/`, and `playwright-report/`.
+- Updated `.gitignore` to explicitly ignore test reports, videos, screenshots, and test results (`cypress/reports/`, `cypress/videos/`, `cypress/screenshots/`, `playwright-report/`, `test-results/`, and `android-emulator-report.html`).
+- Cleaned `package.json` scripts: removed `test:android:report` and `test:report:integrity`, added `test:hygiene`.
+- Created dedicated test `scripts/verify-repo-hygiene.ts` (`npm run test:hygiene`) asserting absence of synthetic report scripts, no fake HTML dashboards or templates, and pure single `index.html` root entry point.
+- Updated `.github/workflows/deploy-demo.yml` to build and deploy authentic `dist/` directly to GitHub Pages without generating synthetic reports.
+- Updated `.github/workflows/integrity.yml` to run authentic tests (`test:hygiene`, `test:client-spa`).
+- Cleaned references to deleted synthetic reports in `README.md` and `docs/files.md`.
+- Ran all authentic tests, builds, and lint successfully.
+
+
 
 
 

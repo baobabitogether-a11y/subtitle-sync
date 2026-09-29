@@ -49,8 +49,8 @@ jobs:
       - name: Build Web Application
         run: npm run build
 
-      - name: Prepare Report Assets
-        run: node scripts/prepare-report.mjs
+      - name: Run Repository Hygiene Verification
+        run: npm run test:hygiene
 
-      - name: Run Integrity Verification
-        run: npm run test:report:integrity
+      - name: Run Client SPA Architecture Verification
+        run: npm run test:client-spa

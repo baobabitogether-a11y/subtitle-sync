@@ -566,7 +566,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         }
                     }
                 }
-                builder.appendQueryParameter("tlang", targetLang)
+                val originalLang = uri.getQueryParameter("lang")
+                if (originalLang == null || !originalLang.equals(targetLang, ignoreCase = true)) {
+                    builder.appendQueryParameter("tlang", targetLang)
+                }
                 if (format.isNotEmpty()) {
                     builder.appendQueryParameter("fmt", format)
                 }
