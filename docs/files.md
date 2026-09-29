@@ -62,5 +62,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-repo-hygiene.ts` | Repository Hygiene Verification | Asserts absence of synthetic report generators, fake HTML report dashboards, and unignored test artifacts. |
 | `scripts/verify-native-captions.ts` | Native Captions & tlang Verification | Asserts valid tlang handling, base language preservation, base64 payload decoding, and Kotlin bridge logic. |
 | `scripts/verify-android-favorite-subtitles.ts` | Android Dynamic Subtitles & 10-Line Presentation | Asserts dynamic multi-favorite language track loading, default 10-line presentation per column, and pagination on Android. |
+| `scripts/verify-emulation-gh-pages.ts` | Emulation GitHub Pages Publication Test | Asserts workflow permissions, artifact staging, and keep_files deployment configuration for Android emulator artifacts on GitHub Pages. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
 | `scripts/normalize-web-assets.mjs` | Build Asset Normalizer | Adjusts asset paths for GitHub Pages sub-path hosting. |

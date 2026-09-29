@@ -1,5 +1,14 @@
 # Done tasks
 
+## Task 21: Android dynamic subtitle fetching and 10-line presentation for favorite languages
+
+### Subtask 21.1: Dynamically load and present first 10 lines of subtitles for each favorite language on Android
+- Connected Android dynamic caption fetching to dispatch `fetchTranslatedCaptionsWithUrl` with `tlang` for all selected favorite languages upon intercepting live captions.
+- Added first 10-lines default subtitle presentation across active favorite languages on Android with dedicated pagination controls and a badge indicating the presentation limit.
+- Maintained isolated web demo fixture behavior.
+- Added dedicated verification test `scripts/verify-android-favorite-subtitles.ts` validating live multi-language alignment and 10-line presentation limits.
+- Verified test suite and ensured clean repository hygiene.
+
 ## Task 17: Restore default language subtitle fetching and favorite languages `tlang` replacement on Android
 
 - Preserved the default language track by fetching or retaining the base timedtext request without an invalid or empty `tlang` parameter.

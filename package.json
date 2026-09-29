@@ -34,6 +34,7 @@
     "test:hygiene": "tsx scripts/verify-repo-hygiene.ts",
     "test:native-captions": "tsx scripts/verify-native-captions.ts",
     "test:android-subtitles": "tsx scripts/verify-android-favorite-subtitles.ts",
+    "test:emulation-gh-pages": "tsx scripts/verify-emulation-gh-pages.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

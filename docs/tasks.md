@@ -1,8 +1,12 @@
 # Tasks
 
+## Task 22: Publish Android emulator screenshots to GitHub Pages
+
+- [ ] **Subtask 22.1: Configure GitHub Actions workflow to publish Android emulator screenshot artifact to GitHub Pages**: Update `.github/workflows/emulation.yml` so that upon a successful Android emulator run on the default branch or workflow dispatch, the captured screenshot (`android-emulator-screenshot.png`) is published to the `gh-pages` branch under `screenshots/android-emulator-screenshot.png` without introducing synthetic files into the git source repository. Create a dedicated verification test `scripts/verify-emulation-gh-pages.ts` and verify.
+
 ## Task 21: Android dynamic subtitle fetching and 10-line presentation for favorite languages
 
-- [ ] **Subtask 21.1: Dynamically load and present first 10 lines of subtitles for each favorite language on Android**: Ensure that in Android mode, intercepted caption base requests dynamically fetch subtitle tracks via `fetchTranslatedCaptionsWithUrl` with `tlang` for every selected favorite language, and present the first 10 lines of subtitles synchronously across each favorite language column with controls to display additional lines. Keep web demo fixtures cleanly scoped. Add dedicated verification tests, commit before execution, test, and verify.
+- [x] **Subtask 21.1: Dynamically load and present first 10 lines of subtitles for each favorite language on Android**: Ensure that in Android mode, intercepted caption base requests dynamically fetch subtitle tracks via `fetchTranslatedCaptionsWithUrl` with `tlang` for every selected favorite language, and present the first 10 lines of subtitles synchronously across each favorite language column with controls to display additional lines. Keep web demo fixtures cleanly scoped. Add dedicated verification tests, commit before execution, test, and verify.
 
 ## Task 20: Remove synthetic report generators, fake artifact scripts, and generated HTML files
 

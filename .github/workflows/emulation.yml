@@ -166,3 +166,28 @@ jobs:
             android-shell/app/build/outputs/apk/debug/*.apk
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Stage Android Emulator Artifacts for GitHub Pages
+        if: success()
+        run: |
+          mkdir -p gh-pages-staging/screenshots
+          if [ -f "./android-emulator-screenshot.png" ]; then
+            cp ./android-emulator-screenshot.png gh-pages-staging/screenshots/android-emulator-screenshot.png
+            echo "Staged android-emulator-screenshot.png to gh-pages-staging/screenshots/"
+          fi
+          if [ -f "./android-emulator-logcat.txt" ]; then
+            cp ./android-emulator-logcat.txt gh-pages-staging/screenshots/android-emulator-logcat.txt
+            echo "Staged android-emulator-logcat.txt to gh-pages-staging/screenshots/"
+          fi
+
+      - name: Deploy Android Emulator Artifacts to GitHub Pages (gh-pages branch)
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        uses: peaceiris/actions-gh-pages@v4
+        continue-on-error: true
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./gh-pages-staging
+          publish_branch: gh-pages
+          destination_dir: .
+          keep_files: true
+

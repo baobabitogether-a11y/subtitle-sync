@@ -33,6 +33,7 @@ Access the live web application:
 | Resource | Direct URL | Description |
 | :--- | :--- | :--- |
 | 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf2556.github.io/subtitle-sync/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
+| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification. |
 
 ---
 
