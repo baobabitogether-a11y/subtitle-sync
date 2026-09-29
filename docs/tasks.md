@@ -1,8 +1,12 @@
 # Tasks
 
+## Task 23: Enforce 100% local, offline web-app architecture in Android shell
+
+- [ ] **Subtask 23.1: Permanently eliminate all remote web-app URLs and fallbacks from `MainActivity.kt` and guarantee local asset execution**: Purge `APP_URL` and remote `github.io` fallback logic from `MainActivity.kt`. Unconditionally load local bundled assets from `appassets.androidplatform.net`. In `shouldOverrideUrlLoading`, restrict WebView internal navigation to local app assets and embedded YouTube players. Add a local offline fallback message if assets are missing. Implement dedicated test `scripts/verify-android-local-assets.ts` and verify.
+
 ## Task 22: Publish Android emulator screenshots to GitHub Pages
 
-- [ ] **Subtask 22.1: Configure GitHub Actions workflow to publish Android emulator screenshot artifact to GitHub Pages**: Update `.github/workflows/emulation.yml` so that upon a successful Android emulator run on the default branch or workflow dispatch, the captured screenshot (`android-emulator-screenshot.png`) is published to the `gh-pages` branch under `screenshots/android-emulator-screenshot.png` without introducing synthetic files into the git source repository. Create a dedicated verification test `scripts/verify-emulation-gh-pages.ts` and verify.
+- [x] **Subtask 22.1: Configure GitHub Actions workflow to publish Android emulator screenshot artifact to GitHub Pages**: Update `.github/workflows/emulation.yml` so that upon a successful Android emulator run on the default branch or workflow dispatch, the captured screenshot (`android-emulator-screenshot.png`) is published to the `gh-pages` branch under `screenshots/android-emulator-screenshot.png` without introducing synthetic files into the git source repository. Create a dedicated verification test `scripts/verify-emulation-gh-pages.ts` and verify.
 
 ## Task 21: Android dynamic subtitle fetching and 10-line presentation for favorite languages
 

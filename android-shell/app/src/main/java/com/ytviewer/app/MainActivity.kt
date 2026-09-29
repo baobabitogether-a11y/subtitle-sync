@@ -52,9 +52,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     companion object {
         private const val TAG = "YT_CAPTION_INTERCEPTOR"
-        // Used only when an APK is launched without bundled web assets.
-        // The normal Android build creates the local bundle automatically.
-        private const val APP_URL = "https://mostuf2556.github.io/subtitle-sync/app/"
+        private const val LOCAL_ASSET_DOMAIN = "appassets.androidplatform.net"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -160,8 +158,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     }
                 }
 
-                // 2. Intercept bundled web assets for offline/hybrid hosting
-                if (host == "appassets.androidplatform.net") {
+                // 2. Intercept bundled web assets for offline local hosting
+                if (host == LOCAL_ASSET_DOMAIN) {
                     var cleanPath = path.trim()
                     while (cleanPath.startsWith("/") || cleanPath.startsWith("./")) {
                         cleanPath = cleanPath.removePrefix("/").removePrefix("./")
@@ -197,6 +195,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         }
                         val loaderResponse = assetLoader.shouldInterceptRequest(request!!.url)
                         if (loaderResponse != null) return loaderResponse
+
+                        // If assets are completely missing from the build, show an authentic local offline error
+                        val offlineHtml = """
+                            <!DOCTYPE html>
+                            <html>
+                            <head><meta charset="utf-8"><title>Offline Asset Error</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+                            <body style="background:#0f0f12;color:#ffffff;font-family:sans-serif;padding:24px;text-align:center;">
+                                <h2>Local Web Assets Not Found</h2>
+                                <p style="color:#aaa;">The application was launched without bundled web assets. Please rebuild the APK with bundled assets.</p>
+                            </body>
+                            </html>
+                        """.trimIndent()
+                        return WebResourceResponse("text/html", "UTF-8", ByteArrayInputStream(offlineHtml.toByteArray(Charsets.UTF_8)))
                     }
                 }
 
@@ -209,8 +220,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             ): Boolean {
                 val uri = request?.url ?: return false
                 val host = uri.host ?: ""
-                // Keep internal app assets and fallback host in WebView
-                if (host == "appassets.androidplatform.net" || host.contains("github.io")) {
+                // Keep internal local app assets in WebView
+                if (host == LOCAL_ASSET_DOMAIN) {
                     return false
                 }
                 // Allow YouTube player domains to load embedded inside WebView
@@ -257,21 +268,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             ""
         }
 
-        // Load the application: prefer local bundled web app if available, otherwise load remote APP_URL
-        val hasBundledAssets = try {
-            assets.open("index.html").close()
-            true
-        } catch (e: Exception) {
-            false
-        }
-
-        if (hasBundledAssets) {
-            Log.i(TAG, "Loading bundled offline web assets from appassets.androidplatform.net/$querySuffix")
-            webView.loadUrl("https://appassets.androidplatform.net/$querySuffix")
-        } else {
-            Log.i(TAG, "Loading remote web URL: $APP_URL$querySuffix")
-            webView.loadUrl("$APP_URL$querySuffix")
-        }
+        // Load the application exclusively from local bundled web assets
+        Log.i(TAG, "Loading local offline web assets from https://$LOCAL_ASSET_DOMAIN/$querySuffix")
+        webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/$querySuffix")
 
         // Handle any shared intent that opened the app
         handleSharedIntent(intent)
@@ -291,18 +290,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             null
         }
         if (!sharedText.isNullOrBlank()) {
-            val hasBundledAssets = try {
-                assets.open("index.html").close()
-                true
-            } catch (e: Exception) {
-                false
-            }
             val querySuffix = "?url=" + android.net.Uri.encode(sharedText)
-            if (hasBundledAssets) {
-                webView.loadUrl("https://appassets.androidplatform.net/$querySuffix")
-            } else {
-                webView.loadUrl("$APP_URL$querySuffix")
-            }
+            Log.i(TAG, "Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/$querySuffix")
+            webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/$querySuffix")
         }
     }
 

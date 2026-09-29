@@ -35,6 +35,7 @@
     "test:native-captions": "tsx scripts/verify-native-captions.ts",
     "test:android-subtitles": "tsx scripts/verify-android-favorite-subtitles.ts",
     "test:emulation-gh-pages": "tsx scripts/verify-emulation-gh-pages.ts",
+    "test:local-assets": "tsx scripts/verify-android-local-assets.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

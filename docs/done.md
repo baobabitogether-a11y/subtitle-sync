@@ -1,5 +1,15 @@
 # Done tasks
 
+## Task 22: Publish Android emulator screenshots to GitHub Pages
+
+### Subtask 22.1: Configure GitHub Actions workflow to publish Android emulator screenshot artifact to GitHub Pages
+- Configured `.github/workflows/emulation.yml` with steps to stage `android-emulator-screenshot.png` and `android-emulator-logcat.txt` into `gh-pages-staging/screenshots/`.
+- Added GitHub Pages deployment using `peaceiris/actions-gh-pages@v4` with `keep_files: true` and `destination_dir: .` targeting `gh-pages` branch.
+- Configured `.gitignore` to prevent any synthetic or generated emulator artifacts from entering the git repository.
+- Added direct link to the Android Emulator Screenshot in `README.md`.
+- Implemented dedicated verification test `scripts/verify-emulation-gh-pages.ts` and registered it in `package.json` and `docs/files.md`.
+- Verified 100% pass on all repo checks and hygiene tests.
+
 ## Task 21: Android dynamic subtitle fetching and 10-line presentation for favorite languages
 
 ### Subtask 21.1: Dynamically load and present first 10 lines of subtitles for each favorite language on Android
