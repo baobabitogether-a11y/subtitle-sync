@@ -180,7 +180,7 @@ export function parallelSections(
   strategy: Strategy,
 ): Sec[] {
   const all = Object.entries(tracks).map(([lang, j]) => ({ lang, cues: parseCues(j) }));
-  const pv = all.find((t) => t.lang === pivot)?.cues ?? [];
+  const pv = all.find((t) => t.lang === pivot)?.cues ?? all[0]?.cues ?? [];
   if (["cue", "sentence", "window"].includes(strategy)) return sections(pv, strategy);
   const n = all.length;
   const start = Math.min(...all.map((t) => t.cues[0]?.start ?? 0));

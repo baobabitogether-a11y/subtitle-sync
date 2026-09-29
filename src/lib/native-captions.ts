@@ -65,3 +65,25 @@ export function parseVideoId(value: string): string | null {
     return null;
   }
 }
+
+export function buildTranslatedCaptionUrl(
+  baseUrl: string,
+  targetLanguage: string,
+  format = "json3",
+): string {
+  try {
+    const url = new URL(baseUrl);
+    const originalLang = url.searchParams.get("lang");
+    if (originalLang && originalLang.toLowerCase() === targetLanguage.toLowerCase()) {
+      url.searchParams.delete("tlang");
+    } else {
+      url.searchParams.set("tlang", targetLanguage);
+    }
+    if (format) {
+      url.searchParams.set("fmt", format);
+    }
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}

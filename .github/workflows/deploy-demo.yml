@@ -50,36 +50,18 @@ jobs:
         timeout-minutes: 3
         run: npm install
 
-      - name: Install Playwright Browsers with OS Dependencies
-        timeout-minutes: 3
-        run: npx playwright install --with-deps chromium
-
-      - name: Download Web Build Artifact from Upstream Workflow
-        if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: web-dist
-          path: dist
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Web Application & Prepare Subtitle Artifacts
+      - name: Build Web Application
         timeout-minutes: 5
         run: |
           echo "⚙️ Compiling latest web application..."
           npm run build
-          echo "✅ Preparing reports and web demo artifact structure..."
-          node scripts/prepare-report.mjs
-          echo "🔍 Verifying integrity of reports and web application..."
-          npm run test:report:integrity
 
       - name: Deploy Web Demo to GitHub Pages (gh-pages branch)
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./cypress/reports
+          publish_dir: ./dist
           publish_branch: gh-pages
           force_orphan: true
 
@@ -93,7 +75,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         continue-on-error: true
         with:
-          path: ./cypress/reports
+          path: ./dist
 
       - name: Deploy to GitHub Pages (Native Actions Mode)
         id: deployment

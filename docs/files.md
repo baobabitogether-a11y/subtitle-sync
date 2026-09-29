@@ -6,12 +6,11 @@ This document maintains the registry of codebase files, their specific roles, ar
 
 | File Path | Role | Feature & Responsibilities |
 |---|---|---|
+| `index.html` | Application HTML Entry Point | Root HTML5 template mounting the React SPA into `#root`. |
 | `src/routes/index.tsx` | Main Workspace View | Orchestrates player view, playback controls, parser selector, language controls, and parallel subtitle table. |
-| `src/routes/__root.tsx` | Root Layout | Provides document shell, theme styling containers, meta headers, and global hydration wrappers. |
+| `src/routes/__root.tsx` | Root Layout | Provides document shell, theme styling containers, QueryClient context, and child route outlet. |
 | `src/router.tsx` | Router Definition | Configures TanStack Router instance and integrates generated route tree. |
-| `src/client.tsx` | Client Hydration Entry | Initializes client-side rendering and mounts the router into the DOM. |
-| `src/server.ts` | SSR Server Entry | Configures Nitro server handler and handles server-rendered route requests. |
-| `src/start.ts` | Server Startup | Entry script for launching the SSR server. |
+| `src/client.tsx` | Client Mount Entry | Initializes client-side rendering with `createRoot` and mounts the router into the DOM. |
 
 ## Subtitles & Alignment Core (`src/lib/`)
 
@@ -19,8 +18,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 |---|---|---|
 | `src/lib/subtitles.ts` | Subtitle Alignment Engine | Implements sentence, word, raw segment, and linear blend alignment across multi-language JSON3 tracks. |
 | `src/lib/native-captions.ts` | Native Android Bridge Interop | Decodes intercepted base64 caption payloads and extracts timedtext URL parameters. |
-| `src/lib/error-capture.ts` | Runtime Error Interceptor | Intercepts unhandled exceptions, console errors, and rejections for diagnosis. |
-| `src/lib/error-page.ts` | Error Boundary View | Displays user-facing diagnostic details when runtime rendering faults occur. |
 | `src/lib/lovable-error-reporting.ts` | Lovable Studio Telemetry | Dispatches runtime error reports to the Lovable integration layer. |
 | `src/lib/utils.ts` | UI Utilities | Provides class name concatenation (`cn`) merging Tailwind classes and clsx. |
 
@@ -56,12 +53,14 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `e2e/web.spec.ts` | Playwright Web Test | Tests web demo fixture loading, theme toggling, favorite language controls, and SSR hydration consistency. |
 | `e2e/app.spec.ts` | Playwright App Smoke Test | Verifies core UI rendering and table layout integrity. |
 | `e2e/emulation.spec.ts` | Android Native Shell Emulation Test | Simulates Android bridge timedtext interception and `tlang` subtitle track retrieval. |
+| `scripts/verify-client-spa.ts` | Pure Client SPA Architecture Verification | Validates zero server dependencies, removal of SSR files, and valid client build. |
 | `scripts/verify-caption-formats.ts` | Caption Format Verification | Asserts valid JSON3 structure across all repository subtitle fixtures. |
 | `scripts/verify-ota-updater.ts` | OTA Updater Test Suite | Tests version comparison, GitHub release artifact resolution, and bundle application. |
 | `scripts/verify-audio-track-mode.ts` | Audio-Track Repeat Mode Test Suite | Validates default OFF state, preference persistence, audio track matching, and repeat pipeline. |
 | `scripts/verify-auto-scroll.ts` | Auto-Scroll Setting Test Suite | Validates default OFF state, storage persistence, and safe fallback handling. |
 | `scripts/verify-hydration.ts` | SSR Hydration Determinism Test | Validates deterministic default language state consistency. |
+| `scripts/verify-repo-hygiene.ts` | Repository Hygiene Verification | Asserts absence of synthetic report generators, fake HTML report dashboards, and unignored test artifacts. |
+| `scripts/verify-native-captions.ts` | Native Captions & tlang Verification | Asserts valid tlang handling, base language preservation, base64 payload decoding, and Kotlin bridge logic. |
+| `scripts/verify-android-favorite-subtitles.ts` | Android Dynamic Subtitles & 10-Line Presentation | Asserts dynamic multi-favorite language track loading, default 10-line presentation per column, and pagination on Android. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
-| `scripts/verify-reports-integrity.mjs` | Test Report Integrity Validator | Asserts presence and integrity of browsable HTML test reports and media assets. |
-| `scripts/prepare-report.mjs` | Report Bundle Generator | Assembles unified Cypress, Playwright, and Android emulator HTML report artifacts. |
 | `scripts/normalize-web-assets.mjs` | Build Asset Normalizer | Adjusts asset paths for GitHub Pages sub-path hosting. |

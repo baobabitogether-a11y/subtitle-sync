@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
-const outputDir = path.resolve(process.argv[2] ?? ".output/public");
+const outputDir = path.resolve(process.argv[2] ?? "dist");
 const indexPath = path.join(outputDir, "index.html");
 
 if (!fs.existsSync(indexPath)) {

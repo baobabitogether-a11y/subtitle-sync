@@ -263,11 +263,15 @@ function Index() {
   const [speakingLang, setSpeakingLang] = useState<string | null>(null);
   const [speakingRow, setSpeakingRow] = useState(-1);
   const [speechProgress, setSpeechProgress] = useState<SpeechProgress>(null);
+  const [subtitlesLimit, setSubtitlesLimit] = useState<number>(() => (isAndroid ? 10 : 0));
+  const [subtitlesPage, setSubtitlesPage] = useState<number>(1);
 
   useEffect(() => {
     const shell = nativeShell();
     if (!shell) return;
     setIsAndroid(true);
+    setSubtitlesLimit(10);
+    setSubtitlesPage(1);
     const openLink = (link: string) => {
       const id = parseVideoId(link);
       if (id) {
@@ -280,6 +284,7 @@ function Index() {
             setSpeakingRow(-1);
             setSpeechProgress(null);
             cancelSpeech();
+            setSubtitlesPage(1);
           }
           return id;
         });
@@ -304,6 +309,7 @@ function Index() {
     setSpeakingRow(-1);
     setSpeechProgress(null);
     cancelSpeech();
+    setSubtitlesPage(1);
     setCaptionStatus(
       "Waiting for YouTube captions. Play the video and enable captions if necessary.",
     );
@@ -379,14 +385,21 @@ function Index() {
   useEffect(() => {
     setIsHydrated(true);
     // Sync client-persisted preferences post-hydration to eliminate SSR mismatches
+    const isAndroidEnvironment =
+      Boolean(nativeShell()) ||
+      new URLSearchParams(window.location.search).get("android") === "true";
+    if (isAndroidEnvironment) {
+      setIsAndroid(true);
+      setSubtitlesLimit(10);
+      setSubtitlesPage(1);
+    }
     const savedLangs = getUserLearningLanguages();
     if (savedLangs && savedLangs.length > 0) {
       setTargetLanguages(savedLangs);
-    } else if (
-      Boolean(nativeShell()) ||
-      new URLSearchParams(window.location.search).get("android") === "true"
-    ) {
+      setShown((prev) => Array.from(new Set([...prev, ...savedLangs])));
+    } else if (isAndroidEnvironment) {
       setTargetLanguages(["he", "it"]);
+      setShown((prev) => Array.from(new Set([...prev, "he", "it"])));
     }
     setAudioTrackModeState(getAudioTrackMode());
     setAutoFocusState(getAutoScrollSetting());
@@ -634,6 +647,23 @@ function Index() {
         (isAndroid && videoId !== DEMO_VIDEO ? Boolean(tracks?.[l.code]) : true),
     );
   }, [isAndroid, videoId, tracks, orderedLangs, shown]);
+
+  const displayedRows = useMemo(() => {
+    if (isAndroid && subtitlesLimit > 0) {
+      const start = (subtitlesPage - 1) * subtitlesLimit;
+      return rows.slice(start, start + subtitlesLimit);
+    }
+    return rows;
+  }, [rows, isAndroid, subtitlesLimit, subtitlesPage]);
+
+  useEffect(() => {
+    if (isAndroid && autoFocus && active >= 0 && subtitlesLimit > 0) {
+      const targetPage = Math.floor(active / subtitlesLimit) + 1;
+      if (targetPage !== subtitlesPage) {
+        setSubtitlesPage(targetPage);
+      }
+    }
+  }, [active, autoFocus, isAndroid, subtitlesLimit, subtitlesPage]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -1012,6 +1042,79 @@ function Index() {
                   </p>
                 ) : (
                   <div className="max-h-[calc(100vh-8rem)] overflow-auto">
+                    {isAndroid && rows.length > 0 && (
+                      <div
+                        data-testid="android-subtitles-pagination-bar"
+                        className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-2 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">
+                            Lines{" "}
+                            {subtitlesLimit > 0
+                              ? `${(subtitlesPage - 1) * subtitlesLimit + 1}–${Math.min(
+                                  subtitlesPage * subtitlesLimit,
+                                  rows.length,
+                                )}`
+                              : `1–${rows.length}`}{" "}
+                            of {rows.length}
+                          </span>
+                          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-normal text-primary">
+                            First 10 lines of favorite languages
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5">
+                            <label
+                              htmlFor="subtitles-limit-select"
+                              className="text-muted-foreground"
+                            >
+                              Lines per view:
+                            </label>
+                            <select
+                              id="subtitles-limit-select"
+                              value={subtitlesLimit}
+                              onChange={(e) => {
+                                setSubtitlesLimit(Number(e.target.value));
+                                setSubtitlesPage(1);
+                              }}
+                              className="rounded border border-input bg-background px-2 py-1 text-xs"
+                            >
+                              <option value={10}>10 (Default)</option>
+                              <option value={25}>25</option>
+                              <option value={50}>50</option>
+                              <option value={0}>All ({rows.length})</option>
+                            </select>
+                          </div>
+                          {subtitlesLimit > 0 && Math.ceil(rows.length / subtitlesLimit) > 1 && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={subtitlesPage <= 1}
+                                onClick={() => setSubtitlesPage((p) => Math.max(1, p - 1))}
+                                className="rounded border border-border px-2 py-0.5 hover:bg-muted disabled:opacity-40"
+                              >
+                                Prev
+                              </button>
+                              <span className="px-1 tabular-nums">
+                                {subtitlesPage} / {Math.ceil(rows.length / subtitlesLimit)}
+                              </span>
+                              <button
+                                type="button"
+                                disabled={subtitlesPage >= Math.ceil(rows.length / subtitlesLimit)}
+                                onClick={() =>
+                                  setSubtitlesPage((p) =>
+                                    Math.min(Math.ceil(rows.length / subtitlesLimit), p + 1),
+                                  )
+                                }
+                                className="rounded border border-border px-2 py-0.5 hover:bg-muted disabled:opacity-40"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <table className="w-full border-collapse text-sm">
                       <thead className="sticky top-0 z-10 bg-secondary">
                         <tr>
@@ -1024,34 +1127,41 @@ function Index() {
                         </tr>
                       </thead>
                       <tbody>
-                        {rows.map((r, i) => (
-                          <tr
-                            key={i}
-                            data-row={i}
-                            onClick={() => seek(r, i)}
-                            className={`cursor-pointer border-t border-border align-top ${i === active ? "bg-accent" : "hover:bg-muted"}`}
-                          >
-                            <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
-                              {fmt(r.start)}–{fmt(r.end)}
-                            </td>
-                            {cols.map((l) => (
-                              <td
-                                key={l.code}
-                                dir={RTL.has(l.code) ? "rtl" : "ltr"}
-                                className="px-3 py-2 leading-relaxed"
-                              >
-                                <HighlightedSubtitle
-                                  text={r.texts[l.code] ?? ""}
-                                  progress={
-                                    speechProgress?.row === i && speechProgress.lang === l.code
-                                      ? speechProgress
-                                      : null
-                                  }
-                                />
+                        {displayedRows.map((r, i) => {
+                          const actualIndex =
+                            isAndroid && subtitlesLimit > 0
+                              ? (subtitlesPage - 1) * subtitlesLimit + i
+                              : i;
+                          return (
+                            <tr
+                              key={actualIndex}
+                              data-row={actualIndex}
+                              onClick={() => seek(r, actualIndex)}
+                              className={`cursor-pointer border-t border-border align-top ${actualIndex === active ? "bg-accent" : "hover:bg-muted"}`}
+                            >
+                              <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
+                                {fmt(r.start)}–{fmt(r.end)}
                               </td>
-                            ))}
-                          </tr>
-                        ))}
+                              {cols.map((l) => (
+                                <td
+                                  key={l.code}
+                                  dir={RTL.has(l.code) ? "rtl" : "ltr"}
+                                  className="px-3 py-2 leading-relaxed"
+                                >
+                                  <HighlightedSubtitle
+                                    text={r.texts[l.code] ?? ""}
+                                    progress={
+                                      speechProgress?.row === actualIndex &&
+                                      speechProgress.lang === l.code
+                                        ? speechProgress
+                                        : null
+                                    }
+                                  />
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

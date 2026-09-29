@@ -81,21 +81,13 @@ if command -v adb &> /dev/null; then
     adb logcat -d -s "YT_CAPTION_INTERCEPTOR" "TTS_ENGINE" "ActivityTaskManager" | tail -n 60 > "${LOGCAT_OUT}" || true
     echo "✓ Logcat telemetry saved to: ${LOGCAT_OUT}"
 
+    echo "=================================================================="
+    echo "✓ Android device/emulator E2E run complete!"
+    echo "=================================================================="
   else
     echo "ℹ No active Android device/emulator detected via adb."
-    echo "  (In headless container environments, live HTTP emulation telemetry will be compiled)"
   fi
 else
   echo "ℹ ADB client not installed in current environment."
-  echo "  (Generating standard Android Emulator Test Report with verified suite specifications)"
 fi
 
-# 2. Generate Browsable HTML Test Report
-echo "--> Generating Android Emulator Test Report..."
-node "${ROOT_DIR}/scripts/generate-android-report.mjs"
-
-echo "=================================================================="
-echo "✓ Android Emulator Test Report generation complete!"
-echo "  Report Path: ${ROOT_DIR}/cypress/reports/android-emulator-report.html"
-echo "  Root Mirror: ${ROOT_DIR}/android-emulator-report.html"
-echo "=================================================================="
