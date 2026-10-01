@@ -184,8 +184,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // Present TTS input and TTS queue by default for real-time debugging
   showTtsDebugQueue: true,
 
-  // Favorite languages / learning targets by default: 1 target language Hebrew ('he') for focus
-  learningLanguages: ['he'],
+  // Favorite languages / learning targets by default: Hebrew ('he') and Italian ('it')
+  learningLanguages: ['he', 'it'],
   subtitlesPerPage: 25,
 
   // By default try to subtitle fetch using tlang param change once after default subs loaded (Requirement 6)

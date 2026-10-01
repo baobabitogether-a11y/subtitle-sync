@@ -1,5 +1,45 @@
 # Done tasks
 
+## Task 26: Extend network request response body preview limit to 50 characters
+
+### Subtask 26.1: Update response body preview length to 50 characters across tracker, inspector UI, and verification suite
+- Extended `MAX_RESPONSE_BODY_PREVIEW_CHARS` in `src/utils/networkTracker.ts` from 15 to 50 characters.
+- Updated `src/components/NetworkRequestsInspector.tsx` UI labels, list badges, and details panel to show the first 50 characters.
+- Updated `scripts/verify-network-inspector.ts` asserting 50-character response preview truncation.
+- Rebuilt android assets into `android-shell/app/src/main/assets/` and verified all 14 test suites.
+
+## Task 25: Dynamic favorite language subtitle fetching and network requests inspector with response body preview
+
+### Subtask 25.1: Proactively fetch subtitles for newly added favorite languages via `tlang`
+- Updated `handleTargetLanguagesChange` in `src/routes/index.tsx` to detect newly added favorite languages dynamically.
+- Implemented `fetchFavoriteLanguageSubtitles` using `buildTranslatedCaptionUrl` with `tlang` parameter and the native shell bridge.
+- Automatically merges newly fetched tracks into `tracks` state and updates live caption status.
+- Added dedicated test `scripts/verify-favorite-lang-dynamic-fetch.ts` and registered `test:favorite-dynamic-fetch` in `package.json`.
+
+### Subtask 25.2: Network requests panel with initial response body preview
+- Created modular external store `src/utils/networkTracker.ts` tracking timedtext, bridge, and fetch requests.
+- Implemented `NetworkRequestsInspector.tsx` modal with filter chips, search, copy URL, and response preview badges.
+- Connected network tracking in `src/routes/index.tsx` for intercepted captions, native bridge fetching, and fixture fetching.
+- Added dedicated test `scripts/verify-network-inspector.ts` and registered `test:network-inspector` in `package.json`.
+
+## Task 24: Align Android subtitle fetching flow with Youtubenet6 (default caption fetch followed by ordered favorite languages)
+
+### Subtask 24.1: Implement proactive default subtitle fetch and ordered favorite language translations on Android
+- Configured default favorite languages to `['he', 'it']` in `src/utils/appSettings.ts` and initialized `targetLanguages` from `getUserLearningLanguages()` in `src/routes/index.tsx`.
+- Guaranteed that target language fetching preserves priority order (`he` before `it`), matching `android-e2e-assert.sh` ordering expectations.
+- Configured YouTube player `playerVars` with `autoplay: isAndroid ? 1 : 0` and `cc_load_policy: isAndroid ? 1 : 0`.
+- Verified `scripts/verify-native-captions.ts` and all 12 test suites pass cleanly.
+
+## Task 23: Enforce 100% local, offline web-app architecture in Android shell
+
+### Subtask 23.1: Permanently eliminate all remote web-app URLs and fallbacks from `MainActivity.kt` and guarantee local asset execution
+- Completely purged `APP_URL` and all remote `github.io` fallback references from `MainActivity.kt`.
+- Configured WebView to unconditionally load `https://appassets.androidplatform.net/index.html$querySuffix` from local bundled APK assets.
+- In `shouldOverrideUrlLoading`, restricted internal WebView navigation strictly to local assets domain and YouTube player embeds.
+- Added a local offline error page in `shouldInterceptRequest` if assets cannot be opened, preventing remote network fallback.
+- Implemented dedicated test `scripts/verify-android-local-assets.ts` and registered it in `package.json` and `docs/files.md`.
+- Verified all unit and hygiene tests pass with zero errors.
+
 ## Task 22: Publish Android emulator screenshots to GitHub Pages
 
 ### Subtask 22.1: Configure GitHub Actions workflow to publish Android emulator screenshot artifact to GitHub Pages

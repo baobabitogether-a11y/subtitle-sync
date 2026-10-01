@@ -87,7 +87,7 @@ assert(parsedJson !== null, "Parsed JSON3 must not be null");
 assert.strictEqual(parsedJson.events?.[0]?.segs?.[0]?.utf8, "Authentic dialogue line");
 console.log("✅ PASS: Intercepted base64 payload decoding and JSON3 parsing verified");
 
-// 5. Verify MainActivity.kt has the originalLang check
+// 5. Verify MainActivity.kt has the originalLang check and SUBTITLE_FETCH telemetry
 const mainActivityPath = path.join(
   process.cwd(),
   "android-shell/app/src/main/java/com/ytviewer/app/MainActivity.kt",
@@ -97,7 +97,31 @@ assert(
   mainActivityContent.includes("uri.getQueryParameter(\"lang\")"),
   "MainActivity.kt must inspect original lang parameter to avoid invalid tlang",
 );
-console.log("✅ PASS: MainActivity.kt Kotlin bridge logic verified");
+assert(
+  mainActivityContent.includes("SUBTITLE_FETCH kind="),
+  "MainActivity.kt must emit SUBTITLE_FETCH telemetry",
+);
+console.log("✅ PASS: MainActivity.kt Kotlin bridge and telemetry verified");
+
+// 6. Verify default favorite languages configuration
+const appSettingsPath = path.join(process.cwd(), "src/utils/appSettings.ts");
+const appSettingsContent = fs.readFileSync(appSettingsPath, "utf8");
+assert(
+  appSettingsContent.includes("learningLanguages: ['he', 'it']"),
+  "DEFAULT_APP_SETTINGS must configure ['he', 'it'] as default favorite languages",
+);
+
+const indexRoutePath = path.join(process.cwd(), "src/routes/index.tsx");
+const indexRouteContent = fs.readFileSync(indexRoutePath, "utf8");
+assert(
+  indexRouteContent.includes("getUserLearningLanguages()"),
+  "index.tsx must initialize targetLanguages from getUserLearningLanguages()",
+);
+assert(
+  indexRouteContent.includes("return [\"he\", \"it\"];"),
+  "index.tsx must fall back to ['he', 'it'] favorite languages",
+);
+console.log("✅ PASS: Favorite languages prioritize ordered Hebrew and Italian");
 
 console.log("====================================================");
 console.log("📊 NATIVE CAPTIONS TEST: All tests passed!");

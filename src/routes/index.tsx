@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Moon, Sun } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Activity, ChevronDown, ChevronUp, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   align,
@@ -32,6 +32,8 @@ import {
   setAudioTrackMode,
   repeatSegmentWithAudioTrack,
 } from "@/utils/audioTrackManager";
+import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
+import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
 
@@ -70,7 +72,7 @@ type YTPlayer = {
 };
 declare global {
   interface Window {
-    YT?: any;
+    YT?: { Player: new (el: HTMLElement, o: object) => YTPlayer };
     onYouTubeIframeAPIReady?: () => void;
     onNativeCaptionsInterceptedBase64?: (payload: string) => void;
     onNativeSharedLinkReceived?: (url: string) => void;
@@ -225,12 +227,72 @@ function Index() {
   const [strategy, setStrategy] = useState<Strategy>("sentence");
   const [shown, setShown] = useState<string[]>(["en", "he", "it"]);
   const [spoken, setSpoken] = useState<string[]>(["en", "it"]);
-  const [targetLanguages, setTargetLanguages] = useState<string[]>(() => LANGS.map((l) => l.code));
+  const [targetLanguages, setTargetLanguages] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = getUserLearningLanguages();
+      if (saved && saved.length > 0) return saved;
+    }
+    return ["he", "it"];
+  });
+
+  const tracksRef = useRef<Record<string, Json3> | null>(tracks);
+  tracksRef.current = tracks;
+  const observedUrlRef = useRef(observedUrl);
+  observedUrlRef.current = observedUrl;
+
+  const [networkInspectorOpen, setNetworkInspectorOpen] = useState(false);
+  const networkRequests = useNetworkRequests();
+
+  const fetchFavoriteLanguageSubtitles = useCallback(
+    async (langsToFetch: string[], baseUrl?: string) => {
+      const activeUrl = baseUrl || observedUrlRef.current;
+      if (!isAndroid || !activeUrl) return;
+      const shell = nativeShell();
+      if (!shell) return;
+      const defaultLang = new URL(activeUrl).searchParams.get("lang") || "en";
+      const needed = langsToFetch.filter(
+        (code) => code && code !== defaultLang && !tracksRef.current?.[code],
+      );
+      if (needed.length === 0) return;
+      const next: Record<string, Json3> = {};
+      for (const code of needed) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        const translatedUrl = buildTranslatedCaptionUrl(activeUrl, code, "json3");
+        const tracker = trackNetworkRequest(translatedUrl, "GET", "native_bridge");
+        try {
+          const raw = shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3");
+          tracker.complete(200, raw);
+          const json = parseJson3(raw);
+          if (json) {
+            next[code] = json;
+          }
+        } catch (err) {
+          tracker.fail(String(err));
+        }
+      }
+      if (Object.keys(next).length > 0) {
+        setTracks((prev) => {
+          const merged = { ...prev, ...next };
+          const count = Object.keys(merged).length;
+          setCaptionStatus(`${count} live language tracks loaded.`);
+          return merged;
+        });
+      }
+    },
+    [isAndroid],
+  );
 
   const handleTargetLanguagesChange = (newTargetLangs: string[]) => {
+    const newlyAdded = newTargetLangs.filter((lang) => !targetLanguages.includes(lang));
     setTargetLanguages(newTargetLangs);
     setUserLearningLanguages(newTargetLangs);
     setShown((prev) => Array.from(new Set([...prev, ...newTargetLangs])));
+    if (newlyAdded.length > 0 && isAndroid) {
+      setCaptionStatus(
+        `Fetching live subtitles for added favorite language: ${newlyAdded.join(", ")}…`,
+      );
+      void fetchFavoriteLanguageSubtitles(newlyAdded);
+    }
   };
   const [languageOrder, setLanguageOrder] = useState(() => LANGS.map((lang) => lang.code));
   const [rates, setRates] = useState<Record<string, number>>(() =>
@@ -323,10 +385,11 @@ function Index() {
     window.onNativeCaptionsInterceptedBase64 = (encoded) => {
       const payload = decodeInterceptedCaption(encoded);
       if (!payload || timedTextVideoId(payload.url) !== videoId) return;
+      const tracker = trackNetworkRequest(payload.url, "GET", "timedtext_interception");
+      tracker.complete(200, payload.rawData);
       const requestUrl = new URL(payload.url);
       const targetLanguage = requestUrl.searchParams.get("tlang");
-      const lang =
-        targetLanguage ?? requestUrl.searchParams.get("lang");
+      const lang = targetLanguage ?? requestUrl.searchParams.get("lang");
       const json = parseJson3(payload.rawData);
       if (!json) return;
       if (!targetLanguage) {
@@ -342,43 +405,26 @@ function Index() {
 
   useEffect(() => {
     if (!isAndroid || !observedUrl || !defaultCaptionsLoaded) return;
-    const shell = nativeShell();
-    if (!shell) return;
-    const selected = [...new Set([...shown, ...spoken, ...targetLanguages, pivot])];
-    let cancelled = false;
-    // The Android bridge is synchronous; schedule languages separately to let the UI paint.
-    const fetchTracks = async () => {
-      const next: Record<string, Json3> = {};
-      for (const code of selected) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        if (cancelled) return;
-        try {
-          const translatedUrl = buildTranslatedCaptionUrl(observedUrl, code, "json3");
-          const json = parseJson3(shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3"));
-          if (json) next[code] = json;
-        } catch {
-          /* The observed URL may expire; wait for a new intercepted URL. */
-        }
-      }
-      if (!cancelled) {
-        setTracks((previous) => {
-          const merged = { ...previous, ...next };
-          const count = Object.keys(merged).length;
-          setCaptionStatus(
-            count
-              ? `${count} live language tracks loaded.`
-              : "No live captions returned. Enable captions on the video or try another video.",
-          );
-          return merged;
-        });
-      }
-    };
-    setCaptionStatus("Fetching live subtitles for selected languages…");
-    void fetchTracks();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAndroid, observedUrl, defaultCaptionsLoaded, shown, spoken, targetLanguages, pivot]);
+    const defaultLang = new URL(observedUrl).searchParams.get("lang") || "en";
+    const selected = [
+      ...new Set(
+        [...targetLanguages, ...shown, ...spoken, pivot].filter(
+          (code) => code && code !== defaultLang,
+        ),
+      ),
+    ];
+    setCaptionStatus("Fetching live subtitles for favorite languages…");
+    void fetchFavoriteLanguageSubtitles(selected, observedUrl);
+  }, [
+    isAndroid,
+    observedUrl,
+    defaultCaptionsLoaded,
+    targetLanguages,
+    shown,
+    spoken,
+    pivot,
+    fetchFavoriteLanguageSubtitles,
+  ]);
 
   useEffect(() => {
     if (themeWasSelectedRef.current) return;
@@ -448,12 +494,25 @@ function Index() {
   useEffect(() => {
     if (isAndroid) return;
     Promise.all(
-      LANGS.map((l) =>
-        fetch(getFixturesUrl(DEMO_VIDEO, l.code))
-          .then((response) => (response.ok ? response.json() : null))
-          .then((j) => (j ? ([l.code, j] as const) : null))
-          .catch(() => null),
-      ),
+      LANGS.map((l) => {
+        const fixtureUrl = getFixturesUrl(DEMO_VIDEO, l.code);
+        const tracker = trackNetworkRequest(fixtureUrl, "GET", "fetch");
+        return fetch(fixtureUrl)
+          .then(async (response) => {
+            if (!response.ok) {
+              tracker.fail(`HTTP ${response.status}`);
+              return null;
+            }
+            const text = await response.text();
+            tracker.complete(response.status, text);
+            const j = parseJson3(text);
+            return j ? ([l.code, j] as const) : null;
+          })
+          .catch((err) => {
+            tracker.fail(String(err));
+            return null;
+          });
+      }),
     ).then((entries) =>
       setTracks(
         Object.fromEntries(
@@ -524,7 +583,12 @@ function Index() {
       if (!playerEl.current || !window.YT) return;
       player.current = new window.YT.Player(playerEl.current, {
         videoId,
-        playerVars: { rel: 0, cc_load_policy: isAndroid ? 1 : 0, playsinline: 1 },
+        playerVars: {
+          rel: 0,
+          autoplay: isAndroid ? 1 : 0,
+          cc_load_policy: isAndroid ? 1 : 0,
+          playsinline: 1,
+        },
       });
     };
     if (window.YT?.Player) init();
@@ -709,6 +773,22 @@ function Index() {
             </Button>
           ))}
         </div>
+        <Button
+          id="open-network-inspector-button"
+          data-testid="open-network-inspector-button"
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setNetworkInspectorOpen(true)}
+          className="gap-1.5"
+          title="Inspect live network requests and response body preview"
+        >
+          <Activity className="h-4 w-4 text-blue-500" />
+          <span className="hidden sm:inline">Network</span>
+          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-mono font-bold">
+            {networkRequests.length}
+          </span>
+        </Button>
       </header>
 
       <div className="grid items-start gap-4 p-4 md:p-6 lg:grid-cols-2">
@@ -1179,6 +1259,10 @@ function Index() {
           );
         })}
       </div>
+      <NetworkRequestsInspector
+        isOpen={networkInspectorOpen}
+        onClose={() => setNetworkInspectorOpen(false)}
+      />
     </div>
   );
 }

@@ -36,6 +36,8 @@
     "test:android-subtitles": "tsx scripts/verify-android-favorite-subtitles.ts",
     "test:emulation-gh-pages": "tsx scripts/verify-emulation-gh-pages.ts",
     "test:local-assets": "tsx scripts/verify-android-local-assets.ts",
+    "test:favorite-dynamic-fetch": "tsx scripts/verify-favorite-lang-dynamic-fetch.ts",
+    "test:network-inspector": "tsx scripts/verify-network-inspector.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

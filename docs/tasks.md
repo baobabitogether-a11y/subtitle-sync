@@ -1,8 +1,21 @@
 # Tasks
 
+## Task 26: Extend network request response body preview limit to 50 characters
+
+- [x] **Subtask 26.1: Update response body preview length to 50 characters across tracker, inspector UI, and verification suite**: Update `MAX_RESPONSE_BODY_PREVIEW_CHARS` in `src/utils/networkTracker.ts` to 50, update inspector labels in `NetworkRequestsInspector.tsx`, update test assertions in `scripts/verify-network-inspector.ts`, rebuild android assets, and run tests.
+
+## Task 25: Dynamic favorite language subtitle fetching and network requests inspector with response body preview
+
+- [x] **Subtask 25.1: Proactively fetch subtitles for newly added favorite languages via `tlang`**: In `src/routes/index.tsx`, detect when a new language is added to favorite languages. If an observed timedtext URL is available, automatically request translated subtitles for the newly added language via `buildTranslatedCaptionUrl(observedUrl, langCode, 'json3')` through the native shell / network bridge and merge into `tracks` state.
+- [x] **Subtask 25.2: Network requests panel with initial response body preview**: Provide a dedicated Network Requests log/panel (matching repo2 conventions) tracking all timedtext and caption requests. For each logged request, preserve and display the response body preview. Add dedicated automated test coverage.
+
+## Task 24: Align Android subtitle fetching flow with Youtubenet6 (default caption fetch followed by ordered favorite languages)
+
+- [x] **Subtask 24.1: Implement proactive default subtitle fetch and ordered favorite language translations on Android**: When loading a video on Android, proactively initiate the default caption fetch via timedtext discovery / endpoint loading. Once default captions are received, immediately fetch target translations strictly for configured favorite languages in explicit priority order (`he` followed by `it`), logging `SUBTITLE_FETCH` telemetry and updating tracks.
+
 ## Task 23: Enforce 100% local, offline web-app architecture in Android shell
 
-- [ ] **Subtask 23.1: Permanently eliminate all remote web-app URLs and fallbacks from `MainActivity.kt` and guarantee local asset execution**: Purge `APP_URL` and remote `github.io` fallback logic from `MainActivity.kt`. Unconditionally load local bundled assets from `appassets.androidplatform.net`. In `shouldOverrideUrlLoading`, restrict WebView internal navigation to local app assets and embedded YouTube players. Add a local offline fallback message if assets are missing. Implement dedicated test `scripts/verify-android-local-assets.ts` and verify.
+- [x] **Subtask 23.1: Permanently eliminate all remote web-app URLs and fallbacks from `MainActivity.kt` and guarantee local asset execution**: Purge `APP_URL` and remote `github.io` fallback logic from `MainActivity.kt`. Unconditionally load local bundled assets from `appassets.androidplatform.net`. In `shouldOverrideUrlLoading`, restrict WebView internal navigation to local app assets and embedded YouTube players. Add a local offline fallback message if assets are missing. Implement dedicated test `scripts/verify-android-local-assets.ts` and verify.
 
 ## Task 22: Publish Android emulator screenshots to GitHub Pages
 
