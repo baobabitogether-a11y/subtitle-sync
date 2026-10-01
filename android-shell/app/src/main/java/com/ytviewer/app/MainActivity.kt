@@ -269,8 +269,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         // Load the application exclusively from local bundled web assets
-        Log.i(TAG, "Loading local offline web assets from https://$LOCAL_ASSET_DOMAIN/$querySuffix")
-        webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/$querySuffix")
+        Log.i(TAG, "Loading local offline web assets from https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
+        webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
 
         // Handle any shared intent that opened the app
         handleSharedIntent(intent)
@@ -291,8 +291,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
         if (!sharedText.isNullOrBlank()) {
             val querySuffix = "?url=" + android.net.Uri.encode(sharedText)
-            Log.i(TAG, "Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/$querySuffix")
-            webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/$querySuffix")
+            Log.i(TAG, "Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
+            webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
         }
     }
 

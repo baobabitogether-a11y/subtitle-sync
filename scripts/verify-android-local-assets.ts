@@ -33,14 +33,14 @@ console.log('✅ PASS: LOCAL_ASSET_DOMAIN is configured for appassets.androidpla
 
 // Assert onCreate exclusively loads from local asset domain
 assert(
-  activityContent.includes('webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/$querySuffix")'),
+  activityContent.includes('webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")'),
   'MainActivity.kt must unconditionally load from local asset domain'
 );
 console.log('✅ PASS: onCreate unconditionally loads from local asset domain');
 
 // Assert onNewIntent exclusively loads from local asset domain
 assert(
-  activityContent.includes('Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/$querySuffix'),
+  activityContent.includes('Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix'),
   'MainActivity.kt onNewIntent must route through local asset domain'
 );
 console.log('✅ PASS: onNewIntent unconditionally routes through local asset domain');
