@@ -12,6 +12,31 @@ const rootDir = process.cwd();
 const workflowPath = path.join(rootDir, '.github/workflows/emulation.yml');
 assert(fs.existsSync(workflowPath), 'emulation.yml must exist');
 const workflowContent = fs.readFileSync(workflowPath, 'utf8');
+const emulatorStep = workflowContent
+  .split('      - name: Run E2E Test on Android Emulator (Option C)')[1]
+  ?.split('      - name: Upload Android Emulator Artifacts')[0];
+const emulatorStepTimeoutSeconds = Number(
+  emulatorStep?.match(/timeout-minutes:\s*(\d+)/)?.[1] ?? 0,
+);
+const emulatorBootTimeoutSeconds = Number(
+  emulatorStep?.match(/emulator-boot-timeout:\s*(\d+)/)?.[1] ?? Infinity,
+);
+assert(
+  emulatorStepTimeoutSeconds * 60 > emulatorBootTimeoutSeconds,
+  'Android emulator step timeout must exceed its configured boot timeout',
+);
+console.log('✅ PASS: emulator step timeout exceeds AVD boot timeout');
+assert(emulatorStep?.includes('id: android_e2e'), 'Android emulator step must expose its outcome');
+const resultSummaryStep = workflowContent
+  .split('      - name: Publish Android E2E Result to Job Summary')[1]
+  ?.split('      - name: Upload Android Emulator Artifacts')[0];
+assert(resultSummaryStep?.includes('if: always()'), 'Android E2E result summary must run after failures');
+assert(
+  resultSummaryStep?.includes('steps.android_e2e.outcome') &&
+    resultSummaryStep.includes('GITHUB_STEP_SUMMARY'),
+  'Android E2E result summary must publish the emulator step outcome to the job summary',
+);
+console.log('✅ PASS: emulator test result is published to the GitHub Actions job summary');
 
 // Assert permissions
 assert(workflowContent.includes('contents: write'), 'emulation.yml must have contents: write permission');

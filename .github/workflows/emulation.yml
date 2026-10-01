@@ -132,7 +132,8 @@ jobs:
           ./gradlew assembleDebug --stacktrace
 
       - name: Run E2E Test on Android Emulator (Option C)
-        timeout-minutes: 3
+        id: android_e2e
+        timeout-minutes: 8
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -150,6 +151,33 @@ jobs:
             adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png || true
             bash scripts/android-e2e-assert.sh
             adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png
+
+      - name: Publish Android E2E Result to Job Summary
+        if: always()
+        env:
+          E2E_OUTCOME: ${{ steps.android_e2e.outcome }}
+        run: |
+          {
+            echo "## Android Emulator E2E Result"
+            echo ""
+            echo "**Result:** \`${E2E_OUTCOME}\`"
+            if [ "$E2E_OUTCOME" = "success" ]; then
+              echo ""
+              echo "The app rendered successfully: the assertion observed \`[APP_READY]\` and confirmed the app process was running."
+            else
+              echo ""
+              echo "The emulator test did not pass. Relevant captured logcat:"
+              if [ -f android-emulator-logcat.txt ]; then
+                echo '```text'
+                grep -E "APP_READY|APP_BOOT_ERROR|FATAL EXCEPTION|WebView error|Asset not found" android-emulator-logcat.txt | tail -n 40 || echo "No matching diagnostic lines found."
+                echo '```'
+              else
+                echo "Logcat was not produced."
+              fi
+            fi
+            echo ""
+            echo "The screenshot and full logcat are available in the \`android-emulator-artifacts\` workflow artifact."
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Android Emulator Artifacts
         if: always()
