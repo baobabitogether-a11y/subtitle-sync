@@ -69,7 +69,7 @@ type YTPlayer = {
 };
 declare global {
   interface Window {
-    YT?: { Player: new (el: HTMLElement, o: object) => YTPlayer };
+    YT?: any;
     onYouTubeIframeAPIReady?: () => void;
     onNativeCaptionsInterceptedBase64?: (payload: string) => void;
     onNativeSharedLinkReceived?: (url: string) => void;
@@ -134,7 +134,7 @@ function speak(
 
     if (typeof window !== "undefined" && window.AndroidNativeShell?.speak) {
       try {
-        const handled = window.AndroidNativeShell.speak(text, lang, rate);
+        const handled = window.AndroidNativeShell.speak(text, lang, rate, `row-${row}-${lang}`);
         if (handled) {
           onProgress({
             lang: lang.slice(0, 2),
@@ -560,11 +560,8 @@ function Index() {
                 setSpeechProgress({
                   row: prev,
                   lang: l.code,
-                  charIndex: 0,
-                  charLength: 0,
-                  totalLength: 100,
-                  percent: prog.percent,
-                });
+                  start: 0,
+                  end: Math.round(prog.percent ?? 0),
               },
             });
           } else {

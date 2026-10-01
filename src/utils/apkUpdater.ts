@@ -510,7 +510,7 @@ export async function downloadAndInstallApkWithProgress(
     speedBps: 0,
   });
 
-  const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+  const blob = new Blob(chunks as BlobPart[], { type: 'application/vnd.android.package-archive' });
   if (blob.size < 1000) {
     const errMsg = 'Downloaded file is corrupt or invalid (file size less than 1KB).';
     updateProgress({
