@@ -58,6 +58,15 @@ assert(fs.existsSync(assetsDir), 'android-shell assets directory must exist');
 assert(fs.existsSync(path.join(assetsDir, 'index.html')), 'assets/index.html must exist');
 console.log('✅ PASS: Local assets directory contains bundled production index.html');
 
+// WebViewAssetLoader serves exact files only, so bundled HTML must use relative asset paths
+const bundledHtml = fs.readFileSync(path.join(assetsDir, 'index.html'), 'utf8');
+assert(!/(src|href)="\/(assets|src)\//.test(bundledHtml), 'bundled index.html must not use absolute /assets or /src paths');
+assert(bundledHtml.includes('./assets/'), 'bundled index.html must reference ./assets/');
+for (const ref of bundledHtml.matchAll(/"\.\/(assets\/[^"]+)"/g)) {
+  assert(fs.existsSync(path.join(assetsDir, ref[1])), `referenced asset missing: ${ref[1]}`);
+}
+console.log('✅ PASS: Bundled index.html references existing relative ./assets/ files');
+
 // 3. Verify build scripts ensure assets are always packaged
 const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
 assert(
