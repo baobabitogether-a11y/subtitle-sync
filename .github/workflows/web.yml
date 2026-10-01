@@ -132,7 +132,7 @@ jobs:
           publish_branch: gh-pages
           keep_files: true
 
-      - name: Upload Playwright Test Report & Artifacts
+      - name: Upload Playwright E2E Report & Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -140,6 +140,7 @@ jobs:
           path: |
             playwright-report/
             test-results/
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Upload Cypress Test Report & Artifacts

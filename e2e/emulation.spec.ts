@@ -1,8 +1,31 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 
 const observedUrl =
   "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3";
 type NativeCaptionRequest = { url: string; language: string; format: string };
+
+async function getNativeCaptionRequests(page: Page): Promise<NativeCaptionRequest[]> {
+  return page.evaluate(
+    () =>
+      (window as typeof window & { __nativeCaptionRequests?: NativeCaptionRequest[] })
+        .__nativeCaptionRequests ?? [],
+  );
+}
+
+async function deliverDefaultCaptions(page: Page) {
+  await page.evaluate((url) => {
+    const nativeWindow = window as typeof window & {
+      onNativeCaptionsInterceptedBase64?: (payload: string) => void;
+    };
+    const payload = {
+      url,
+      rawData: JSON.stringify({
+        events: [{ tStartMs: 0, dDurationMs: 4000, segs: [{ utf8: "Default caption line" }] }],
+      }),
+    };
+    nativeWindow.onNativeCaptionsInterceptedBase64?.(btoa(JSON.stringify(payload)));
+  }, observedUrl);
+}
 
 test.describe("Android native subtitle emulation", () => {
   test.beforeEach(async ({ page }) => {
@@ -43,11 +66,15 @@ test.describe("Android native subtitle emulation", () => {
   test("replays the observed timedtext URL with original lang preserved and favorite langs applied via tlang", async ({
     page,
   }) => {
-    const requests = await page.evaluate(
-      () =>
-        (window as typeof window & { __nativeCaptionRequests?: NativeCaptionRequest[] })
-          .__nativeCaptionRequests ?? [],
-    );
+    expect(await getNativeCaptionRequests(page)).toEqual([]);
+    await deliverDefaultCaptions(page);
+
+    await expect
+      .poll(async () => (await getNativeCaptionRequests(page)).map((request) => request.language))
+      .toEqual(expect.arrayContaining(["he", "it"]));
+
+    const requests = await getNativeCaptionRequests(page);
+    expect(requests.length).toBeGreaterThan(0);
 
     const itRequest = requests.find((request) => request.language === "it");
     expect(itRequest).toBeTruthy();
@@ -64,48 +91,39 @@ test.describe("Android native subtitle emulation", () => {
   test("fetches every selected target language through the native bridge", async ({ page }) => {
     const targetLanguages = page.locator("#target-language-select");
     await expect(targetLanguages).toBeVisible();
+    expect(await getNativeCaptionRequests(page)).toEqual([]);
+    await deliverDefaultCaptions(page);
 
     await expect
       .poll(
-        () =>
-          page.evaluate(
-            () =>
-              (window as typeof window & { __nativeCaptionRequests?: NativeCaptionRequest[] })
-                .__nativeCaptionRequests?.map((request) => request.language) ?? [],
-          ),
+        async () => (await getNativeCaptionRequests(page)).map((request) => request.language),
         { timeout: 10000 },
       )
       .toEqual(expect.arrayContaining(["he", "it"]));
 
-    await targetLanguages.selectOption(["es"]);
-    await expect(targetLanguages).toHaveValues(["es"]);
+    await targetLanguages.selectOption(["es", "fr"]);
+    await expect(targetLanguages).toHaveValues(["es", "fr"]);
 
     await expect
       .poll(
-        () =>
-          page.evaluate(
-            () =>
-              (window as typeof window & { __nativeCaptionRequests?: NativeCaptionRequest[] })
-                .__nativeCaptionRequests?.map((request) => request.language) ?? [],
-          ),
+        async () => (await getNativeCaptionRequests(page)).map((request) => request.language),
         { timeout: 10000 },
       )
-      .toContain("es");
+      .toEqual(expect.arrayContaining(["es", "fr"]));
 
-    const requests = await page.evaluate(
-      () =>
-        (window as typeof window & { __nativeCaptionRequests?: NativeCaptionRequest[] })
-          .__nativeCaptionRequests ?? [],
-    );
+    const requests = await getNativeCaptionRequests(page);
     const esRequest = requests.find((request) => request.language === "es");
     expect(esRequest).toBeTruthy();
     expect(esRequest?.url).toContain("lang=en");
     expect(esRequest?.url).toContain("tlang=es");
     expect(esRequest?.url).toContain("fmt=json3");
+    const frRequest = requests.find((request) => request.language === "fr");
+    expect(frRequest?.url).toContain("tlang=fr");
     await expect(page.getByRole("status")).toContainText("live language tracks loaded");
   });
 
   test("renders the Android favorite-language subtitle pagination banner", async ({ page }) => {
+    await deliverDefaultCaptions(page);
     await expect(page.getByRole("status")).toContainText("live language tracks loaded");
     const subtitleTable = page.locator("details").filter({ hasText: "Parallel subtitles" }).last();
     await expect(subtitleTable.locator("table")).toBeVisible();

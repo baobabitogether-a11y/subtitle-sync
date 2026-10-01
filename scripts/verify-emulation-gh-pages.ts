@@ -37,6 +37,23 @@ assert(
   'Android E2E result summary must publish the emulator step outcome to the job summary',
 );
 console.log('✅ PASS: emulator test result is published to the GitHub Actions job summary');
+assert(emulatorStep?.includes('adb shell pm clear com.ytviewer.app'), 'Android E2E must start with clean app preferences');
+assert(
+  emulatorStep?.includes('bash scripts/android-e2e-assert.sh'),
+  'Android emulator workflow must run the real subtitle-fetch assertion',
+);
+const androidAssertion = fs.readFileSync(path.join(rootDir, 'scripts/android-e2e-assert.sh'), 'utf8');
+for (const language of ['default', 'he', 'it']) {
+  assert(
+    androidAssertion.includes(`SUBTITLE_FETCH kind=${language === 'default' ? 'default' : 'translated'}${language === 'default' ? '' : ` lang=${language}`}`),
+    `Android E2E assertion must require real ${language} subtitle response telemetry`,
+  );
+}
+assert(
+  androidAssertion.includes('DEFAULT_LINE < HEBREW_LINE && HEBREW_LINE < ITALIAN_LINE'),
+  'Android E2E assertion must prove favorite tracks arrive after the default track',
+);
+console.log('✅ PASS: Android emulator test requires real ordered default and favorite subtitle responses');
 
 // Assert permissions
 assert(workflowContent.includes('contents: write'), 'emulation.yml must have contents: write permission');

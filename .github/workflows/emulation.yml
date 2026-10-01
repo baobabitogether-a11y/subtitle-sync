@@ -147,7 +147,8 @@ jobs:
           script: |
             adb devices
             adb install -r android-shell/app/build/outputs/apk/debug/app-debug.apk
-            adb shell am start -n com.ytviewer.app/.MainActivity -d "https://www.youtube.com/watch?v=n9qwEOsqsoo"
+            adb shell pm clear com.ytviewer.app
+            adb shell am start -a android.intent.action.VIEW -n com.ytviewer.app/.MainActivity -d "https://www.youtube.com/watch?v=n9qwEOsqsoo"
             adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png || true
             bash scripts/android-e2e-assert.sh
             adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png
@@ -163,13 +164,19 @@ jobs:
             echo "**Result:** \`${E2E_OUTCOME}\`"
             if [ "$E2E_OUTCOME" = "success" ]; then
               echo ""
-              echo "The app rendered successfully: the assertion observed \`[APP_READY]\` and confirmed the app process was running."
+              echo "The real Android app fetched non-empty default captions, then non-empty Hebrew and Italian favorite captions. The emulator assertion verified the response order."
+              if [ -f android-emulator-logcat.txt ]; then
+                echo ""
+                echo '```text'
+                grep "SUBTITLE_FETCH" android-emulator-logcat.txt | tail -n 20 || true
+                echo '```'
+              fi
             else
               echo ""
               echo "The emulator test did not pass. Relevant captured logcat:"
               if [ -f android-emulator-logcat.txt ]; then
                 echo '```text'
-                grep -E "APP_READY|APP_BOOT_ERROR|FATAL EXCEPTION|WebView error|Asset not found" android-emulator-logcat.txt | tail -n 40 || echo "No matching diagnostic lines found."
+                grep -E "APP_READY|APP_BOOT_ERROR|FATAL EXCEPTION|WebView error|Asset not found|SUBTITLE_FETCH" android-emulator-logcat.txt | tail -n 60 || echo "No matching diagnostic lines found."
                 echo '```'
               else
                 echo "Logcat was not produced."

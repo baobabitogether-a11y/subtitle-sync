@@ -138,8 +138,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         val rawBodyBytes = response.body?.bytes() ?: ByteArray(0)
                         val rawBodyString = String(rawBodyBytes, StandardCharsets.UTF_8)
                         val contentType = response.header("Content-Type", "text/xml; charset=utf-8") ?: "text/xml"
+                        val requestKind = if (android.net.Uri.parse(url).getQueryParameter("tlang").isNullOrBlank()) "default" else "translated"
 
                         Log.i(TAG, "Received ${rawBodyBytes.size} bytes of raw caption data.")
+                        Log.i(TAG, "SUBTITLE_FETCH kind=$requestKind http=${response.code} bytes=${rawBodyBytes.size} cues=${countCaptionCues(rawBodyString)}")
 
                         // 1. Save raw caption to device storage
                         saveCaptionToFile(url, rawBodyBytes)
@@ -350,6 +352,24 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } catch (e: Exception) {
             Log.e(TAG, "Error saving file: ${e.message}")
         }
+    }
+
+    private fun countCaptionCues(rawData: String): Int {
+        try {
+            val events = JSONObject(rawData).optJSONArray("events")
+            if (events != null) {
+                return (0 until events.length()).count { eventIndex ->
+                    val segments = events.optJSONObject(eventIndex)?.optJSONArray("segs") ?: return@count false
+                    (0 until segments.length()).any { segmentIndex ->
+                        !segments.optJSONObject(segmentIndex)?.optString("utf8").isNullOrBlank()
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+        return Regex("<text\\b[^>]*>(.*?)</text>", RegexOption.DOT_MATCHES_ALL)
+            .findAll(rawData)
+            .count { it.groupValues[1].replace(Regex("<[^>]*>"), "").isNotBlank() }
     }
 
     private fun dispatchToJavaScript(url: String, rawData: String, contentType: String, status: Int) {
@@ -575,10 +595,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val resp = okHttpClient.newCall(reqBuilder.build()).execute()
                 if (resp.isSuccessful) {
                     val bodyString = resp.body?.string() ?: ""
-                    Log.i(TAG, "Native Shell timedtext repetition successful: ${bodyString.length} chars received")
+                    Log.i(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang http=${resp.code} bytes=${bodyString.toByteArray(StandardCharsets.UTF_8).size} cues=${countCaptionCues(bodyString)}")
                     bodyString
                 } else {
-                    Log.w(TAG, "Native Shell repeating timedtext returned HTTP ${resp.code}")
+                    Log.w(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang http=${resp.code} bytes=0 cues=0")
                     ""
                 }
             } catch (e: Exception) {

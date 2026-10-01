@@ -219,6 +219,7 @@ function Index() {
   const [videoInput, setVideoInput] = useState("");
   const [captionStatus, setCaptionStatus] = useState("");
   const [observedUrl, setObservedUrl] = useState("");
+  const [defaultCaptionsLoaded, setDefaultCaptionsLoaded] = useState(false);
   const [tracks, setTracks] = useState<Record<string, Json3> | null>(null);
   const [pivot, setPivot] = useState("he");
   const [strategy, setStrategy] = useState<Strategy>("sentence");
@@ -280,6 +281,7 @@ function Index() {
           if (id !== prevId) {
             setTracks(null);
             setObservedUrl("");
+            setDefaultCaptionsLoaded(false);
             setActive(-1);
             setSpeakingLang(null);
             setSpeakingRow(-1);
@@ -305,6 +307,7 @@ function Index() {
     if (!isAndroid) return;
     setTracks(null);
     setObservedUrl("");
+    setDefaultCaptionsLoaded(false);
     setActive(-1);
     setSpeakingLang(null);
     setSpeakingRow(-1);
@@ -320,12 +323,17 @@ function Index() {
     window.onNativeCaptionsInterceptedBase64 = (encoded) => {
       const payload = decodeInterceptedCaption(encoded);
       if (!payload || timedTextVideoId(payload.url) !== videoId) return;
-      setObservedUrl(payload.url);
+      const requestUrl = new URL(payload.url);
+      const targetLanguage = requestUrl.searchParams.get("tlang");
       const lang =
-        new URL(payload.url).searchParams.get("tlang") ??
-        new URL(payload.url).searchParams.get("lang");
+        targetLanguage ?? requestUrl.searchParams.get("lang");
       const json = parseJson3(payload.rawData);
-      if (lang && json) setTracks((prev) => ({ ...prev, [lang]: json }));
+      if (!json) return;
+      if (!targetLanguage) {
+        setObservedUrl(payload.url);
+        setDefaultCaptionsLoaded(true);
+      }
+      if (lang) setTracks((prev) => ({ ...prev, [lang]: json }));
     };
     return () => {
       delete window.onNativeCaptionsInterceptedBase64;
@@ -333,7 +341,7 @@ function Index() {
   }, [isAndroid, videoId]);
 
   useEffect(() => {
-    if (!isAndroid || !observedUrl) return;
+    if (!isAndroid || !observedUrl || !defaultCaptionsLoaded) return;
     const shell = nativeShell();
     if (!shell) return;
     const selected = [...new Set([...shown, ...spoken, ...targetLanguages, pivot])];
@@ -370,7 +378,7 @@ function Index() {
     return () => {
       cancelled = true;
     };
-  }, [isAndroid, observedUrl, shown, spoken, targetLanguages, pivot]);
+  }, [isAndroid, observedUrl, defaultCaptionsLoaded, shown, spoken, targetLanguages, pivot]);
 
   useEffect(() => {
     if (themeWasSelectedRef.current) return;
@@ -731,6 +739,7 @@ function Index() {
                           if (id !== videoId) {
                             setTracks(null);
                             setObservedUrl("");
+                            setDefaultCaptionsLoaded(false);
                             setActive(-1);
                             setSpeakingLang(null);
                             setSpeakingRow(-1);
