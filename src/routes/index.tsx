@@ -549,11 +549,16 @@ function Index() {
 
   // Main screen presents only favorite languages for show/hide, speech toggles, ordering, and per-language TTS controls
   const orderedLangs = useMemo(() => {
+    if (!isAndroid) {
+      return languageOrder
+        .filter((code) => LANGS.some((l) => l.code === code))
+        .map((code) => getLanguageMeta(code));
+    }
     const favoriteSet = new Set(targetLanguages);
     return languageOrder
       .filter((code) => favoriteSet.has(code))
       .map((code) => getLanguageMeta(code));
-  }, [languageOrder, targetLanguages]);
+  }, [isAndroid, languageOrder, targetLanguages]);
   const st = useRef({
     rows,
     spoken,

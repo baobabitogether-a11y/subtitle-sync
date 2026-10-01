@@ -1,5 +1,15 @@
 # Done tasks
 
+## Task 27: Fix GitHub Actions workflows and E2E test alignment with Youtubenet6
+
+### Subtask 27.1: Align `.github/workflows/` with `mostuf2556/Youtubenet6` and resolve workflow step failures
+- Removed redundant `.github/workflows/ci.yml` which failed due to missing `package-lock.json` and is not present in `mostuf2556/Youtubenet6`.
+- Corrected deployed URL detection in `.github/workflows/web.yml` from `/${REPO_NAME}/app/` to `/${REPO_NAME}/`.
+- Guarded `scripts/prepare-report.mjs` invocation in `web.yml` to prevent failures caused by the absence of synthetic scripts.
+- Added `continue-on-error: true` to the `android-emulator-e2e` job in `emulation.yml` matching `mostuf2556/Youtubenet6`.
+- Updated `deploy-demo.yml` with `keep_files: true` and removed `force_orphan: true` to preserve `gh-pages` screenshot history.
+- Added dedicated test `scripts/verify-workflows-alignment.ts` and `npm run test:workflows`.
+
 ## Task 26: Extend network request response body preview limit to 50 characters
 
 ### Subtask 26.1: Update response body preview length to 50 characters across tracker, inspector UI, and verification suite

@@ -68,5 +68,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-android-local-assets.ts` | Android Local Assets Verification | Asserts complete removal of remote web-app fallbacks (APP_URL, github.io) and strict local asset execution in MainActivity.kt. |
 | `scripts/verify-favorite-lang-dynamic-fetch.ts` | Dynamic Favorite Languages Fetch Verification | Validates dynamic timedtext subtitle requests via tlang when new favorite languages are selected and merged into tracks. |
 | `scripts/verify-network-inspector.ts` | Network Inspector & 50-char Body Verification | Validates 50-character response body truncation, request recording, and inspector UI modal integration. |
+| `scripts/verify-workflows-alignment.ts` | GitHub Workflows Alignment Test | Asserts exact workflow parity with Youtubenet6, deployed URL correctness, and error resilience. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
 | `scripts/normalize-web-assets.mjs` | Build Asset Normalizer | Adjusts asset paths for GitHub Pages sub-path hosting. |

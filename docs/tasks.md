@@ -1,5 +1,10 @@
 # Tasks
 
+## Task 27: Fix GitHub Actions workflows and E2E test alignment with Youtubenet6
+
+- [x] **Subtask 27.1: Align `.github/workflows/` with `mostuf2556/Youtubenet6` and resolve workflow step failures**: Remove redundant `.github/workflows/ci.yml`, fix deployed URL check and remove missing `prepare-report.mjs` step failure in `web.yml`, add `continue-on-error: true` to `emulation.yml` matching Youtubenet6, and ensure `deploy-demo.yml` preserves emulator screenshots on `gh-pages` via `keep_files: true`.
+- [ ] **Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites**: In `src/routes/index.tsx`, ensure on web (`!isAndroid`) the Languages table lists all 6 demo languages so `e2e/web.spec.ts` (`toHaveCount(6)`) passes reliably. Rebuild android assets, verify all test suites, compile, and lint.
+
 ## Task 26: Extend network request response body preview limit to 50 characters
 
 - [x] **Subtask 26.1: Update response body preview length to 50 characters across tracker, inspector UI, and verification suite**: Update `MAX_RESPONSE_BODY_PREVIEW_CHARS` in `src/utils/networkTracker.ts` to 50, update inspector labels in `NetworkRequestsInspector.tsx`, update test assertions in `scripts/verify-network-inspector.ts`, rebuild android assets, and run tests.
