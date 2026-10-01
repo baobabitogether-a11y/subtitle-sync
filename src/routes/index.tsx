@@ -562,6 +562,7 @@ function Index() {
                   lang: l.code,
                   start: 0,
                   end: Math.round(prog.percent ?? 0),
+                });
               },
             });
           } else {
