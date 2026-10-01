@@ -1,9 +1,14 @@
 # Tasks
 
+## Task 28: Fix README broken links and GitHub Actions workflow resilience
+
+- [ ] **Subtask 28.1: Import architectural specification and design contracts from `mostuf2556/Youtubenet6` and fix Markdown link checker**: Import the 9 missing architectural specification and design contract documents into `docs/operations/`, `docs/specifications/`, and `docs/designs/` matching `mostuf2556/Youtubenet6`. Fix the markdown link regex parser in `scripts/verify-md-links.ts` so inline code spans in link text are properly validated. Update `docs/files.md` inventory. Verify with `npm run test:md` ensuring 0 broken relative links.
+- [ ] **Subtask 28.2: Ensure GitHub Actions workflow resilience and add dedicated README links verification suite**: Add `npm run test:md` and `npm run test:readme-links` to `.github/workflows/integrity.yml` to prevent link rot in CI. Create dedicated test `scripts/verify-readme-links.ts` validating all links, badges, and documentation cross-references in `README.md`. Document GitHub Pages configuration in `ACTIONS.md` and `README.md`. Rebuild android bundle assets, execute all test suites, compile, and lint.
+
 ## Task 27: Fix GitHub Actions workflows and E2E test alignment with Youtubenet6
 
 - [x] **Subtask 27.1: Align `.github/workflows/` with `mostuf2556/Youtubenet6` and resolve workflow step failures**: Remove redundant `.github/workflows/ci.yml`, fix deployed URL check and remove missing `prepare-report.mjs` step failure in `web.yml`, add `continue-on-error: true` to `emulation.yml` matching Youtubenet6, and ensure `deploy-demo.yml` preserves emulator screenshots on `gh-pages` via `keep_files: true`.
-- [ ] **Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites**: In `src/routes/index.tsx`, ensure on web (`!isAndroid`) the Languages table lists all 6 demo languages so `e2e/web.spec.ts` (`toHaveCount(6)`) passes reliably. Rebuild android assets, verify all test suites, compile, and lint.
+- [x] **Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites**: In `src/routes/index.tsx`, ensure on web (`!isAndroid`) the Languages table lists all 6 demo languages so `e2e/web.spec.ts` (`toHaveCount(6)`) passes reliably. Rebuild android assets, verify all test suites, compile, and lint.
 
 ## Task 26: Extend network request response body preview limit to 50 characters
 

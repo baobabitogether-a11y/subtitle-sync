@@ -48,6 +48,20 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/config/fixtures.ts` | Test Fixture Data | Supplies mock subtitles and fallback video datasets for offline testing and demo runs. |
 | `src/types.ts` | Core Type Contracts | Exports TypeScript interfaces and types for subtitle cues, tracks, speech progress, and settings. |
 
+## Architectural Specifications & Design Contracts (`docs/`)
+
+| File Path | Role | Feature & Responsibilities |
+|---|---|---|
+| `docs/operations/ACTIONS.md` | CI/CD Pipelines Specification | Details automated GitHub Actions workflows, triggers, build matrix, and release artifacts. |
+| `docs/specifications/LIBRARY.md` | Subtitle Fixture Library Contract | Details JSON3 fixture directory schema, offline test coverage, and validation rules. |
+| `docs/designs/DESIGN_SUBTITLE_VIEWS.md` | Subtitle Views Contract | Defines injectable view contract for subtitle rendering components, cues, and active sync. |
+| `docs/designs/DESIGN_VIEW_LANGS.md` | Language Selection Views Contract | Defines injectable view contract for language selectors, favorite tags, and ordering. |
+| `docs/designs/DESIGN_CONTROLS_VIEW.md` | Playback Controls Contract | Defines injectable view contract for player controls, pause mode, and loop repeat settings. |
+| `docs/designs/DESIGN_PLAYER_PROVIDER.md` | Player Provider Contract | Defines vendor-agnostic media playback provider interface and time synchronization. |
+| `docs/designs/DESIGN_STATE_COORDINATOR.md` | State Coordinator Contract | Specifies finite state machine, lifecycle transitions, active cue resolution, and state flow. |
+| `docs/specifications/SCHEMA_TIMEDTEXT.md` | Timed-Text Schema Contract | Specifies YouTube JSON3 format, segment timing, entity decoding, and BiDi normalization. |
+| `docs/operations/DEBUG.md` | Diagnostics & Logging Contract | Details internal logging ring buffer, network request tracker, and troubleshooting prompt generator. |
+
 ## Testing & Quality Assurance (`e2e/`, `cypress/`, `scripts/`)
 
 | File Path | Role | Feature & Responsibilities |
@@ -69,5 +83,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-favorite-lang-dynamic-fetch.ts` | Dynamic Favorite Languages Fetch Verification | Validates dynamic timedtext subtitle requests via tlang when new favorite languages are selected and merged into tracks. |
 | `scripts/verify-network-inspector.ts` | Network Inspector & 50-char Body Verification | Validates 50-character response body truncation, request recording, and inspector UI modal integration. |
 | `scripts/verify-workflows-alignment.ts` | GitHub Workflows Alignment Test | Asserts exact workflow parity with Youtubenet6, deployed URL correctness, and error resilience. |
+| `scripts/verify-doc-contracts.ts` | Architectural Contracts Verification | Asserts presence and integrity of all 9 architectural documentation and specification contracts. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
 | `scripts/normalize-web-assets.mjs` | Build Asset Normalizer | Adjusts asset paths for GitHub Pages sub-path hosting. |

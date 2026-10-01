@@ -10,6 +10,12 @@
 - Updated `deploy-demo.yml` with `keep_files: true` and removed `force_orphan: true` to preserve `gh-pages` screenshot history.
 - Added dedicated test `scripts/verify-workflows-alignment.ts` and `npm run test:workflows`.
 
+### Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites
+- Ensured in `src/routes/index.tsx` that `orderedLangs` on web demo (`!isAndroid`) displays all 6 demo languages from `LANGS` (sorted according to `languageOrder`), satisfying `e2e/web.spec.ts` (`toHaveCount(6)`).
+- Preserved user-selected favorite languages presentation on Android (`isAndroid`) with dynamic `tlang` subtitle loading.
+- Rebuilt Android web bundle assets in `android-shell/app/src/main/assets/`.
+- Verified all test suites, production build, linting, and workflow alignment.
+
 ## Task 26: Extend network request response body preview limit to 50 characters
 
 ### Subtask 26.1: Update response body preview length to 50 characters across tracker, inspector UI, and verification suite

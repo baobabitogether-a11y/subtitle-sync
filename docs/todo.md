@@ -1,10 +1,18 @@
 # Active Sub-task
 
-## Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites
+## Subtask 28.1: Import architectural specification and design contracts from `mostuf2556/Youtubenet6` and fix Markdown link checker
 
 - **Goal**:
-  1. In `src/routes/index.tsx`, ensure that on the web demo (`!isAndroid`), the Languages table displays all 6 available demo languages from `LANGS` (sorted according to `languageOrder`), satisfying `e2e/web.spec.ts` line 16 (`toHaveCount(6)`).
-  2. On Android (`isAndroid`), keep the behavior focused on the user's selected favorite languages with dynamic `tlang` subtitle loading.
-  3. Rebuild the Android web bundle assets in `android-shell/app/src/main/assets/`.
-  4. Add dedicated assertions in a verification test ensuring web environment presents 6 rows in the Languages panel table while Android presents user-selected favorite languages.
-  5. Run all test suites, compile, and lint.
+  1. Import the 9 missing architectural specification and design contracts from `mostuf2556/Youtubenet6` into `docs/operations/`, `docs/specifications/`, and `docs/designs/`:
+     - `docs/operations/ACTIONS.md`
+     - `docs/specifications/LIBRARY.md`
+     - `docs/designs/DESIGN_SUBTITLE_VIEWS.md`
+     - `docs/designs/DESIGN_VIEW_LANGS.md`
+     - `docs/designs/DESIGN_CONTROLS_VIEW.md`
+     - `docs/designs/DESIGN_PLAYER_PROVIDER.md`
+     - `docs/designs/DESIGN_STATE_COORDINATOR.md`
+     - `docs/specifications/SCHEMA_TIMEDTEXT.md`
+     - `docs/operations/DEBUG.md`
+  2. Fix the regex in `scripts/verify-md-links.ts` so that links containing inline code formatting (e.g. `[`**`ACTIONS.md`**`](./docs/operations/ACTIONS.md)`) are accurately captured and checked for target existence.
+  3. Update `docs/files.md` to register the new documentation contracts.
+  4. Run `npm run test:md` and verify that all relative links resolve cleanly with 0 errors.
