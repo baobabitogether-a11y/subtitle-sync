@@ -6,6 +6,10 @@ import "./styles.css";
 
 const router = getRouter();
 
+// Startup signals read by the Android e2e test (scripts/android-e2e-assert.sh) via logcat.
+window.addEventListener("error", (e) => console.error("[APP_BOOT_ERROR]", e.message));
+window.addEventListener("unhandledrejection", (e) => console.error("[APP_BOOT_ERROR]", String(e.reason)));
+
 const rootElement = document.getElementById("root");
 if (rootElement) {
   const root = createRoot(rootElement);
@@ -14,4 +18,13 @@ if (rootElement) {
       <RouterProvider router={router} />
     </StrictMode>,
   );
+  let tries = 0;
+  const checkReady = () => {
+    if (rootElement.childElementCount > 0) console.log("[APP_READY]", location.href);
+    else if (++tries < 100) setTimeout(checkReady, 100);
+    else console.error("[APP_BOOT_ERROR] root stayed empty");
+  };
+  setTimeout(checkReady, 0);
+} else {
+  console.error("[APP_BOOT_ERROR] #root element missing");
 }
