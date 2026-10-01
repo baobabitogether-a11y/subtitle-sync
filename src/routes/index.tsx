@@ -13,6 +13,7 @@ import {
   type Strategy,
 } from "@/lib/subtitles";
 import {
+  buildTranslatedCaptionUrl,
   decodeInterceptedCaption,
   nativeShell,
   parseJson3,
@@ -344,7 +345,8 @@ function Index() {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
         if (cancelled) return;
         try {
-          const json = parseJson3(shell.fetchTranslatedCaptionsWithUrl(observedUrl, code, "json3"));
+          const translatedUrl = buildTranslatedCaptionUrl(observedUrl, code, "json3");
+          const json = parseJson3(shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3"));
           if (json) next[code] = json;
         } catch {
           /* The observed URL may expire; wait for a new intercepted URL. */
