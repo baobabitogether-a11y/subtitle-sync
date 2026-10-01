@@ -47,7 +47,7 @@ if command -v adb &> /dev/null; then
     # Install APK if available
     if [[ -f "${APK_PATH}" ]]; then
       echo "--> Installing APK: ${APK_PATH}"
-      adb install -r "${APK_PATH}" || echo "Warning: adb install returned non-zero"
+      adb install -r "${APK_PATH}" || { echo "❌ adb install failed"; exit 1; }
     fi
 
     # Clear logcat buffer
@@ -81,13 +81,16 @@ if command -v adb &> /dev/null; then
     adb logcat -d -s "YT_CAPTION_INTERCEPTOR" "TTS_ENGINE" "ActivityTaskManager" | tail -n 60 > "${LOGCAT_OUT}" || true
     echo "✓ Logcat telemetry saved to: ${LOGCAT_OUT}"
 
+    LOGCAT_OUT="${LOGCAT_OUT}" bash "${ROOT_DIR}/scripts/android-e2e-assert.sh" || exit 1
     echo "=================================================================="
     echo "✓ Android device/emulator E2E run complete!"
     echo "=================================================================="
   else
-    echo "ℹ No active Android device/emulator detected via adb."
+    echo "❌ No active Android device/emulator detected via adb."
+    exit 1
   fi
 else
-  echo "ℹ ADB client not installed in current environment."
+  echo "❌ ADB client not installed in current environment."
+  exit 1
 fi
 

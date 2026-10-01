@@ -27,7 +27,6 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 15
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
-    continue-on-error: true
 
     steps:
       - name: Checkout Code
@@ -148,12 +147,9 @@ jobs:
             adb devices
             adb install -r android-shell/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -n com.ytviewer.app/.MainActivity -d "https://www.youtube.com/watch?v=n9qwEOsqsoo"
-            sleep 8
-            adb shell dumpsys activity com.ytviewer.app
-            adb shell screencap -p /sdcard/screen.png
-            adb pull /sdcard/screen.png ./android-emulator-screenshot.png
-            adb logcat -d -s "YT_CAPTION_INTERCEPTOR" "TTS_ENGINE" "ActivityTaskManager" | tail -n 60 > ./android-emulator-logcat.txt || true
-            echo "Android Native Shell APK successfully booted and verified on Android Emulator (Option C)!"
+            adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png || true
+            bash scripts/android-e2e-assert.sh
+            adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png
 
       - name: Upload Android Emulator Artifacts
         if: always()
@@ -168,7 +164,7 @@ jobs:
           retention-days: 14
 
       - name: Stage Android Emulator Artifacts for GitHub Pages
-        if: success()
+        if: always()
         run: |
           mkdir -p gh-pages-staging/screenshots
           if [ -f "./android-emulator-screenshot.png" ]; then
