@@ -1,5 +1,14 @@
 # Tasks
 
+## Task 30: Validate default video subtitles for Android and the Demo Web App in E2E testing
+
+- [ ] **Subtask 30.1: Implement Default Video Subtitles E2E Verification for Android and Demo Web App**:
+  - Implement comprehensive E2E validation script `scripts/verify-default-video-subtitles-e2e.ts` verifying:
+    1. Demo Web App default video (`L2Ryrr6txwA`) JSON3 subtitles across all supported languages (`en`, `he`, `it`, `es`, `ar`, `ru`), checking event validity, millisecond timing monotonicity, non-empty cue text, alignment across favorite languages (`he`, `it`, `en`), and UI rendering readiness.
+    2. Android default video configuration (`DEFAULT_VIDEO_ID` / `DEFAULT_VIDEO_URL`), checking native timedtext URL interception, `tlang` target language translation derivation, and logcat assertion patterns.
+  - Update `scripts/android-e2e-assert.sh` and `scripts/run-android-e2e.sh` to explicitly verify and report that default video subtitles are OK for both Android and the demo web app.
+  - Register `npm run test:default-subtitles-e2e` in `package.json`, update `docs/files.md`, rebuild Android bundle assets, commit changes and tests, and run verification.
+
 ## Task 29: Streamline subtitle timing to default base language & ensure GitHub Pages screenshot availability
 
 - [x] **Subtask 29.1: Remove "Timing from" selector and lock subtitle alignment timing to the default base language**: Remove the manual "Timing from" `<select>` from the grouping/parser UI in `src/routes/index.tsx`. Automatically derive timing base language (`baseLanguage`) from the default subtitle track (on Android from intercepted primary timedtext `lang`, and on Web demo from the primary track `"he"` / first track in `tracks`). Add dedicated test `scripts/verify-default-timing-base.ts`.

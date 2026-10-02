@@ -42,6 +42,7 @@
     "test:doc-contracts": "tsx scripts/verify-doc-contracts.ts",
     "test:readme-links": "tsx scripts/verify-readme-links.ts",
     "test:default-timing-base": "tsx scripts/verify-default-timing-base.ts",
+    "test:default-subtitles-e2e": "tsx scripts/verify-default-video-subtitles-e2e.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

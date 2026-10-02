@@ -86,5 +86,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-doc-contracts.ts` | Architectural Contracts Verification | Asserts presence and integrity of all 9 architectural documentation and specification contracts. |
 | `scripts/verify-readme-links.ts` | README Links and Workflow Badges Verification | Asserts validity of all relative cross-references, workflow badges, and release links in README.md. |
 | `scripts/verify-default-timing-base.ts` | Default Timing Base Verification | Validates removal of manual timing selector and automatic alignment using default base subtitle language. |
+| `scripts/verify-default-video-subtitles-e2e.ts` | Default Video Subtitles E2E Verification | Validates default video subtitles integrity, cue parsing, timing monotonicity, and alignment for Android and Web Demo. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
 | `scripts/normalize-web-assets.mjs` | Build Asset Normalizer | Adjusts asset paths for GitHub Pages sub-path hosting. |
