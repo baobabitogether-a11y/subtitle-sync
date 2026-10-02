@@ -11,6 +11,15 @@
 - Added dedicated test `scripts/verify-default-timing-base.ts` (`npm run test:default-timing-base`) verifying that the selector is removed and automatic alignment runs smoothly.
 - Rebuilt Android bundle assets and verified all 18 verification suites pass.
 
+### Subtask 29.2: Bundle authentic emulator screenshot into static assets, document GitHub Pages activation, and extend response body size to 200 characters
+- Bundled authentic Android emulator screenshot into `public/screenshots/android-emulator-screenshot.png` and `public/assets/android-emulator-screenshot.png`.
+- Documented GitHub Pages manual activation requirement in `README.md` and `docs/operations/ACTIONS.md` (`Settings > Pages > Source: Deploy from a branch gh-pages / root`).
+- Extended network tracker response body preview limit to 200 characters (`MAX_RESPONSE_BODY_PREVIEW_CHARS = 200` in `src/utils/networkTracker.ts`).
+- Updated `src/components/NetworkRequestsInspector.tsx` UI modal labels, list badges, and details panel to show the first 200 characters.
+- Updated `scripts/verify-network-inspector.ts` and `scripts/verify-readme-links.ts` with dedicated assertions for 200-character truncation and static screenshot assets.
+- Updated `docs/operations/DEBUG.md`, `README.md`, and `docs/files.md` documentation inventories.
+- Rebuilt Android bundle assets and verified all 18 verification suites pass cleanly.
+
 ## Task 28: Fix README broken links and GitHub Actions workflow resilience
 
 ### Subtask 28.1: Import architectural specification and design contracts from `mostuf2556/Youtubenet6` and fix Markdown link checker
