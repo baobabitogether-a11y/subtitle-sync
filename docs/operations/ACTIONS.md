@@ -53,17 +53,22 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
   5. Generates `android-emulator-report.html` and captures logcat streams.
 
 ### 2.4 GitHub Pages Deployment (`deploy-demo.yml`)
-- **Objective**: Continuously publishes the latest static companion app and interactive test runner to GitHub Pages.
-- **URL**: `https://mostuf2556.github.io/Youtubenet6/`
+- **Objective**: Continuously publishes the latest static companion app and test artifacts to GitHub Pages (`gh-pages` branch).
+- **Target URL**: `https://mostuf25561.github.io/subtitle-sync/`
+- **Prerequisites**: Ensure GitHub Pages is enabled in repository settings: **Settings > Pages > Build and deployment > Source: Deploy from a branch (`gh-pages` / `/root`)**.
 - **Key Steps**:
-  1. Compiles client static bundles.
-  2. Bundles Cypress interactive runner and Mochawesome reports.
-  3. Deploys combined directory to `gh-pages` branch via GitHub Actions pages deployer.
+  1. Compiles production web bundle (`npm run build`).
+  2. Deploys `./dist` to `gh-pages` branch via `peaceiris/actions-gh-pages@v4` with `keep_files: true`.
+  3. Stages and retains authentic emulator screenshots in `screenshots/android-emulator-screenshot.png`.
 
 ---
 
 ## 3. Test Failure Diagnostics & CI Log Triage
 
-Per `AGENTS.md` Section 9, whenever requested to diagnose or rectify test failures, inspect the primary workflow logs directly:
-- **Web E2E Pipeline**: [https://github.com/mostuf2556/Youtubenet6/actions/workflows/web.yml](https://github.com/mostuf2556/Youtubenet6/actions/workflows/web.yml)
-- **Android Emulation Pipeline**: [https://github.com/mostuf2556/Youtubenet6/actions/workflows/emulation.yml](https://github.com/mostuf2556/Youtubenet6/actions/workflows/emulation.yml)
+Whenever diagnosing or rectifying test failures across automated CI pipelines:
+- **Reference Architecture**: Inspect and compare solutions against baseline reference repository [https://github.com/mostuf2556/Youtubenet6](https://github.com/mostuf2556/Youtubenet6).
+- **Active CI Workflows**:
+  - **APK Release Pipeline**: [https://github.com/mostuf25561/subtitle-sync/actions/workflows/release-apk.yml](https://github.com/mostuf25561/subtitle-sync/actions/workflows/release-apk.yml)
+  - **Web E2E Pipeline**: [https://github.com/mostuf25561/subtitle-sync/actions/workflows/web.yml](https://github.com/mostuf25561/subtitle-sync/actions/workflows/web.yml)
+  - **Android Emulation Pipeline**: [https://github.com/mostuf25561/subtitle-sync/actions/workflows/emulation.yml](https://github.com/mostuf25561/subtitle-sync/actions/workflows/emulation.yml)
+  - **Report & Document Integrity**: [https://github.com/mostuf25561/subtitle-sync/actions/workflows/integrity.yml](https://github.com/mostuf25561/subtitle-sync/actions/workflows/integrity.yml)

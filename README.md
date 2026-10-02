@@ -35,6 +35,10 @@ Access the live web application:
 | 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf25561.github.io/subtitle-sync/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
 | 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf25561.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification. |
 
+> **Note on GitHub Pages Availability:**
+> Artifacts and demo assets are automatically published to the `gh-pages` branch on every push. To access the live web demo and screenshot URLs, ensure GitHub Pages is enabled in repository settings:
+> 👉 **Settings > Pages > Build and deployment > Source: Deploy from a branch (`gh-pages` / `/root`)**.
+
 ---
 
 ## 📁 Modular Architecture & Documentation
@@ -52,7 +56,7 @@ The project is governed by strict Markdown contracts that decouple visual view i
 | **[`DESIGN_PLAYER_PROVIDER.md`](./docs/designs/DESIGN_PLAYER_PROVIDER.md)** | Vendor-agnostic media player controller and time-synchronization contract. |
 | **[`DESIGN_STATE_COORDINATOR.md`](./docs/designs/DESIGN_STATE_COORDINATOR.md)** | Finite state machine, lifecycle transitions, active cue resolution, and state flow. |
 | **[`SCHEMA_TIMEDTEXT.md`](./docs/specifications/SCHEMA_TIMEDTEXT.md)** | Format definitions, segment timings, entity decoding, and RTL/BiDi normalization. |
-| **[`DEBUG.md`](./docs/operations/DEBUG.md)** | Diagnostic log viewer, network interception, 15-char response preview, and AI troubleshooting prompt generator. |
+| **[`DEBUG.md`](./docs/operations/DEBUG.md)** | Diagnostic log viewer, network interception, 200-char response preview, and AI troubleshooting prompt generator. |
 
 ---
 

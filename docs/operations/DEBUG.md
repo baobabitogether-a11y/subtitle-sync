@@ -33,13 +33,13 @@ To allow comprehensive debugging and telemetry analysis on both browser and Andr
 
 ---
 
-## 3. Network Request Inspection & 15-Character Preview
+## 3. Network Request Inspection & Response Preview
 
 ### 3.1 Network Event Captures
 When the application dispatches subtitle requests (`/api/fetch-subtitles`, `/api/youtube-timedtext-translate`) or intercepts native WebView requests:
 1. Records URL path, method, and query parameters.
 2. Sanitizes headers (stripping cookies and auth tokens).
-3. Reads the first 15 characters of the response body for instant signature verification:
+3. Reads the first 200 characters of the response body for instant signature verification:
    - YouTube JSON3 signature: `{"wireMagic":"pb`
 
 ### 3.2 Security & Performance Constraints
