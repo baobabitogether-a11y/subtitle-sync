@@ -54,6 +54,9 @@
     "test:accordion-tags": "tsx scripts/verify-network-accordion-tags.ts",
     "test:network-close": "tsx scripts/verify-network-inspector-close.ts",
     "test:back-navigation": "tsx scripts/verify-android-back-navigation.ts",
+    "test:tlang-repetition": "tsx scripts/verify-tlang-repetition.ts",
+    "test:player-viewport": "tsx scripts/verify-player-viewport-placement.ts",
+    "test:e2e-video-report": "tsx scripts/verify-android-e2e-video-report.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

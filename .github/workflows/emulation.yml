@@ -149,10 +149,16 @@ jobs:
             adb devices
             adb install -r android-shell/app/build/outputs/apk/debug/app-debug.apk
             adb shell pm clear com.ytviewer.app
+            adb shell screenrecord --time-limit 120 --bit-rate 4000000 /sdcard/e2e-recording.mp4 &
+            RECORD_PID=$!
             adb shell am start -a android.intent.action.VIEW -n com.ytviewer.app/.MainActivity -d "https://www.youtube.com/watch?v=n9qwEOsqsoo"
             adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png || true
             bash scripts/android-e2e-assert.sh
             adb shell screencap -p /sdcard/screen.png; adb pull /sdcard/screen.png ./android-emulator-screenshot.png
+            kill -2 $RECORD_PID 2>/dev/null || true
+            sleep 3
+            adb pull /sdcard/e2e-recording.mp4 ./android-emulator-e2e.mp4 || true
+            adb shell rm -f /sdcard/e2e-recording.mp4 2>/dev/null || true
 
       - name: Publish Android E2E Result to Job Summary
         if: always()
@@ -184,7 +190,7 @@ jobs:
               fi
             fi
             echo ""
-            echo "The screenshot and full logcat are available in the \`android-emulator-artifacts\` workflow artifact."
+            echo "The video recording, screenshot, and full logcat are available in the \`android-emulator-artifacts\` workflow artifact and on GitHub Pages."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Android Emulator Artifacts
@@ -195,6 +201,7 @@ jobs:
           path: |
             android-emulator-screenshot.png
             android-emulator-logcat.txt
+            android-emulator-e2e.mp4
             android-shell/app/build/outputs/apk/debug/*.apk
           if-no-files-found: ignore
           retention-days: 14
@@ -206,6 +213,10 @@ jobs:
           if [ -f "./android-emulator-screenshot.png" ]; then
             cp ./android-emulator-screenshot.png gh-pages-staging/screenshots/android-emulator-screenshot.png
             echo "Staged android-emulator-screenshot.png to gh-pages-staging/screenshots/"
+          fi
+          if [ -f "./android-emulator-e2e.mp4" ]; then
+            cp ./android-emulator-e2e.mp4 gh-pages-staging/screenshots/android-emulator-e2e.mp4
+            echo "Staged android-emulator-e2e.mp4 to gh-pages-staging/screenshots/"
           fi
           if [ -f "./android-emulator-logcat.txt" ]; then
             cp ./android-emulator-logcat.txt gh-pages-staging/screenshots/android-emulator-logcat.txt

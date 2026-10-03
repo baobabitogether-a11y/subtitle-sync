@@ -672,32 +672,43 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val queryParamNames = uri.queryParameterNames
                 val builder = uri.buildUpon().clearQuery()
                 for (name in queryParamNames) {
-                    val isLang = name.equals("lang", ignoreCase = true)
                     val isTlang = name.equals("tlang", ignoreCase = true)
                     val isFmt = name.equals("fmt", ignoreCase = true) && format.isNotEmpty()
-                    if (!isLang && !isTlang && !isFmt) {
+                    if (!isTlang && !isFmt) {
                         for (value in uri.getQueryParameters(name)) {
                             builder.appendQueryParameter(name, value)
                         }
                     }
                 }
-                val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"
-                builder.appendQueryParameter("lang", originalLang)
-                if (!originalLang.equals(targetLang, ignoreCase = true)) {
-                    builder.appendQueryParameter("tlang", targetLang)
-                }
+                builder.appendQueryParameter("tlang", targetLang)
                 if (format.isNotEmpty()) {
                     builder.appendQueryParameter("fmt", format)
                 }
                 val targetUrl = builder.build().toString()
                 Log.i(TAG, "Native Shell repeating observed timedtext request for targetLang=$targetLang, fmt=$format: $targetUrl")
                 val reqBuilder = Request.Builder().url(targetUrl)
+
+                // Inject observed headers, excluding Accept-Encoding for OkHttp transparent decompression
                 lastObservedHeaders.forEach { (k, v) ->
-                    // Exclude Accept-Encoding so OkHttp handles transparent decompression
                     if (!k.equals("accept-encoding", ignoreCase = true)) {
                         reqBuilder.addHeader(k, v)
                     }
                 }
+
+                // If observed headers lack essential browser/YouTube markers, provide authentic defaults
+                if (lastObservedHeaders.keys.none { it.equals("referer", ignoreCase = true) }) {
+                    reqBuilder.addHeader("Referer", "https://www.youtube.com/")
+                }
+                if (lastObservedHeaders.keys.none { it.equals("origin", ignoreCase = true) }) {
+                    reqBuilder.addHeader("Origin", "https://www.youtube.com")
+                }
+                if (lastObservedHeaders.keys.none { it.equals("user-agent", ignoreCase = true) }) {
+                    reqBuilder.addHeader("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36")
+                }
+                if (lastObservedHeaders.keys.none { it.equals("accept", ignoreCase = true) }) {
+                    reqBuilder.addHeader("Accept", "text/xml,application/json,*/*")
+                }
+
                 val resp = okHttpClient.newCall(reqBuilder.build()).execute()
                 if (resp.isSuccessful) {
                     val bodyString = resp.body?.string() ?: ""
