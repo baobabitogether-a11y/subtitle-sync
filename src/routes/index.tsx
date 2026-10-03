@@ -91,7 +91,7 @@ type YTPlayer = {
 };
 declare global {
   interface Window {
-    YT?: { Player: new (el: HTMLElement, o: object) => YTPlayer };
+    YT?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     onYouTubeIframeAPIReady?: () => void;
     onNativeCaptionsInterceptedBase64?: (payload: string) => void;
     onNativeSharedLinkReceived?: (url: string) => void;
@@ -564,7 +564,7 @@ function Index() {
       const defaultLang = new URL(captured).searchParams.get("lang") || "";
       if (defaultLang) {
         try {
-          const raw = shell.fetchTranslatedCaptionsWithUrl(captured, defaultLang, "json3");
+          const raw = shell!.fetchTranslatedCaptionsWithUrl(captured, defaultLang, "json3");
           const json = parseJson3(raw);
           if (json) {
             setTracks((prev) => ({ ...prev, [defaultLang]: json }));

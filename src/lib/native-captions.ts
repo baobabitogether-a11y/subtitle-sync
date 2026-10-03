@@ -5,6 +5,7 @@ export type NativeShell = {
   isNativeShell(): boolean;
   getLastObservedTimedTextUrl(): string;
   fetchTranslatedCaptionsWithUrl(url: string, language: string, format: string): string;
+  fetchTranslatedCaptions?(language: string, format: string): string;
 };
 
 export function nativeShell(): NativeShell | null {
