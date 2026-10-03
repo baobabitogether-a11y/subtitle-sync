@@ -1,10 +1,15 @@
+import fs from "node:fs";
+import path from "node:path";
 import {
   getActiveAppVersion,
   isNewerVersion,
   checkApkUpdate,
   applyReleaseArtifactHotUpdate,
+  getApkReleaseLinks,
+  REPO_OWNERS,
   CURRENT_APK_VERSION,
   DEFAULT_REPO,
+  FALLBACK_REPO,
   ArtifactUpdateProgress,
 } from "../src/utils/apkUpdater";
 
@@ -202,6 +207,76 @@ async function runOtaUpdaterVerification() {
   assert(
     mockStorage["active_release_artifact_tag"] === testTag,
     `localStorage updated with target tag: "${mockStorage["active_release_artifact_tag"]}"`,
+  );
+
+  // TEST 5: Latest APK Release Links for Both Repo Owners (mostuf2556, mostuf25561)
+  console.log("\n--- Test 5: Latest APK Release Links for Both Repo Owners ---");
+  assert(
+    REPO_OWNERS.includes("mostuf2556") && REPO_OWNERS.includes("mostuf25561"),
+    "REPO_OWNERS contains both 'mostuf2556' and 'mostuf25561'",
+  );
+  assert(
+    DEFAULT_REPO === "mostuf2556/subtitle-sync" && FALLBACK_REPO === "mostuf25561/subtitle-sync",
+    "DEFAULT_REPO and FALLBACK_REPO configured for both owners",
+  );
+
+  const releaseLinks = getApkReleaseLinks();
+  assert(
+    releaseLinks.length === 2,
+    `getApkReleaseLinks returns 2 items (found ${releaseLinks.length})`,
+  );
+
+  for (const link of releaseLinks) {
+    assert(
+      link.owner === "mostuf2556" || link.owner === "mostuf25561",
+      `Valid repo owner in link: ${link.owner}`,
+    );
+    assert(
+      link.downloadUrl.includes(link.owner) &&
+        link.downloadUrl.endsWith("YouTube-Viewer-debug.apk"),
+      `Valid direct APK download URL for ${link.owner}: ${link.downloadUrl}`,
+    );
+    assert(
+      link.releaseUrl.includes(link.owner) && link.releaseUrl.endsWith("/releases/latest"),
+      `Valid latest release page URL for ${link.owner}: ${link.releaseUrl}`,
+    );
+    assert(
+      link.otaBundleUrl.includes(link.owner) && link.otaBundleUrl.endsWith("web-dist.zip"),
+      `Valid OTA bundle URL for ${link.owner}: ${link.otaBundleUrl}`,
+    );
+    assert(
+      link.cliInstallCommand.includes(link.owner) &&
+        link.cliInstallCommand.includes("update.apk.sh"),
+      `Valid CLI install command for ${link.owner}`,
+    );
+  }
+
+  // Verify UI integration in src/routes/index.tsx and src/components/ApkReleaseModal.tsx
+  const indexFile = fs.readFileSync(path.resolve(process.cwd(), "src/routes/index.tsx"), "utf8");
+  assert(
+    indexFile.includes("open-apk-release-button"),
+    "src/routes/index.tsx has 'open-apk-release-button' in header",
+  );
+  assert(
+    indexFile.includes("apk-releases-footer"),
+    "src/routes/index.tsx has 'apk-releases-footer' with links for both owners",
+  );
+  assert(
+    indexFile.includes("apk-footer-download-") && indexFile.includes("apkReleaseLinks.map"),
+    "src/routes/index.tsx renders APK download links dynamically for each repo owner",
+  );
+
+  const modalFile = fs.readFileSync(
+    path.resolve(process.cwd(), "src/components/ApkReleaseModal.tsx"),
+    "utf8",
+  );
+  assert(
+    modalFile.includes("apk-download-link-"),
+    "src/components/ApkReleaseModal.tsx exposes direct download links for both owners",
+  );
+  assert(
+    modalFile.includes("getApkReleaseLinks"),
+    "src/components/ApkReleaseModal.tsx consumes getApkReleaseLinks()",
   );
 
   console.log("\n====================================================");

@@ -53,4 +53,5 @@
 - For every issue, bug, or configuration discrepancy encountered, inspect and compare against the corresponding solution implemented in `https://github.com/mostuf2556/Youtubenet6`.
 - Preserve the existing application stack and repository structure.
 - Keep GitHub Actions, GitHub Pages reports, the web demo, and Android emulator coverage working together.
+- GitHub Pages report: should produce a video of the e2e test running on android emulator and present it on github pages along the e2e reports for web and emulator/device and the demo web app (the video and other build outputs should not exist on the main branch).
 - Do not add credentials or invent external service values; document and request anything required.

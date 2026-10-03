@@ -14,13 +14,14 @@ This document maintains the registry of codebase files, their specific roles, ar
 
 ## Subtitles & Alignment Core (`src/lib/`)
 
-| File Path                                     | Role                          | Feature & Responsibilities                                                                                                  |
-| --------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/subtitles.ts`                        | Subtitle Alignment Engine     | Implements sentence, word, raw segment, and linear blend alignment across multi-language JSON3 tracks.                      |
-| `src/lib/native-captions.ts`                  | Native Android Bridge Interop | Decodes intercepted base64 caption payloads and extracts timedtext URL parameters.                                          |
-| `src/lib/lovable-error-reporting.ts`          | Lovable Studio Telemetry      | Dispatches runtime error reports to the Lovable integration layer.                                                          |
-| `src/lib/utils.ts`                            | UI Utilities                  | Provides class name concatenation (`cn`) merging Tailwind classes and clsx.                                                 |
-| `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI  | Displays live captured network requests with URL, method, status, duration, and first 200 characters response body preview. |
+| File Path                                     | Role                          | Feature & Responsibilities                                                                                                        |
+| --------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/subtitles.ts`                        | Subtitle Alignment Engine     | Implements sentence, word, raw segment, and linear blend alignment across multi-language JSON3 tracks.                            |
+| `src/lib/native-captions.ts`                  | Native Android Bridge Interop | Decodes intercepted base64 caption payloads and extracts timedtext URL parameters.                                                |
+| `src/lib/lovable-error-reporting.ts`          | Lovable Studio Telemetry      | Dispatches runtime error reports to the Lovable integration layer.                                                                |
+| `src/lib/utils.ts`                            | UI Utilities                  | Provides class name concatenation (`cn`) merging Tailwind classes and clsx.                                                       |
+| `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI  | Displays live captured network requests with URL, method, status, duration, and first 200 characters response body preview.       |
+| `src/components/ApkReleaseModal.tsx`          | Latest APK Release Modal      | Displays direct APK downloads, GitHub release links, web artifacts, and CLI install commands for both mostuf2556 and mostuf25561. |
 
 ## Feature Utilities (`src/utils/`)
 

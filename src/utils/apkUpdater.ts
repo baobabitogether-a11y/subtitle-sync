@@ -48,8 +48,34 @@ export interface ArtifactUpdateProgress {
 }
 
 export const CURRENT_APK_VERSION = "v1.0.13";
+export const REPO_OWNERS = ["mostuf2556", "mostuf25561"] as const;
+export type RepoOwner = (typeof REPO_OWNERS)[number];
+
 export const DEFAULT_REPO = "mostuf2556/subtitle-sync";
-export const FALLBACK_REPO = "mostuf2556/subtitle-sync";
+export const FALLBACK_REPO = "mostuf25561/subtitle-sync";
+
+export interface ApkReleaseLink {
+  owner: string;
+  repo: string;
+  releaseUrl: string;
+  downloadUrl: string;
+  otaBundleUrl: string;
+  cliInstallCommand: string;
+}
+
+/**
+ * Returns latest APK and release links for both repository owners (mostuf2556, mostuf25561)
+ */
+export function getApkReleaseLinks(): ApkReleaseLink[] {
+  return REPO_OWNERS.map((owner) => ({
+    owner,
+    repo: `${owner}/subtitle-sync`,
+    releaseUrl: `https://github.com/${owner}/subtitle-sync/releases/latest`,
+    downloadUrl: `https://github.com/${owner}/subtitle-sync/releases/latest/download/YouTube-Viewer-debug.apk`,
+    otaBundleUrl: `https://github.com/${owner}/subtitle-sync/releases/latest/download/web-dist.zip`,
+    cliInstallCommand: `curl -fsSL https://raw.githubusercontent.com/${owner}/subtitle-sync/main/update.apk.sh | bash -s -- "https://github.com/${owner}/subtitle-sync/releases/latest/download/YouTube-Viewer-debug.apk"`,
+  }));
+}
 
 /**
  * Retrieves the active app version, checking if a release artifact hot update was applied

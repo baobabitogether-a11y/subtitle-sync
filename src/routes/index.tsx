@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ChevronDown, ChevronUp, Moon, Sun } from "lucide-react";
+import {
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  ExternalLink,
+  Moon,
+  Smartphone,
+  Sun,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   align,
@@ -34,6 +43,8 @@ import {
 } from "@/utils/audioTrackManager";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
+import { ApkReleaseModal } from "@/components/ApkReleaseModal";
+import { getApkReleaseLinks } from "@/utils/apkUpdater";
 import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
@@ -257,7 +268,9 @@ function Index() {
   observedUrlRef.current = observedUrl;
 
   const [networkInspectorOpen, setNetworkInspectorOpen] = useState(false);
+  const [apkModalOpen, setApkModalOpen] = useState(false);
   const networkRequests = useNetworkRequests();
+  const apkReleaseLinks = useMemo(() => getApkReleaseLinks(), []);
 
   const fetchFavoriteLanguageSubtitles = useCallback(
     async (langsToFetch: string[], baseUrl?: string) => {
@@ -902,6 +915,19 @@ function Index() {
             {networkRequests.length}
           </span>
         </Button>
+        <Button
+          id="open-apk-release-button"
+          data-testid="open-apk-release-button"
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => setApkModalOpen(true)}
+          className="gap-1.5 border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          title="Download latest APK release (mostuf2556 & mostuf25561)"
+        >
+          <Smartphone className="h-4 w-4 text-emerald-500" />
+          <span className="hidden sm:inline">Latest APK</span>
+        </Button>
       </header>
 
       <div className="grid items-start gap-4 p-4 md:p-6 lg:grid-cols-2">
@@ -1367,10 +1393,71 @@ function Index() {
           );
         })}
       </div>
+
+      {/* Latest APK Release Footer Banner with Links for both repo owners */}
+      <footer
+        id="apk-releases-footer"
+        data-testid="apk-releases-footer"
+        className="mt-8 border-t border-border px-6 py-4 bg-muted/20 text-xs"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Smartphone className="h-4 w-4 text-emerald-500 shrink-0" />
+            <span className="font-semibold text-foreground">Latest Android APK Releases:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {apkReleaseLinks.map((link) => (
+              <div
+                key={link.owner}
+                data-testid={`apk-footer-link-group-${link.owner}`}
+                className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1 shadow-sm"
+              >
+                <span className="font-mono font-bold text-foreground">{link.owner}</span>
+                <span className="text-muted-foreground">·</span>
+                <a
+                  href={link.downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid={`apk-footer-download-${link.owner}`}
+                  className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                  title={`Direct APK download from ${link.owner}`}
+                >
+                  <Download className="h-3 w-3" />
+                  <span>APK</span>
+                </a>
+                <span className="text-muted-foreground">·</span>
+                <a
+                  href={link.releaseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid={`apk-footer-release-${link.owner}`}
+                  className="text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  title={`Latest GitHub release page for ${link.owner}`}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Release</span>
+                </a>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setApkModalOpen(true)}
+              className="text-xs h-8 px-2.5 gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
+            >
+              <Smartphone className="h-3.5 w-3.5 text-emerald-500" />
+              <span>All Options & CLI</span>
+            </Button>
+          </div>
+        </div>
+      </footer>
+
       <NetworkRequestsInspector
         isOpen={networkInspectorOpen}
         onClose={() => setNetworkInspectorOpen(false)}
       />
+      <ApkReleaseModal isOpen={apkModalOpen} onClose={() => setApkModalOpen(false)} />
     </div>
   );
 }
