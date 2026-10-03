@@ -46,6 +46,7 @@
     "test:default-subtitles-e2e": "tsx scripts/verify-default-video-subtitles-e2e.ts",
     "test:agents-push-rule": "tsx scripts/verify-agents-push-rule.ts",
     "test:youtube-share-intent": "tsx scripts/verify-youtube-share-intent.ts",
+    "test:progressive-subtitles": "tsx scripts/verify-progressive-subtitles-loading.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

@@ -1,5 +1,9 @@
 # Tasks
 
+## Task 32: Fix YouTube link sharing to Android app
+
+- [x] **Subtask 32.1: Fix Android intent handling & WebView URL query propagation for shared YouTube links**: Diagnose and fix why sharing a YouTube URL/intent to Android keeps showing the default video. Ensure MainActivity intent filters, extras (`Intent.EXTRA_TEXT`), query parameter extraction (`v=` or `youtu.be/` video ID), and WebView local asset URL generation (`index.html?v=...`) reliably update React app state and switch to the shared video. Add dedicated verification test.
+
 ## Task 31: Update AGENTS.md — after git commit, try using git push
 
 - [x] **Subtask 31.1: Update AGENTS.md with git push instruction and verify git push attempt handling**: Update AGENTS.md under Work tracking to specify that after performing a git commit, attempt `git push` (handling failure gracefully if no remote or credentials configured). Add dedicated test to verify this rule and workflow integrity.
