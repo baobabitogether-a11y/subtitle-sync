@@ -128,6 +128,17 @@ export function useNetworkRequests(): NetworkRequestRecord[] {
 }
 
 /**
+ * Check if a network request is genuinely successful with a non-empty response body
+ */
+export function isSuccessfulFetch(req: NetworkRequestRecord): boolean {
+  if (req.isPending) return false;
+  if (req.error) return false;
+  if (req.status !== 200) return false;
+  if (!req.fullResponseBody || req.fullResponseBody.trim() === "") return false;
+  return true;
+}
+
+/**
  * Extracts target translation language code ('tlang' query param) from a URL if present
  */
 export function extractTlang(url: string): string | null {

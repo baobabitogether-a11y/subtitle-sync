@@ -1,5 +1,86 @@
 # Done tasks
 
+## Task 39: Allow closing the Network Panel
+
+### Subtask 39.1: Provide explicit close / collapse control on Network Panel
+
+- Enhanced header close button in `src/components/NetworkRequestsInspector.tsx` with explicit identifiers (`id="close-network-inspector-button"`, `data-testid="close-network-inspector-button"`), accessible `aria-label="Close Network Inspector"`, tooltip indicating Escape shortcut, and `onClick={onClose}` handler.
+- Implemented global `Escape` keyboard shortcut listener using `useEffect` on `window` (`keydown` -> `onClose()`) with proper event listener cleanup on unmount/close.
+- Verified backdrop dismissal on `#network-inspector-modal` (`onClick={onClose}`) with `e.stopPropagation()` on the dialog content card to prevent accidental closing when clicking inside the inspector.
+- Added collapse / minimize capability with toggle button (`id="collapse-network-inspector-button"`, `data-testid="collapse-network-inspector-button"`), rendering an unobtrusive compact floating status pill (`#network-inspector-minimized` / `data-testid="network-inspector-minimized"`) with live captured counts, an Expand button (`#expand-network-inspector-button`), and a quick compact close button (`#compact-close-network-inspector-button`).
+- Created dedicated verification test `scripts/verify-network-inspector-close.ts` (`npm run test:network-close`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified clean build, regression tests, zero lint warnings, and applet compilation.
+
+## Task 38: Accelerate app performance & enhance Network Panel with accordion and status tags
+
+### Subtask 38.1: Implement performance optimizations and per-record Network Panel accordion with tlang color tags
+
+- Memoized table rows using `React.memo(SubtitleRow)` in `src/routes/index.tsx`, isolating row re-renders to only active and previous rows during video playback and time-seeking.
+- Enhanced Network Requests Inspector in `src/components/NetworkRequestsInspector.tsx` with dedicated per-record accordion toggle controls (`record-accordion-toggle-${id}`) and chevron transition animations.
+- Implemented `getTlangStatusInfo` computing dynamic status tags and color schemes:
+  - Pending: orange/amber (`bg-amber-500/20 text-amber-300 border-amber-500/40`)
+  - Done: green (`bg-emerald-500/20 text-emerald-300 border-emerald-500/40`)
+  - Failed: red (`bg-red-500/20 text-red-300 border-red-500/40`)
+  - Overridden by green on retry success (`retry_success` with green styling)
+- Created dedicated verification test `scripts/verify-network-accordion-tags.ts` (`npm run test:accordion-tags`), registered in `package.json`, and documented in `docs/files.md`.
+- Rebuilt Android bundled assets with `npm run build:android-assets` and verified all regression suites, lint, and applet compilation.
+
+## Task 37: Clean Network Panel records & add green badge indicator for good fetching
+
+### Subtask 37.1: Exclude empty response bodies from Network Panel and add green badge indicator
+
+- Added and exported `isSuccessfulFetch(req)` in `src/utils/networkTracker.ts`, verifying that only requests with HTTP 200, no error, and a genuine non-empty response body qualify as successful.
+- Updated `isFailedRequest` in `NetworkRequestsInspector.tsx` to classify empty response bodies as failed/unsuccessful, ensuring they are excluded by default when `hideFailed` is enabled.
+- Preserved accurate HTTP status recording (e.g. 200 OK) while styling empty body responses with warning/failed indicators rather than false green success badges.
+- Added green badge indicators (`good-fetch-badge-${tlang}` in list items and `detail-good-fetch-badge` in the detail panel) for successfully fetched language tracks with valid subtitles.
+- Created dedicated verification test `scripts/verify-network-clean-records.ts` (`npm run test:clean-network`), registered in `package.json`, and documented in `docs/files.md`.
+- Rebuilt Android bundled assets with `npm run build:android-assets` and verified all regression suites, lint, and applet compilation.
+
+## Task 36: Ensure sync between language views with auto-fetch-retry
+
+### Subtask 36.1: Synchronize favorites view, language selection, and subtitles view with auto-fetch-retry
+
+- Ensured in `src/routes/index.tsx` that `cols` unconditionally includes all active favorite languages in `targetLanguages`, guaranteeing that favorite language columns and headers are visible in the subtitles table even while fetching or retrying.
+- Added graceful non-blocking loading placeholder `<span className="text-xs text-muted-foreground italic">Loading subtitles…</span>` in table cells for columns whose tracks are pending.
+- Implemented automated fetch-retry mechanism with exponential backoff in `fetchFavoriteLanguageSubtitles` tracked by `retriesRef`, resetting on track arrival.
+- Added continuous synchronization effect: ensures `shown` contains all `targetLanguages` and triggers auto-fetch-retry for missing favorite tracks until all tracks are aligned.
+- Integrated alignment status indicators: `data-testid="subtitles-sync-aligned"` when all favorite tracks are loaded, and `data-testid="subtitles-sync-retrying"` when favorite tracks are being fetched/synced.
+- Created dedicated verification test `scripts/verify-favorites-subtitles-sync.ts` (`npm run test:favorites-sync`), registered in `package.json`, and documented in `docs/files.md`.
+- Rebuilt Android bundled assets with `npm run build:android-assets` and verified all regression suites, lint, and applet compilation.
+
+## Task 35: Support running Android app in the background
+
+### Subtask 35.1: Configure Android WebView & lifecycle to prevent pausing playback when app is not active
+
+- Configured `android-shell/app/src/main/AndroidManifest.xml` with `android.permission.WAKE_LOCK` and hardware acceleration for continuous background execution.
+- In `MainActivity.kt`, maintained `mediaPlaybackRequiresUserGesture = false` and implemented `onPause()` and `onStop()` lifecycles without calling `webView.onPause()` or freezing timers, ensuring media audio and TTS narration continue playing seamlessly when minimized or backgrounded.
+- Implemented `onResume()` in `MainActivity.kt` safely resuming WebView and timer execution.
+- Injected background playback resilience script in `MainActivity.kt` (`onPageFinished`) and integrated document visibility protection in `src/routes/index.tsx` preventing `visibilitychange` / `document.hidden` from pausing the YouTube player when minimized.
+- Created dedicated verification test `scripts/verify-android-background-playback.ts` (`npm run test:background-playback`), registered in `package.json`, and documented in `docs/files.md`.
+- Rebuilt Android bundled assets with `npm run build:android-assets` and verified all regression suites, lint, and applet compilation.
+
+## Task 34: Debug mode toggle controlling Network Panel visibility
+
+### Subtask 34.1: Add debug mode toggle (default false) and hide network panel when debug mode is disabled
+
+- Added persistent debug mode configuration in `src/utils/appSettings.ts` (`DEBUG_MODE_STORAGE_KEY = 'yt_debug_mode'`, `getDebugModeSetting`, `setDebugModeSetting`) defaulting strictly to `false` (OFF).
+- Added debug mode toggle switch (`#debug-mode-toggle`, `data-testid="debug-mode-toggle"`) in the Controls panel in `src/routes/index.tsx`.
+- Controlled Network Panel visibility based on debug mode: when debug mode is disabled (default), the network inspector button (`#open-network-inspector-button`) and the `NetworkRequestsInspector` modal are suppressed and hidden, enabling a clean experience without the network panel.
+- Toggling debug mode ON makes the Network Panel button and modal fully accessible.
+- Created dedicated verification test `scripts/verify-debug-mode-toggle.ts` (`npm run test:debug-mode`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified all regression suites, lint, and applet compilation.
+
+## Task 33: Optimize subtitle loading and fetching performance
+
+### Subtask 33.1: Implement progressive / non-blocking subtitle loading technique
+
+- Integrated `React.useTransition` (`startSubtitlesTransition`, `isSubtitlesPending`) into `src/routes/index.tsx` for non-blocking subtitle track updates.
+- Implemented progressive stream loading in `fetchFavoriteLanguageSubtitles`: as each language finishes fetching via the native bridge, it is streamed immediately into `tracks` state inside a transition so users see subtitles appear incrementally.
+- Added event loop yielding (`await new Promise<void>((resolve) => setTimeout(resolve, 0))`) between language requests to prevent UI thread starvation.
+- Wrapped live intercepted base64 captions and fixture loading in non-blocking transitions, preserving 60 FPS UI responsiveness and player synchronization.
+- Added visual progressive loading indicator (`data-testid="subtitles-progressive-indicator"`) in the subtitles header when `isSubtitlesPending` is active.
+- Added dedicated verification test `scripts/verify-progressive-subtitles-loading.ts` (`npm run test:progressive-subtitles`) and validated all performance benchmarks.
+
 ## Task 32: Fix YouTube link sharing to Android app
 
 ### Subtask 32.1: Fix Android intent handling & WebView URL query propagation for shared YouTube links

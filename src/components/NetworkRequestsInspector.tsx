@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Activity,
   X,
@@ -23,6 +23,7 @@ import {
   clearNetworkRequests,
   extractTlang,
   formatRequestForClipboard,
+  isSuccessfulFetch,
   type NetworkRequestRecord,
 } from "@/utils/networkTracker";
 import { SUPPORTED_LANGUAGES_CATALOG } from "@/utils/appSettings";
@@ -42,8 +43,75 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
   const [copiedDetail, setCopiedDetail] = useState<"url" | "body" | "request" | null>(null);
   const [showFullBody, setShowFullBody] = useState(false);
   const [expandedListItems, setExpandedListItems] = useState<Record<string, boolean>>({});
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  if (isMinimized) {
+    return (
+      <aside
+        id="network-inspector-minimized"
+        data-testid="network-inspector-minimized"
+        aria-label="Network Inspector Minimized Bar"
+        className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-2.5 bg-neutral-900/95 border border-neutral-700/80 rounded-full shadow-2xl backdrop-blur-md text-xs text-neutral-200 animate-in slide-in-from-bottom duration-200"
+      >
+        <div
+          className="flex items-center gap-2 cursor-pointer select-none"
+          onClick={() => setIsMinimized(false)}
+          title="Click to restore Network Inspector"
+        >
+          <div className="p-1.5 rounded-full bg-blue-500/20 text-blue-400">
+            <Activity className="w-3.5 h-3.5 animate-pulse" />
+          </div>
+          <span className="font-semibold text-neutral-200">Network Inspector</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-800 text-neutral-300 border border-neutral-700">
+            {requests.length} captured
+          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800">
+            {requests.filter((r) => (!hideFailed || !Boolean(r.error) && (r.isPending || isSuccessfulFetch(r)))).length} shown
+          </span>
+        </div>
+        <div className="h-4 w-px bg-neutral-700" />
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            id="expand-network-inspector-button"
+            data-testid="expand-network-inspector-button"
+            onClick={() => setIsMinimized(false)}
+            className="p-1 rounded-md text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            title="Expand inspector"
+            aria-label="Expand Network Inspector"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            id="compact-close-network-inspector-button"
+            data-testid="compact-close-network-inspector-button"
+            onClick={onClose}
+            className="p-1 rounded-md text-neutral-400 hover:text-red-400 hover:bg-neutral-800 transition"
+            title="Close inspector"
+            aria-label="Close Network Inspector"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </aside>
+    );
+  }
 
   const getLanguageName = (code: string | null) => {
     if (!code) return null;
@@ -52,7 +120,44 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
   };
 
   const isFailedRequest = (req: NetworkRequestRecord) => {
-    return Boolean(req.error) || (!req.isPending && req.status !== 0 && req.status !== 200);
+    return Boolean(req.error) || (!req.isPending && !isSuccessfulFetch(req));
+  };
+
+  const getTlangStatusInfo = (req: NetworkRequestRecord, tlang: string) => {
+    if (req.isPending) {
+      return {
+        status: "pending",
+        label: "Pending",
+        colorClass: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+      };
+    }
+    if (isSuccessfulFetch(req)) {
+      return {
+        status: "done",
+        label: "Done",
+        colorClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+      };
+    }
+    // Check if overridden by green on retry success
+    const hasSubsequentSuccess = requests.some(
+      (other) =>
+        other.id !== req.id &&
+        extractTlang(other.url) === tlang &&
+        isSuccessfulFetch(other) &&
+        other.startTime >= req.startTime,
+    );
+    if (hasSubsequentSuccess) {
+      return {
+        status: "retry_success",
+        label: "Failed (Retried & Done)",
+        colorClass: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+      };
+    }
+    return {
+      status: "failed",
+      label: "Failed",
+      colorClass: "bg-red-500/20 text-red-300 border-red-500/40",
+    };
   };
 
   const failedCount = requests.filter(isFailedRequest).length;
@@ -188,21 +293,36 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
           <div className="flex items-center gap-2">
             <button
               id="clear-network-logs-button"
+              data-testid="clear-network-logs-button"
               type="button"
               onClick={clearNetworkRequests}
               disabled={requests.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-neutral-300 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 disabled:opacity-50 transition"
               title="Clear all recorded logs"
+              aria-label="Clear Network Logs"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear</span>
             </button>
             <button
+              id="collapse-network-inspector-button"
+              data-testid="collapse-network-inspector-button"
+              type="button"
+              onClick={() => setIsMinimized(true)}
+              className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+              title="Minimize inspector"
+              aria-label="Minimize Network Inspector"
+            >
+              <Minimize2 className="w-4 h-4" />
+            </button>
+            <button
               id="close-network-inspector-button"
+              data-testid="close-network-inspector-button"
               type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
-              title="Close inspector"
+              title="Close inspector (Esc)"
+              aria-label="Close Network Inspector"
             >
               <X className="w-5 h-5" />
             </button>
@@ -301,6 +421,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                 const isItemExpanded = expandedListItems[req.id];
                 const tlang = extractTlang(req.url);
                 const tlangName = getLanguageName(tlang);
+                const tlangInfo = tlang ? getTlangStatusInfo(req, tlang) : null;
                 const isCopied = copiedId === req.id;
                 const isBodyEmpty =
                   req.status === 200 && (!req.fullResponseBody || req.fullResponseBody.trim() === "");
@@ -321,7 +442,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                           className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
                             req.isPending
                               ? "bg-yellow-900/60 text-yellow-300"
-                              : req.status === 200
+                              : req.status === 200 && !isBodyEmpty
                                 ? "bg-emerald-900/60 text-emerald-300"
                                 : "bg-red-900/60 text-red-300"
                           }`}
@@ -333,23 +454,36 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                         </span>
                         <span className="text-[10px] text-neutral-500">{req.type}</span>
 
-                        {/* tlang Language Highlight Tag */}
-                        {tlang && (
+                        {/* tlang Language Highlight Tag with dynamic status color */}
+                        {tlang && tlangInfo && (
                           <span
                             data-testid={`tlang-tag-${req.id}`}
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                            title={`Target Translation Language: ${tlangName} (${tlang})`}
+                            data-status={tlangInfo.status}
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold border ${tlangInfo.colorClass}`}
+                            title={`Target Translation Language: ${tlangName} (${tlang}) — ${tlangInfo.label}`}
                           >
                             <Globe className="w-3 h-3" />
                             <span>
-                              tlang: {tlang} ({tlangName})
+                              tlang: {tlang} ({tlangName}) [{tlangInfo.label}]
                             </span>
+                          </span>
+                        )}
+
+                        {/* Green badge indicator for successfully fetched language */}
+                        {tlang && isSuccessfulFetch(req) && (
+                          <span
+                            data-testid={`good-fetch-badge-${tlang}`}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            title={`Successfully fetched subtitles for ${tlangName || tlang}`}
+                          >
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span>Good Fetch</span>
                           </span>
                         )}
 
                         {/* Empty response badge for 200 status */}
                         {isBodyEmpty && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-yellow-950/50 text-yellow-300/90 border border-yellow-800/50">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-red-950/60 text-red-300 border border-red-800/60">
                             200 OK (empty body — 0 chars)
                           </span>
                         )}
@@ -414,6 +548,8 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                           )}
                         </div>
                         <button
+                          id={`record-accordion-toggle-${req.id}`}
+                          data-testid={`record-accordion-toggle-${req.id}`}
                           type="button"
                           className="text-neutral-400 hover:text-white p-0.5 rounded"
                           aria-label={isItemExpanded ? "Collapse" : "Unfold"}
@@ -453,12 +589,15 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                   <div className="flex items-center gap-2 flex-wrap">
                     <span
                       className={`px-2 py-0.5 rounded font-mono font-bold ${
-                        selectedRequest.status === 200
+                        isSuccessfulFetch(selectedRequest)
                           ? "bg-emerald-900/60 text-emerald-300"
                           : "bg-red-900/60 text-red-300"
                       }`}
                     >
                       {selectedRequest.status || "PENDING"}
+                      {selectedRequest.status === 200 && !isSuccessfulFetch(selectedRequest)
+                        ? " (Empty Body — 0 chars)"
+                        : ""}
                     </span>
                     <span className="font-bold text-neutral-200 text-sm">
                       {selectedRequest.method}
@@ -475,6 +614,17 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                           tlang: {extractTlang(selectedRequest.url)} (
                           {getLanguageName(extractTlang(selectedRequest.url))})
                         </span>
+                      </span>
+                    )}
+
+                    {/* Good fetch green badge in detail header */}
+                    {extractTlang(selectedRequest.url) && isSuccessfulFetch(selectedRequest) && (
+                      <span
+                        data-testid="detail-good-fetch-badge"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                      >
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>Good Fetch</span>
                       </span>
                     )}
                   </div>

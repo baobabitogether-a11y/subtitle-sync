@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Activity,
+  Check,
   ChevronDown,
   ChevronUp,
   Download,
   ExternalLink,
   Loader2,
   Moon,
+  RefreshCw,
   Smartphone,
   Sun,
 } from "lucide-react";
@@ -36,6 +38,8 @@ import {
   setUserLearningLanguages,
   getAutoScrollSetting,
   setAutoScrollSetting,
+  getDebugModeSetting,
+  setDebugModeSetting,
 } from "@/utils/appSettings";
 import {
   getAudioTrackMode,
@@ -283,6 +287,7 @@ function Index() {
   tracksRef.current = tracks;
   const observedUrlRef = useRef(observedUrl);
   observedUrlRef.current = observedUrl;
+  const retriesRef = useRef<Record<string, number>>({});
 
   const [networkInspectorOpen, setNetworkInspectorOpen] = useState(false);
   const [apkModalOpen, setApkModalOpen] = useState(false);
@@ -325,6 +330,7 @@ function Index() {
           if (json) {
             tracker.complete(200, raw);
             next[code] = json;
+            retriesRef.current[code] = 0;
             startSubtitlesTransition(() => {
               setTracks((prev) => ({ ...prev, [code]: json! }));
               setShown((prev) => (prev.includes(code) ? prev : [...prev, code]));
@@ -333,9 +339,27 @@ function Index() {
             tracker.fail(
               raw ? "Invalid or non-JSON3/XML caption response" : "Empty caption response",
             );
+            retriesRef.current[code] = (retriesRef.current[code] || 0) + 1;
+            if (retriesRef.current[code] <= 3) {
+              const delay = 1000 * Math.pow(2, retriesRef.current[code] - 1);
+              setTimeout(() => {
+                if (!tracksRef.current?.[code]) {
+                  void fetchFavoriteLanguageSubtitles([code], activeUrl);
+                }
+              }, delay);
+            }
           }
         } catch (err) {
           tracker.fail(String(err));
+          retriesRef.current[code] = (retriesRef.current[code] || 0) + 1;
+          if (retriesRef.current[code] <= 3) {
+            const delay = 1000 * Math.pow(2, retriesRef.current[code] - 1);
+            setTimeout(() => {
+              if (!tracksRef.current?.[code]) {
+                void fetchFavoriteLanguageSubtitles([code], activeUrl);
+              }
+            }, delay);
+          }
         }
       }
       if (Object.keys(next).length > 0) {
@@ -384,6 +408,14 @@ function Index() {
     setAutoFocusState(enabled);
     setAutoScrollSetting(enabled);
   };
+  const [debugMode, setDebugModeState] = useState(false);
+  const onDebugModeChange = (enabled: boolean) => {
+    setDebugModeState(enabled);
+    setDebugModeSetting(enabled);
+    if (!enabled) {
+      setNetworkInspectorOpen(false);
+    }
+  };
   const [showVideoSubtitles, setShowVideoSubtitles] = useState(true);
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(() => PANELS.map((panel) => panel.id));
   const [openPanels, setOpenPanels] = useState<Record<PanelId, boolean>>({
@@ -415,6 +447,17 @@ function Index() {
             setSpeechProgress(null);
             cancelSpeech();
             setSubtitlesPage(1);
+            if (typeof window !== "undefined") {
+              const currentSearch = new URLSearchParams(window.location.search);
+              if (currentSearch.get("v") !== id) {
+                currentSearch.set("v", id);
+                window.history.pushState(
+                  { videoId: id },
+                  "",
+                  `${window.location.pathname}?${currentSearch.toString()}${window.location.hash}`,
+                );
+              }
+            }
           }
           return id;
         });
@@ -441,6 +484,62 @@ function Index() {
       delete window.onNativeSharedLinkReceived;
     };
   }, []);
+
+  // Handle Android Native Shell and browser history back navigation
+  useEffect(() => {
+    // 1. Android hardware back button / gesture handler exposed on window
+    (window as Window & { __handleAndroidBack?: () => boolean }).__handleAndroidBack = () => {
+      if (networkInspectorOpen) {
+        setNetworkInspectorOpen(false);
+        return true;
+      }
+      if (apkModalOpen) {
+        setApkModalOpen(false);
+        return true;
+      }
+      return false;
+    };
+
+    // 2. Browser history popstate handler (back/forward navigation)
+    const handlePopState = (event: PopStateEvent) => {
+      if (networkInspectorOpen) {
+        setNetworkInspectorOpen(false);
+        return;
+      }
+      if (apkModalOpen) {
+        setApkModalOpen(false);
+        return;
+      }
+
+      const currentParams = new URLSearchParams(window.location.search);
+      const urlVideo = currentParams.get("v") || currentParams.get("url");
+      const targetId =
+        (urlVideo && parseVideoId(urlVideo)) || (event.state?.videoId as string | undefined);
+      if (targetId) {
+        setVideoId((prevId) => {
+          if (targetId !== prevId) {
+            setTracks(null);
+            setObservedUrl("");
+            setDefaultCaptionsLoaded(false);
+            setActive(-1);
+            setSpeakingLang(null);
+            setSpeakingRow(-1);
+            setSpeechProgress(null);
+            cancelSpeech();
+            setSubtitlesPage(1);
+            return targetId;
+          }
+          return prevId;
+        });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      delete (window as Window & { __handleAndroidBack?: () => boolean }).__handleAndroidBack;
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [networkInspectorOpen, apkModalOpen]);
 
   useEffect(() => {
     if (!isAndroid) return;
@@ -540,6 +639,28 @@ function Index() {
     fetchFavoriteLanguageSubtitles,
   ]);
 
+  // Continuous synchronization between favorites view, language selection, and subtitles view with auto-fetch-retry
+  useEffect(() => {
+    // 1. Keep shown synchronized with targetLanguages
+    const missingInShown = targetLanguages.filter((l) => !shown.includes(l));
+    if (missingInShown.length > 0) {
+      setShown((prev) => Array.from(new Set([...prev, ...missingInShown])));
+    }
+
+    // 2. Auto-fetch-retry for missing favorite tracks
+    if (!isAndroid || !observedUrl) return;
+    const missingTracks = targetLanguages.filter(
+      (code) => !tracksRef.current?.[code] && (retriesRef.current[code] || 0) < 5,
+    );
+    if (missingTracks.length === 0) return;
+
+    const retryTimer = setTimeout(() => {
+      void fetchFavoriteLanguageSubtitles(missingTracks, observedUrl);
+    }, 1500);
+
+    return () => clearTimeout(retryTimer);
+  }, [isAndroid, observedUrl, targetLanguages, tracks, shown, fetchFavoriteLanguageSubtitles]);
+
   useEffect(() => {
     if (themeWasSelectedRef.current) return;
     const saved = window.localStorage.getItem("parallel-subtitles-theme");
@@ -570,6 +691,24 @@ function Index() {
     }
     setAudioTrackModeState(getAudioTrackMode());
     setAutoFocusState(getAutoScrollSetting());
+    setDebugModeState(getDebugModeSetting());
+
+    // Prevent background pause on visibility changes
+    try {
+      if (typeof document !== "undefined") {
+        Object.defineProperty(document, "hidden", {
+          get: () => false,
+          configurable: true,
+        });
+        Object.defineProperty(document, "visibilityState", {
+          get: () => "visible",
+          configurable: true,
+        });
+        window.addEventListener("visibilitychange", (e) => e.stopImmediatePropagation(), true);
+      }
+    } catch (_e) {
+      // Ignore in restricted environments
+    }
   }, []);
 
   useEffect(() => {
@@ -859,12 +998,12 @@ function Index() {
       addedCodes.add(baseLanguage);
     }
 
-    // 2. Add all ordered languages that have tracks and are shown
+    // 2. Add all ordered languages that have tracks or are favorite languages, and are shown
     for (const l of orderedLangs) {
       if (
         !addedCodes.has(l.code) &&
         shown.includes(l.code) &&
-        (tracks ? Boolean(tracks[l.code]) : true)
+        (targetLanguages.includes(l.code) || (tracks ? Boolean(tracks[l.code]) : true))
       ) {
         list.push(l);
         addedCodes.add(l.code);
@@ -882,7 +1021,15 @@ function Index() {
     }
 
     return list;
-  }, [isAndroid, videoId, tracks, baseLanguage, orderedLangs, shown]);
+  }, [isAndroid, videoId, tracks, baseLanguage, orderedLangs, shown, targetLanguages]);
+
+  const missingFavoriteLanguages = useMemo(() => {
+    return targetLanguages.filter((code) => !tracks?.[code]);
+  }, [targetLanguages, tracks]);
+
+  const allFavoritesAligned = useMemo(() => {
+    return targetLanguages.length > 0 && missingFavoriteLanguages.length === 0;
+  }, [targetLanguages, missingFavoriteLanguages]);
 
   const displayedRows = useMemo(() => {
     if (isAndroid && subtitlesLimit > 0) {
@@ -937,22 +1084,24 @@ function Index() {
             </Button>
           ))}
         </div>
-        <Button
-          id="open-network-inspector-button"
-          data-testid="open-network-inspector-button"
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={() => setNetworkInspectorOpen(true)}
-          className="gap-1.5"
-          title="Inspect live network requests and response body preview"
-        >
-          <Activity className="h-4 w-4 text-blue-500" />
-          <span className="hidden sm:inline">Network</span>
-          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-mono font-bold">
-            {networkRequests.length}
-          </span>
-        </Button>
+        {debugMode && (
+          <Button
+            id="open-network-inspector-button"
+            data-testid="open-network-inspector-button"
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setNetworkInspectorOpen(true)}
+            className="gap-1.5"
+            title="Inspect live network requests and response body preview"
+          >
+            <Activity className="h-4 w-4 text-blue-500" />
+            <span className="hidden sm:inline">Network</span>
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-mono font-bold">
+              {networkRequests.length}
+            </span>
+          </Button>
+        )}
         <Button
           id="open-apk-release-button"
           data-testid="open-apk-release-button"
@@ -1002,6 +1151,17 @@ function Index() {
                             setSpeakingRow(-1);
                             setSpeechProgress(null);
                             cancelSpeech();
+                            if (typeof window !== "undefined") {
+                              const currentSearch = new URLSearchParams(window.location.search);
+                              if (currentSearch.get("v") !== id) {
+                                currentSearch.set("v", id);
+                                window.history.pushState(
+                                  { videoId: id },
+                                  "",
+                                  `${window.location.pathname}?${currentSearch.toString()}${window.location.hash}`,
+                                );
+                              }
+                            }
                           }
                           setVideoId(id);
                         } else {
@@ -1094,6 +1254,16 @@ function Index() {
                       onChange={(e) => onAutoFocusChange(e.target.checked)}
                     />{" "}
                     Auto-focus and scroll to current subtitle
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      id="debug-mode-toggle"
+                      data-testid="debug-mode-toggle"
+                      type="checkbox"
+                      checked={debugMode}
+                      onChange={(e) => onDebugModeChange(e.target.checked)}
+                    />{" "}
+                    Debug mode (show network traffic inspector and diagnostics)
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -1331,6 +1501,24 @@ function Index() {
                               Loading subtitles smoothly…
                             </span>
                           )}
+                          {allFavoritesAligned && targetLanguages.length > 0 && (
+                            <span
+                              data-testid="subtitles-sync-aligned"
+                              className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                            >
+                              <Check className="h-3 w-3" />
+                              Favorites Aligned ({targetLanguages.length})
+                            </span>
+                          )}
+                          {missingFavoriteLanguages.length > 0 && targetLanguages.length > 0 && (
+                            <span
+                              data-testid="subtitles-sync-retrying"
+                              className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400 animate-pulse"
+                            >
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                              Auto-syncing favorites ({missingFavoriteLanguages.length})…
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1.5">
@@ -1403,33 +1591,16 @@ function Index() {
                               ? (subtitlesPage - 1) * subtitlesLimit + i
                               : i;
                           return (
-                            <tr
+                            <SubtitleRow
                               key={actualIndex}
-                              data-row={actualIndex}
-                              onClick={() => seek(r, actualIndex)}
-                              className={`cursor-pointer border-t border-border align-top ${actualIndex === active ? "bg-accent" : "hover:bg-muted"}`}
-                            >
-                              <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
-                                {fmt(r.start)}–{fmt(r.end)}
-                              </td>
-                              {cols.map((l) => (
-                                <td
-                                  key={l.code}
-                                  dir={RTL.has(l.code) ? "rtl" : "ltr"}
-                                  className="px-3 py-2 leading-relaxed"
-                                >
-                                  <HighlightedSubtitle
-                                    text={r.texts[l.code] ?? ""}
-                                    progress={
-                                      speechProgress?.row === actualIndex &&
-                                      speechProgress.lang === l.code
-                                        ? speechProgress
-                                        : null
-                                    }
-                                  />
-                                </td>
-                              ))}
-                            </tr>
+                              r={r}
+                              actualIndex={actualIndex}
+                              isActive={actualIndex === active}
+                              cols={cols}
+                              speechProgress={speechProgress}
+                              tracks={tracks}
+                              onSeek={seek}
+                            />
                           );
                         })}
                       </tbody>
@@ -1500,10 +1671,12 @@ function Index() {
         </div>
       </footer>
 
-      <NetworkRequestsInspector
-        isOpen={networkInspectorOpen}
-        onClose={() => setNetworkInspectorOpen(false)}
-      />
+      {debugMode && (
+        <NetworkRequestsInspector
+          isOpen={networkInspectorOpen}
+          onClose={() => setNetworkInspectorOpen(false)}
+        />
+      )}
       <ApkReleaseModal isOpen={apkModalOpen} onClose={() => setApkModalOpen(false)} />
       <SubtitleFetchToast
         onViewSubtitles={() => {
@@ -1519,6 +1692,59 @@ function Index() {
     </div>
   );
 }
+
+interface SubtitleRowProps {
+  r: Row;
+  actualIndex: number;
+  isActive: boolean;
+  cols: { code: string; name: string; tts: string }[];
+  speechProgress: SpeechProgress;
+  tracks: Record<string, Json3> | null;
+  onSeek: (r: Row, index: number) => void;
+}
+
+const SubtitleRow = memo(function SubtitleRow({
+  r,
+  actualIndex,
+  isActive,
+  cols,
+  speechProgress,
+  tracks,
+  onSeek,
+}: SubtitleRowProps) {
+  return (
+    <tr
+      key={actualIndex}
+      data-row={actualIndex}
+      onClick={() => onSeek(r, actualIndex)}
+      className={`cursor-pointer border-t border-border align-top ${isActive ? "bg-accent" : "hover:bg-muted"}`}
+    >
+      <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
+        {fmt(r.start)}–{fmt(r.end)}
+      </td>
+      {cols.map((l) => (
+        <td
+          key={l.code}
+          dir={RTL.has(l.code) ? "rtl" : "ltr"}
+          className="px-3 py-2 leading-relaxed"
+        >
+          {tracks && !tracks[l.code] ? (
+            <span className="text-xs text-muted-foreground italic">Loading subtitles…</span>
+          ) : (
+            <HighlightedSubtitle
+              text={r.texts[l.code] ?? ""}
+              progress={
+                speechProgress?.row === actualIndex && speechProgress.lang === l.code
+                  ? speechProgress
+                  : null
+              }
+            />
+          )}
+        </td>
+      ))}
+    </tr>
+  );
+});
 
 function HighlightedSubtitle({
   text,
