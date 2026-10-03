@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Activity,
   ChevronDown,
   ChevronUp,
   Download,
   ExternalLink,
+  Loader2,
   Moon,
   Smartphone,
   Sun,
@@ -232,12 +233,26 @@ function Index() {
       new URLSearchParams(window.location.search).get("android") === "true"
     );
   });
-  const [videoId, setVideoId] = useState(DEMO_VIDEO);
+  const [videoId, setVideoId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const target =
+        params.get("v") ||
+        params.get("url") ||
+        (window as Window & { __pendingSharedLink?: string }).__pendingSharedLink;
+      if (target) {
+        const id = parseVideoId(target);
+        if (id) return id;
+      }
+    }
+    return DEMO_VIDEO;
+  });
   const [videoInput, setVideoInput] = useState("");
   const [captionStatus, setCaptionStatus] = useState("");
   const [observedUrl, setObservedUrl] = useState("");
   const [defaultCaptionsLoaded, setDefaultCaptionsLoaded] = useState(false);
   const [tracks, setTracks] = useState<Record<string, Json3> | null>(null);
+  const [isSubtitlesPending, startSubtitlesTransition] = useTransition();
   const [strategy, setStrategy] = useState<Strategy>("sentence");
   const [shown, setShown] = useState<string[]>([]);
   const [spoken, setSpoken] = useState<string[]>([]);
@@ -310,6 +325,10 @@ function Index() {
           if (json) {
             tracker.complete(200, raw);
             next[code] = json;
+            startSubtitlesTransition(() => {
+              setTracks((prev) => ({ ...prev, [code]: json! }));
+              setShown((prev) => (prev.includes(code) ? prev : [...prev, code]));
+            });
           } else {
             tracker.fail(
               raw ? "Invalid or non-JSON3/XML caption response" : "Empty caption response",
@@ -320,13 +339,9 @@ function Index() {
         }
       }
       if (Object.keys(next).length > 0) {
-        setTracks((prev) => {
-          const merged = { ...prev, ...next };
-          const count = Object.keys(merged).length;
-          setCaptionStatus(`${count} live language tracks loaded.`);
-          return merged;
+        startSubtitlesTransition(() => {
+          setCaptionStatus(`${Object.keys(next).length} live language tracks loaded.`);
         });
-        setShown((prev) => Array.from(new Set([...prev, ...Object.keys(next)])));
         notifySubtitleFetch(
           "completed",
           `Subtitles successfully loaded for ${Object.keys(next).join(", ")}!`,
@@ -386,11 +401,6 @@ function Index() {
   const [subtitlesPage, setSubtitlesPage] = useState<number>(1);
 
   useEffect(() => {
-    const shell = nativeShell();
-    if (!shell) return;
-    setIsAndroid(true);
-    setSubtitlesLimit(10);
-    setSubtitlesPage(1);
     const openLink = (link: string) => {
       const id = parseVideoId(link);
       if (id) {
@@ -412,9 +422,21 @@ function Index() {
       }
     };
     window.onNativeSharedLinkReceived = openLink;
-    if (window.__pendingSharedLink) openLink(window.__pendingSharedLink);
-    const query = new URLSearchParams(location.search).get("url");
+    if (window.__pendingSharedLink) {
+      openLink(window.__pendingSharedLink);
+      delete window.__pendingSharedLink;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get("v") || params.get("url");
     if (query) openLink(query);
+
+    const shell = nativeShell();
+    if (shell) {
+      setIsAndroid(true);
+      setSubtitlesLimit(10);
+      setSubtitlesPage(1);
+    }
+
     return () => {
       delete window.onNativeSharedLinkReceived;
     };
@@ -478,8 +500,10 @@ function Index() {
         setDefaultCaptionsLoaded(true);
       }
       if (lang) {
-        setTracks((prev) => ({ ...prev, [lang]: json }));
-        setShown((prev) => (prev.includes(lang) ? prev : [...prev, lang]));
+        startSubtitlesTransition(() => {
+          setTracks((prev) => ({ ...prev, [lang]: json }));
+          setShown((prev) => (prev.includes(lang) ? prev : [...prev, lang]));
+        });
       }
     };
     return () => {
@@ -617,9 +641,11 @@ function Index() {
         (entry): entry is readonly [string, Json3] => entry !== null,
       );
       const newTracks = Object.fromEntries(validEntries);
-      setTracks(newTracks);
-      // Automatically show loaded demo tracks
-      setShown((prev) => (prev.length === 0 ? Object.keys(newTracks) : prev));
+      startSubtitlesTransition(() => {
+        setTracks(newTracks);
+        // Automatically show loaded demo tracks
+        setShown((prev) => (prev.length === 0 ? Object.keys(newTracks) : prev));
+      });
     });
   }, [isAndroid]);
 
@@ -1296,6 +1322,15 @@ function Index() {
                           <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-normal text-primary">
                             First 10 lines of favorite languages
                           </span>
+                          {isSubtitlesPending && (
+                            <span
+                              data-testid="subtitles-progressive-indicator"
+                              className="inline-flex items-center gap-1 text-xs text-muted-foreground animate-pulse"
+                            >
+                              <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                              Loading subtitles smoothly…
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1.5">

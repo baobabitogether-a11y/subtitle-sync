@@ -1,5 +1,24 @@
 # Done tasks
 
+## Task 32: Fix YouTube link sharing to Android app
+
+### Subtask 32.1: Fix Android intent handling & WebView URL query propagation for shared YouTube links
+
+- Delegated `parseVideoId` in `src/lib/native-captions.ts` to `extractYouTubeId` (`src/utils/youtube.ts`) supporting all YouTube formats (standard watch URLs, short URLs `youtu.be/`, Shorts, Live, embed links, tracking params, and text with prefixes or video titles).
+- Initialized `videoId` state dynamically in `src/routes/index.tsx` from URL search parameters (`v` or `url`) and `window.__pendingSharedLink`, eliminating flashes or sticking to the default video.
+- Enabled immediate registration of `window.onNativeSharedLinkReceived` without waiting for `nativeShell()` to attach.
+- In `MainActivity.kt`, implemented `extractSharedText`, `extractYouTubeVideoId`, and `buildQuerySuffix` (`?v=$videoId&url=...`), and updated `onNewIntent` to notify `window.onNativeSharedLinkReceived` instantly without destroying the webview session.
+- Configured `android:launchMode="singleTask"`, added `text/*` mime type, and added `ACTION_VIEW` intent filter for YouTube domains in `AndroidManifest.xml`.
+- Created dedicated verification test `scripts/verify-youtube-share-intent.ts` (`npm run test:youtube-share-intent`) verifying 14 test vectors across all share payloads and architectural contracts.
+
+## Task 31: Update AGENTS.md — after git commit, try using git push
+
+### Subtask 31.1: Update AGENTS.md with git push instruction and verify git push attempt handling
+
+- Updated AGENTS.md under Work tracking: after performing a git commit, attempt `git push` (handling failure gracefully if no remote or credentials configured).
+- Created dedicated verification test `scripts/verify-agents-push-rule.ts` (`npm run test:agents-push-rule`).
+- Registered script in `package.json` and documented in `docs/files.md`.
+
 ## Task 29: Streamline subtitle timing to default base language & ensure GitHub Pages screenshot availability
 
 ### Subtask 29.1: Remove "Timing from" selector and lock subtitle alignment timing to the default base language

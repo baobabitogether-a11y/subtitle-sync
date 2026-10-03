@@ -1,4 +1,5 @@
 import type { Json3 } from "./subtitles";
+import { extractYouTubeId } from "../utils/youtube";
 
 export type NativeShell = {
   isNativeShell(): boolean;
@@ -116,23 +117,10 @@ export function timedTextVideoId(url: string): string | null {
 }
 
 export function parseVideoId(value: string): string | null {
+  if (!value || typeof value !== "string") return null;
   const text = value.trim();
   if (/^[a-zA-Z0-9_-]{11}$/.test(text)) return text;
-  try {
-    const url = new URL(text);
-    if (
-      !["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be"].includes(
-        url.hostname,
-      )
-    )
-      return null;
-    const id = url.hostname.endsWith("youtu.be")
-      ? url.pathname.slice(1).split("/")[0]
-      : (url.searchParams.get("v") ?? url.pathname.match(/^\/(?:shorts|embed)\/([^/]+)/)?.[1]);
-    return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
-  } catch {
-    return null;
-  }
+  return extractYouTubeId(text);
 }
 
 export function buildTranslatedCaptionUrl(
