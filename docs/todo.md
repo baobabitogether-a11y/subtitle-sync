@@ -1,14 +1,18 @@
 # Active Sub-task
 
-## Subtask 33.1: Implement progressive / non-blocking subtitle loading technique
+## Subtask 40.1: Implement Android back navigation and router/browser history integration
 
 - **Goal**:
-  1. Integrate `React.useTransition` (`startSubtitlesTransition` and `isSubtitlesPending`) into `src/routes/index.tsx` for non-blocking subtitle track updates.
-  2. Implement progressive stream loading in `fetchFavoriteLanguageSubtitles`: as each language finishes fetching via the native bridge, stream it immediately into tracks state inside a transition so users see subtitles appear incrementally.
-  3. Yield to the browser event loop (`setTimeout(..., 0)`) between language fetches to prevent main thread starvation.
-  4. Wrap live intercepted base64 captions and web fixture loading in non-blocking transitions so player playback, seeks, and UI interactions maintain 60 FPS.
-  5. Add visual progressive loading indicator to subtitles header when `isSubtitlesPending` is active.
-  6. Add dedicated verification test `scripts/verify-progressive-subtitles-loading.ts` (`npm run test:progressive-subtitles`).
-  7. Commit changes and tests before executing them (`git commit` and try `git push`).
-  8. Test changes thoroughly with dedicated test and regression suites, compile and lint.
-  9. Present results and obtain user confirmation.
+  1. Inspect `MainActivity.kt` in `android-shell/app/src/main/java/com/ytviewer/app/MainActivity.kt`:
+     - Implement proper back button handling using AndroidX `OnBackPressedCallback` or `onBackPressedDispatcher`:
+       - If modal/inspector is open, notify webview / evaluate JS or pop state.
+       - If `webView.canGoBack()`, navigate back with `webView.goBack()`.
+       - Otherwise delegate to default back press behavior (exit app).
+  2. In the React app (`src/routes/index.tsx` / `src/utils/urlStateManager.ts`):
+     - Ensure video changes and modal openings push or manage browser history entries (`window.history.pushState` / `popstate` listener).
+     - When user or Android back button triggers `popstate`, handle closing open modals (like `NetworkRequestsInspector` or `ApkReleaseModal`) or restoring previous video ID from URL search params.
+  3. Create dedicated verification test `scripts/verify-android-back-navigation.ts` and add script `test:back-navigation` to `package.json`.
+  4. Register new test in `docs/files.md`.
+  5. Commit changes and tests before executing them (`git commit` and try `git push`).
+  6. Test thoroughly with dedicated test, build Android assets, compile, and lint.
+  7. Advance to the next task.

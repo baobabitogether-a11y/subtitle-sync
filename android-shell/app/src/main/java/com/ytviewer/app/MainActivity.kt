@@ -21,6 +21,7 @@ import android.webkit.WebViewClient
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.webkit.WebViewAssetLoader
 import okhttp3.OkHttpClient
@@ -251,6 +252,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 Log.i(TAG, "Page finished loading: $url")
+                // Prevent YouTube player from pausing when app is moved to background or screen turns off
+                val backgroundPlaybackScript = """
+                    (function() {
+                        try {
+                            Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+                            Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+                            window.addEventListener('visibilitychange', function(e) {
+                                e.stopImmediatePropagation();
+                            }, true);
+                        } catch (e) {}
+                    })();
+                """.trimIndent()
+                view?.evaluateJavascript(backgroundPlaybackScript, null)
                 super.onPageFinished(view, url)
             }
         }
@@ -265,6 +279,56 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         // Handle any shared intent that opened the app
         handleSharedIntent(intent)
+
+        // Handle Android hardware/gesture back navigation
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val jsCheck = """
+                    (function() {
+                        if (window.__handleAndroidBack && window.__handleAndroidBack()) {
+                            return "handled";
+                        }
+                        return "unhandled";
+                    })();
+                """.trimIndent()
+                webView.evaluateJavascript(jsCheck) { result ->
+                    val cleanResult = result?.replace("\"", "")?.trim()
+                    if (cleanResult == "handled") {
+                        Log.i(TAG, "Back event handled by web application")
+                    } else if (webView.canGoBack()) {
+                        Log.i(TAG, "Navigating back in WebView history")
+                        webView.goBack()
+                    } else {
+                        Log.i(TAG, "No WebView back history, closing activity")
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    }
+                }
+            }
+        })
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        val jsCheck = """
+            (function() {
+                if (window.__handleAndroidBack && window.__handleAndroidBack()) {
+                    return "handled";
+                }
+                return "unhandled";
+            })();
+        """.trimIndent()
+        webView.evaluateJavascript(jsCheck) { result ->
+            val cleanResult = result?.replace("\"", "")?.trim()
+            if (cleanResult != "handled") {
+                if (webView.canGoBack()) {
+                    webView.goBack()
+                } else {
+                    super.onBackPressed()
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -472,6 +536,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } else {
             Log.e(TAG, "Failed to initialize Android TextToSpeech, status=$status")
             isTtsReady = false
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Do not pause the WebView or freeze timers
+        // Keeping WebView active in onPause/onStop ensures continuous background audio playback
+        // and background subtitle synthesis when the app is minimized or backgrounded.
+        Log.d(TAG, "onPause: maintaining webView active for background playback")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Maintain webView active in onStop for background audio and TTS
+        Log.d(TAG, "onStop: maintaining webView active for background playback")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        try {
+            webView.onResume()
+            webView.resumeTimers()
+        } catch (e: Exception) {
+            Log.w(TAG, "onResume error: ${e.message}")
         }
     }
 

@@ -468,3 +468,34 @@ export function setAutoScrollSetting(enabled: boolean): void {
     // Ignore storage errors in restricted contexts
   }
 }
+
+export const DEBUG_MODE_STORAGE_KEY = "yt_debug_mode";
+
+/**
+ * Get whether debug mode is enabled.
+ * Defaults to FALSE (off) as required by Subtask 34.1.
+ */
+export function getDebugModeSetting(): boolean {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return false;
+  }
+  try {
+    return window.localStorage.getItem(DEBUG_MODE_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Persist debug mode setting.
+ */
+export function setDebugModeSetting(enabled: boolean): void {
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+  try {
+    window.localStorage.setItem(DEBUG_MODE_STORAGE_KEY, enabled ? "true" : "false");
+  } catch {
+    // Ignore storage errors in restricted contexts
+  }
+}
