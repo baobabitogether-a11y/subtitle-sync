@@ -44,6 +44,8 @@ import {
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 import { ApkReleaseModal } from "@/components/ApkReleaseModal";
+import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
+import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
 import { getApkReleaseLinks } from "@/utils/apkUpdater";
 import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
 
@@ -288,6 +290,11 @@ function Index() {
         (code) => code && (!defaultLang || code !== defaultLang) && !tracksRef.current?.[code],
       );
       if (needed.length === 0) return;
+      notifySubtitleFetch(
+        "fetching",
+        `Fetching live subtitles for added favorite language: ${needed.join(", ")}…`,
+        needed[0],
+      );
       const next: Record<string, Json3> = {};
       for (const code of needed) {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -320,6 +327,11 @@ function Index() {
           return merged;
         });
         setShown((prev) => Array.from(new Set([...prev, ...Object.keys(next)])));
+        notifySubtitleFetch(
+          "completed",
+          `Subtitles successfully loaded for ${Object.keys(next).join(", ")}!`,
+          Object.keys(next)[0],
+        );
       }
     },
     [isAndroid],
@@ -1458,6 +1470,17 @@ function Index() {
         onClose={() => setNetworkInspectorOpen(false)}
       />
       <ApkReleaseModal isOpen={apkModalOpen} onClose={() => setApkModalOpen(false)} />
+      <SubtitleFetchToast
+        onViewSubtitles={() => {
+          setOpenPanels((prev) => ({ ...prev, subtitles: true }));
+          const el =
+            document.getElementById("subtitles-table-panel") ||
+            document.getElementById("accordion-section-subtitles");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }}
+      />
     </div>
   );
 }

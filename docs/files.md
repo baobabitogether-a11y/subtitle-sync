@@ -22,6 +22,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/lib/utils.ts`                            | UI Utilities                  | Provides class name concatenation (`cn`) merging Tailwind classes and clsx.                                                       |
 | `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI  | Displays live captured network requests with URL, method, status, duration, and first 200 characters response body preview.       |
 | `src/components/ApkReleaseModal.tsx`          | Latest APK Release Modal      | Displays direct APK downloads, GitHub release links, web artifacts, and CLI install commands for both mostuf2556 and mostuf25561. |
+| `src/components/SubtitleFetchToast.tsx`       | Subtitle Fetch Notification   | Popup indicator notifying when subtitle fetching begins and finishes, with quick link to table and mute option.                   |
 
 ## Feature Utilities (`src/utils/`)
 
@@ -39,6 +40,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/utils/urlStateManager.ts`    | URL Parameter Synchronizer         | Reflects active video, languages, and settings into query parameters for deep linking.                                 |
 | `src/utils/videoSettings.ts`      | Per-Video Preferences Store        | Persists language choices and playback configurations specific to individual video IDs.                                |
 | `src/utils/logBuffer.ts`          | Diagnostic Log Buffer              | Captures and retains rolling logs for network, bridge, and playback diagnostic inspection.                             |
+| `src/utils/subtitleNotificationManager.ts` | Subtitle Notification State | Manages subtitle fetch notifications, auto-dismiss timers, broadcast events, and notification mute state. |
 
 ## Configuration & Data Fixtures (`src/config/`)
 

@@ -126,3 +126,37 @@ export function subscribeToNetworkRequests(listener: () => void) {
 export function useNetworkRequests(): NetworkRequestRecord[] {
   return useSyncExternalStore(subscribeToNetworkRequests, getNetworkRequests, () => []);
 }
+
+/**
+ * Extracts target translation language code ('tlang' query param) from a URL if present
+ */
+export function extractTlang(url: string): string | null {
+  try {
+    const parsed = new URL(url, "https://www.youtube.com");
+    return parsed.searchParams.get("tlang");
+  } catch {
+    const match = /[?&]tlang=([^&#]+)/i.exec(url);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+}
+
+/**
+ * Formats a network request into a formatted multi-line string for clipboard copy
+ */
+export function formatRequestForClipboard(req: NetworkRequestRecord): string {
+  const tlang = extractTlang(req.url);
+  const lines = [
+    `=== Network Request ${req.id} ===`,
+    `URL: ${req.url}`,
+    `Method: ${req.method}`,
+    `Type: ${req.type}`,
+    `Status: ${req.isPending ? "PENDING" : req.status === 200 && (!req.fullResponseBody || req.fullResponseBody.trim() === "") ? "200 OK (Empty response body — 0 chars)" : req.status}`,
+    req.duration !== undefined ? `Duration: ${req.duration}ms` : null,
+    tlang ? `Target Language (tlang): ${tlang}` : null,
+    req.error ? `Error: ${req.error}` : null,
+    `Response Body Length: ${req.fullResponseBody ? req.fullResponseBody.length : 0} characters`,
+    `Response:`,
+    req.fullResponseBody || (req.status === 200 ? "[Empty response body — 0 chars]" : "[No response body]"),
+  ];
+  return lines.filter((l): l is string => Boolean(l)).join("\n");
+}

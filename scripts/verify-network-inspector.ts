@@ -6,6 +6,8 @@ import {
   clearNetworkRequests,
   getNetworkRequests,
   truncateResponseBody,
+  extractTlang,
+  formatRequestForClipboard,
   MAX_RESPONSE_BODY_PREVIEW_CHARS,
 } from "../src/utils/networkTracker";
 
@@ -97,7 +99,41 @@ console.log(
   `✅ PASS: Native bridge translated request recorded with 250-char preview and full body`,
 );
 
-// 4. Verify Inspector UI component accordion and index.tsx wiring
+// 4. Verify extractTlang and formatRequestForClipboard utilities
+assert.strictEqual(
+  extractTlang("https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&tlang=es&fmt=json3"),
+  "es",
+  "extractTlang must correctly parse 'es'",
+);
+assert.strictEqual(
+  extractTlang("https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&tlang=de"),
+  "de",
+  "extractTlang must correctly parse 'de'",
+);
+assert.strictEqual(
+  extractTlang("https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en"),
+  null,
+  "extractTlang must return null when tlang is absent",
+);
+console.log("✅ PASS: extractTlang utility verified");
+
+const sampleFormatted = formatRequestForClipboard(recorded2!);
+assert.ok(sampleFormatted.includes("URL: " + hebrewUrl), "Formatted request must include URL");
+assert.ok(sampleFormatted.includes("Target Language (tlang): he"), "Formatted request must include tlang");
+assert.ok(sampleFormatted.includes("Method: GET"), "Formatted request must include Method");
+console.log("✅ PASS: formatRequestForClipboard utility verified");
+
+// Test empty body recording for 200 OK request
+const emptyUrl = "https://www.youtube.com/api/timedtext?v=test&lang=fr&tlang=fr";
+const trackerEmpty = trackNetworkRequest(emptyUrl, "GET", "fetch");
+trackerEmpty.complete(200, "");
+const emptyRecorded = getNetworkRequests().find((r) => r.url === emptyUrl);
+assert.strictEqual(emptyRecorded?.status, 200);
+assert.strictEqual(emptyRecorded?.fullResponseBody, "");
+assert.strictEqual(emptyRecorded?.responseBodyPreview, "");
+console.log("✅ PASS: 200 OK empty response recorded with 0 characters");
+
+// 5. Verify Inspector UI component accordion and index.tsx wiring
 const inspectorComponentPath = path.join(
   process.cwd(),
   "src/components/NetworkRequestsInspector.tsx",
@@ -120,6 +156,31 @@ assert(
   inspectorContent.includes('data-testid="network-inspector-modal"'),
   "Network inspector must render modal with test id",
 );
+assert(
+  inspectorContent.includes('data-testid="toggle-hide-failed-requests"'),
+  "Network inspector must provide toggle to filter out failed requests",
+);
+assert(
+  inspectorContent.includes("copy-request-button-"),
+  "Network inspector must provide quick copy request button on items",
+);
+assert(
+  inspectorContent.includes("copy-full-request-button"),
+  "Network inspector must provide copy full request button in detail view",
+);
+assert(
+  inspectorContent.includes("break-words") && inspectorContent.includes("whitespace-pre-wrap"),
+  "Network inspector must word wrap request text with break-words and whitespace-pre-wrap",
+);
+assert(
+  inspectorContent.includes("tlang-tag-"),
+  "Network inspector must render language tag based on tlang parameter",
+);
+assert(
+  inspectorContent.includes("empty body — 0 chars") || inspectorContent.includes("0 chars (empty body)"),
+  "Network inspector must explicitly clarify 200 OK empty response body with 0 chars",
+);
+console.log("✅ PASS: Network inspector failed filtering, quick copy, word-wrap, tlang tags, and empty body clarity verified");
 
 const indexRoutePath = path.join(process.cwd(), "src/routes/index.tsx");
 const indexContent = fs.readFileSync(indexRoutePath, "utf8");
@@ -134,5 +195,5 @@ assert(
 console.log("✅ PASS: Network inspector accordion UI and modal trigger integrated in app");
 
 console.log("====================================================");
-console.log("📊 NETWORK INSPECTOR 250-CHAR ACCORDION TEST: All tests passed!");
+console.log("📊 NETWORK INSPECTOR ENHANCEMENTS TEST: All tests passed!");
 console.log("====================================================");
