@@ -91,7 +91,7 @@ type YTPlayer = {
 };
 declare global {
   interface Window {
-    YT?: { Player: new (el: HTMLElement, o: object) => YTPlayer };
+    YT?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     onYouTubeIframeAPIReady?: () => void;
     onNativeCaptionsInterceptedBase64?: (payload: string) => void;
     onNativeSharedLinkReceived?: (url: string) => void;
@@ -287,7 +287,9 @@ function Index() {
   tracksRef.current = tracks;
   const observedUrlRef = useRef(observedUrl);
   observedUrlRef.current = observedUrl;
-  const retriesRef = useRef<Record<string, number>>({});
+  // Single attempt per language per observed URL (no automatic retries, like Youtubenet6)
+  const attemptedRef = useRef<Set<string>>(new Set());
+  const [failedLangs, setFailedLangs] = useState<string[]>([]);
 
   const [networkInspectorOpen, setNetworkInspectorOpen] = useState(false);
   const [apkModalOpen, setApkModalOpen] = useState(false);
@@ -307,9 +309,16 @@ function Index() {
         // ignore malformed URL
       }
       const needed = langsToFetch.filter(
-        (code) => code && (!defaultLang || code !== defaultLang) && !tracksRef.current?.[code],
+        (code) =>
+          code &&
+          (!defaultLang || code !== defaultLang) &&
+          !tracksRef.current?.[code] &&
+          !attemptedRef.current.has(`${activeUrl}|${code}`),
       );
       if (needed.length === 0) return;
+      needed.forEach((code) => attemptedRef.current.add(`${activeUrl}|${code}`));
+      setFailedLangs((prev) => prev.filter((c) => !needed.includes(c)));
+      const failed: string[] = [];
       notifySubtitleFetch(
         "fetching",
         `Fetching live subtitles for added favorite language: ${needed.join(", ")}…`,
@@ -330,7 +339,6 @@ function Index() {
           if (json) {
             tracker.complete(200, raw);
             next[code] = json;
-            retriesRef.current[code] = 0;
             startSubtitlesTransition(() => {
               setTracks((prev) => ({ ...prev, [code]: json! }));
               setShown((prev) => (prev.includes(code) ? prev : [...prev, code]));
@@ -339,28 +347,16 @@ function Index() {
             tracker.fail(
               raw ? "Invalid or non-JSON3/XML caption response" : "Empty caption response",
             );
-            retriesRef.current[code] = (retriesRef.current[code] || 0) + 1;
-            if (retriesRef.current[code] <= 3) {
-              const delay = 1000 * Math.pow(2, retriesRef.current[code] - 1);
-              setTimeout(() => {
-                if (!tracksRef.current?.[code]) {
-                  void fetchFavoriteLanguageSubtitles([code], activeUrl);
-                }
-              }, delay);
-            }
+            failed.push(code);
           }
         } catch (err) {
           tracker.fail(String(err));
-          retriesRef.current[code] = (retriesRef.current[code] || 0) + 1;
-          if (retriesRef.current[code] <= 3) {
-            const delay = 1000 * Math.pow(2, retriesRef.current[code] - 1);
-            setTimeout(() => {
-              if (!tracksRef.current?.[code]) {
-                void fetchFavoriteLanguageSubtitles([code], activeUrl);
-              }
-            }, delay);
-          }
+          failed.push(code);
         }
+      }
+      if (failed.length > 0) {
+        setFailedLangs((prev) => Array.from(new Set([...prev, ...failed])));
+        notifySubtitleFetch("error", `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`, failed[0]);
       }
       if (Object.keys(next).length > 0) {
         startSubtitlesTransition(() => {
@@ -376,6 +372,12 @@ function Index() {
     [isAndroid],
   );
 
+  const manualFetchFailed = () => {
+    const url = observedUrlRef.current;
+    failedLangs.forEach((code) => attemptedRef.current.delete(`${url}|${code}`));
+    void fetchFavoriteLanguageSubtitles(failedLangs, url);
+  };
+
   const handleTargetLanguagesChange = (newTargetLangs: string[]) => {
     const newlyAdded = newTargetLangs.filter((lang) => !targetLanguages.includes(lang));
     setTargetLanguages(newTargetLangs);
@@ -385,7 +387,6 @@ function Index() {
       setCaptionStatus(
         `Fetching live subtitles for added favorite language: ${newlyAdded.join(", ")}…`,
       );
-      void fetchFavoriteLanguageSubtitles(newlyAdded);
     }
   };
   const [languageOrder, setLanguageOrder] = useState(() => LANGS.map((lang) => lang.code));
@@ -563,7 +564,7 @@ function Index() {
       const defaultLang = new URL(captured).searchParams.get("lang") || "";
       if (defaultLang) {
         try {
-          const raw = shell.fetchTranslatedCaptionsWithUrl(captured, defaultLang, "json3");
+          const raw = shell!.fetchTranslatedCaptionsWithUrl(captured, defaultLang, "json3");
           const json = parseJson3(raw);
           if (json) {
             setTracks((prev) => ({ ...prev, [defaultLang]: json }));
@@ -572,9 +573,6 @@ function Index() {
         } catch (_e) {
           // ignore native bridge fetch error
         }
-      }
-      if (targetLanguages.length > 0) {
-        void fetchFavoriteLanguageSubtitles(targetLanguages, captured);
       }
     }
     window.onNativeCaptionsInterceptedBase64 = (encoded) => {
@@ -608,7 +606,7 @@ function Index() {
     return () => {
       delete window.onNativeCaptionsInterceptedBase64;
     };
-  }, [isAndroid, videoId, targetLanguages, fetchFavoriteLanguageSubtitles]);
+  }, [isAndroid, videoId]);
 
   useEffect(() => {
     if (!isAndroid || !observedUrl || !defaultCaptionsLoaded) return;
@@ -620,7 +618,7 @@ function Index() {
     }
     const selected = [
       ...new Set(
-        [...targetLanguages, ...shown, ...spoken].filter(
+        targetLanguages.filter(
           (code) => code && (!defaultLang || code !== defaultLang),
         ),
       ),
@@ -634,32 +632,16 @@ function Index() {
     observedUrl,
     defaultCaptionsLoaded,
     targetLanguages,
-    shown,
-    spoken,
     fetchFavoriteLanguageSubtitles,
   ]);
 
-  // Continuous synchronization between favorites view, language selection, and subtitles view with auto-fetch-retry
+  // Keep shown columns synchronized with favorite languages (no fetching here)
   useEffect(() => {
-    // 1. Keep shown synchronized with targetLanguages
     const missingInShown = targetLanguages.filter((l) => !shown.includes(l));
     if (missingInShown.length > 0) {
       setShown((prev) => Array.from(new Set([...prev, ...missingInShown])));
     }
-
-    // 2. Auto-fetch-retry for missing favorite tracks
-    if (!isAndroid || !observedUrl) return;
-    const missingTracks = targetLanguages.filter(
-      (code) => !tracksRef.current?.[code] && (retriesRef.current[code] || 0) < 5,
-    );
-    if (missingTracks.length === 0) return;
-
-    const retryTimer = setTimeout(() => {
-      void fetchFavoriteLanguageSubtitles(missingTracks, observedUrl);
-    }, 1500);
-
-    return () => clearTimeout(retryTimer);
-  }, [isAndroid, observedUrl, targetLanguages, tracks, shown, fetchFavoriteLanguageSubtitles]);
+  }, [targetLanguages, shown]);
 
   useEffect(() => {
     if (themeWasSelectedRef.current) return;
@@ -1510,14 +1492,16 @@ function Index() {
                               Favorites Aligned ({targetLanguages.length})
                             </span>
                           )}
-                          {missingFavoriteLanguages.length > 0 && targetLanguages.length > 0 && (
-                            <span
-                              data-testid="subtitles-sync-retrying"
-                              className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400 animate-pulse"
+                          {isAndroid && failedLangs.length > 0 && (
+                            <button
+                              type="button"
+                              data-testid="subtitles-manual-fetch"
+                              onClick={manualFetchFailed}
+                              className="inline-flex items-center gap-1 rounded bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive hover:bg-destructive/20"
                             >
-                              <RefreshCw className="h-3 w-3 animate-spin" />
-                              Auto-syncing favorites ({missingFavoriteLanguages.length})…
-                            </span>
+                              <RefreshCw className="h-3 w-3" />
+                              Fetch again ({failedLangs.join(", ")})
+                            </button>
                           )}
                         </div>
                         <div className="flex items-center gap-3">
