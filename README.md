@@ -1,11 +1,9 @@
 # YouTube Subtitle & Speech Flow Viewer
-x
-x
 
-[![Build & Release Android APK](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml)
-[![Web E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml)
-[![Android Emulator E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml)
-[![Publish Web Demo](https://github.com/mostuf2556/subtitle-sync/actions/workflows/deploy-demo.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/deploy-demo.yml)
+[![Build & Release Android APK](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/release-apk.yml/badge.svg)](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/release-apk.yml)
+[![Web E2E Tests](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/web.yml/badge.svg)](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/web.yml)
+[![Android Emulator E2E Tests](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/emulation.yml/badge.svg)](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/emulation.yml)
+[![Publish Web Demo](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/deploy-demo.yml/badge.svg)](https://github.com/baobabitogether1-hash/subtitle-sync/actions/workflows/deploy-demo.yml)
 
 A dedicated Android native shell application for YouTube video learning with synchronized multi-language subtitles, native hardware TTS speech flow, and on-the-fly translation switching. Accompanied by a scoped web companion for automated CI/CD test drivers and live interactive demonstration.
 
@@ -16,7 +14,7 @@ A dedicated Android native shell application for YouTube video learning with syn
 To download and install the latest `YouTube-Viewer-debug.apk` directly onto any connected Android device or emulator via ADB without cloning this repository or keeping local build files, run this single command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mostuf2556/subtitle-sync/main/update.apk.sh | bash -s -- "https://github.com/mostuf2556/subtitle-sync/releases/latest/download/YouTube-Viewer-debug.apk"
+curl -fsSL https://raw.githubusercontent.com/baobabitogether1-hash/subtitle-sync/main/update.apk.sh | bash -s -- "https://github.com/baobabitogether1-hash/subtitle-sync/releases/latest/download/YouTube-Viewer-debug.apk"
 ```
 
 ### What this command does:
@@ -34,9 +32,9 @@ Access the live web application:
 
 | Resource                           | Direct URL                                                                                                                    | Description                                                                                                                                                  |
 | :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🚀 **Web-App Demo Landing Page**   | [**Open Live Web Demo**](https://mostuf2556.github.io/subtitle-sync/)                                                         | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
-| 🎬 **Android Emulator E2E Video**  | [**Watch Android Emulator E2E Test Recording**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-e2e.mp4) | High-fidelity screen recording of the automated end-to-end test executing inside the Android emulator during CI verification. |
-| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification.                                                              |
+| 🚀 **Web-App Demo Landing Page**   | [**Open Live Web Demo**](https://baobabitogether1-hash.github.io/subtitle-sync/)                                                         | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
+| 🎬 **Android Emulator E2E Video**  | [**Watch Android Emulator E2E Test Recording**](https://baobabitogether1-hash.github.io/subtitle-sync/screenshots/android-emulator-e2e.mp4) | High-fidelity screen recording of the automated end-to-end test executing inside the Android emulator during CI verification. |
+| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://baobabitogether1-hash.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification.                                                              |
 
 > **Note on GitHub Pages Availability:**
 > Artifacts and demo assets are automatically published to the `gh-pages` branch on every push. To access the live web demo and screenshot URLs, ensure GitHub Pages is enabled in repository settings:
