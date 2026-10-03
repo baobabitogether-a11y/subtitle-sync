@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Activity,
+  Captions,
   Check,
   ChevronDown,
   ChevronUp,
@@ -54,7 +55,11 @@ import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
 import { VideoLibraryPanel } from "@/components/VideoLibraryPanel";
 import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
 import { getApkReleaseLinks } from "@/utils/apkUpdater";
-import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
+import {
+  getVideoFixtureJson3,
+  getAllVideoFixtureTracks,
+  hasVideoFixtures,
+} from "@/utils/videoFixturesRegistry";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
 
@@ -345,13 +350,11 @@ function Index() {
             json = parseJson3(raw);
           }
           if (!json && (!raw || raw.includes("<title>Sorry...</title>"))) {
-            // Authentic pre-bundled fallback when YouTube blocks direct requests
-            const bundled = JSON3_RAW_MAP[code] || "";
-            if (bundled) {
-              json = parseJson3(bundled);
-              if (json) {
-                raw = bundled;
-              }
+            // ONLY fallback to authentic pre-bundled fixture for this specific videoId
+            const videoFixture = getVideoFixtureJson3(videoId, code);
+            if (videoFixture) {
+              json = videoFixture;
+              raw = JSON.stringify(videoFixture);
             }
           }
           if (json) {
@@ -391,7 +394,7 @@ function Index() {
         );
       }
     },
-    [isAndroid],
+    [isAndroid, videoId],
   );
 
   const manualFetchFailed = () => {
@@ -775,6 +778,20 @@ function Index() {
   useEffect(() => {
     if (isAndroid) return;
     const targetVideo = videoId || DEMO_VIDEO;
+
+    // 1. Check if the currently presented video has known authentic pre-bundled fixtures
+    const fixtureTracks = getAllVideoFixtureTracks(targetVideo);
+    if (fixtureTracks) {
+      startSubtitlesTransition(() => {
+        setTracks(fixtureTracks);
+        // Automatically show loaded demo tracks for this video
+        setShown((prev) => (prev.length === 0 ? Object.keys(fixtureTracks) : prev));
+      });
+      setCaptionStatus(`Loaded authentic subtitles for ${targetVideo}`);
+      return;
+    }
+
+    // 2. Otherwise attempt to fetch live fixture JSONs for this specific video
     Promise.all(
       LANGS.map(async (l) => {
         const fixtureUrl = getFixturesUrl(targetVideo, l.code);
@@ -789,34 +806,39 @@ function Index() {
               valid = false;
             }
           }
-          let j = valid ? parseJson3(text) : null;
-          if (!j) {
-            // Resilient fallback to authentic bundled fixture
-            const bundled = JSON3_RAW_MAP[l.code] || "";
-            if (bundled) {
-              j = parseJson3(bundled);
-              text = bundled;
-            }
+          const j = valid ? parseJson3(text) : null;
+          if (j) {
+            tracker.complete(200, text);
+            return [l.code, j] as const;
           }
-          tracker.complete(200, text);
-          return j ? ([l.code, j] as const) : null;
+          tracker.fail(`No fixture for ${targetVideo} (${l.code})`);
+          return null;
         } catch {
-          const bundled = JSON3_RAW_MAP[l.code] || "";
-          const j = bundled ? parseJson3(bundled) : null;
-          tracker.complete(200, bundled);
-          return j ? ([l.code, j] as const) : null;
+          tracker.fail(`Failed to load fixture for ${targetVideo}`);
+          return null;
         }
       }),
     ).then((entries) => {
       const validEntries = entries.filter(
         (entry): entry is readonly [string, Json3] => entry !== null,
       );
-      const newTracks = Object.fromEntries(validEntries);
-      startSubtitlesTransition(() => {
-        setTracks(newTracks);
-        // Automatically show loaded demo tracks
-        setShown((prev) => (prev.length === 0 ? Object.keys(newTracks) : prev));
-      });
+      if (validEntries.length > 0) {
+        const newTracks = Object.fromEntries(validEntries);
+        startSubtitlesTransition(() => {
+          setTracks(newTracks);
+          setShown((prev) => (prev.length === 0 ? Object.keys(newTracks) : prev));
+        });
+        setCaptionStatus(`Subtitles loaded for ${targetVideo}`);
+      } else {
+        // Crucial: NEVER bleed default video subtitles into a different presented video!
+        startSubtitlesTransition(() => {
+          setTracks(null);
+          setShown([]);
+        });
+        setCaptionStatus(
+          `Waiting for live YouTube captions for video ${targetVideo}. Play the video and enable captions.`,
+        );
+      }
     });
   }, [isAndroid, videoId]);
 
@@ -1197,39 +1219,72 @@ function Index() {
             >
               {panelId === "player" && (
                 <div id="video-player-container" data-testid="video-player-container">
-                  {isAndroid && (
-                    <form
-                      id="youtube-url-form"
-                      data-testid="youtube-url-form"
-                      className="flex gap-2 p-3"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        const id = parseVideoId(videoInput);
-                        if (id) {
-                          handleSwitchVideo(id);
-                        } else {
-                          setCaptionStatus("Enter a valid YouTube link or video ID.");
-                        }
-                      }}
-                    >
-                      <input
-                        id="youtube-url-input"
-                        data-testid="youtube-url-input"
-                        aria-label="YouTube video URL or ID"
-                        value={videoInput}
-                        onChange={(event) => setVideoInput(event.target.value)}
-                        placeholder="YouTube link or video ID"
-                        className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1"
-                      />
+                  <form
+                    id="youtube-url-form"
+                    data-testid="youtube-url-form"
+                    className="flex gap-2 p-3"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const id = parseVideoId(videoInput);
+                      if (id) {
+                        handleSwitchVideo(id);
+                      } else {
+                        setCaptionStatus("Enter a valid YouTube link or video ID.");
+                      }
+                    }}
+                  >
+                    <input
+                      id="youtube-url-input"
+                      data-testid="youtube-url-input"
+                      aria-label="YouTube video URL or ID"
+                      value={videoInput}
+                      onChange={(event) => setVideoInput(event.target.value)}
+                      placeholder="YouTube link or video ID"
+                      className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1"
+                    />
+                    <Button id="play-video-button" data-testid="play-video-button" type="submit">
+                      Play Video
+                    </Button>
+                  </form>
+                  <div className="flex items-center justify-between border-t border-b border-border bg-card/60 px-3 py-1.5 text-xs">
+                    <div className="flex items-center gap-2">
                       <Button
-                        id="youtube-url-submit"
-                        data-testid="youtube-url-submit"
-                        type="submit"
+                        id="caption-toggle-button"
+                        data-testid="caption-toggle-button"
+                        type="button"
+                        size="sm"
+                        variant={showVideoSubtitles ? "default" : "outline"}
+                        aria-pressed={showVideoSubtitles ? "true" : "false"}
+                        onClick={() => {
+                          setShowVideoSubtitles(!showVideoSubtitles);
+                          if (!tracks && hasVideoFixtures(videoId)) {
+                            const fixtureTracks = getAllVideoFixtureTracks(videoId);
+                            if (fixtureTracks) {
+                              setTracks(fixtureTracks);
+                              setShown(Object.keys(fixtureTracks));
+                            }
+                          }
+                        }}
+                        className="h-7 gap-1 px-2.5 text-xs"
+                        title="Toggle Video Captions"
                       >
-                        Load video
+                        <Captions className="h-3.5 w-3.5" />
+                        <span>CC {showVideoSubtitles ? "ON" : "OFF"}</span>
                       </Button>
-                    </form>
-                  )}
+                      <span className="text-muted-foreground truncate max-w-[180px]">
+                        {videoId ? `Video: ${videoId}` : "No video loaded"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        id="active-subtitle-cue-text"
+                        data-testid="active-subtitle-cue-text"
+                        className="truncate max-w-[200px] text-xs text-muted-foreground"
+                      >
+                        {rows[active]?.texts[baseLanguage] || rows[0]?.texts[baseLanguage] || ""}
+                      </span>
+                    </div>
+                  </div>
                   <div className="relative aspect-video overflow-hidden bg-muted">
                     <div
                       ref={playerEl}
@@ -1782,6 +1837,8 @@ const SubtitleRow = memo(function SubtitleRow({
   return (
     <tr
       key={actualIndex}
+      id={`subtitle-cue-row-${actualIndex}`}
+      data-testid={`subtitle-cue-row-${actualIndex}`}
       data-row={actualIndex}
       onClick={() => onSeek(r, actualIndex)}
       className={`cursor-pointer border-t border-border align-top ${isActive ? "bg-accent" : "hover:bg-muted"}`}

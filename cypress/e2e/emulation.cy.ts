@@ -90,4 +90,35 @@ describe("YouTube Video Viewer - Android Emulation Subtitle Tests", () => {
     });
     cy.screenshot("test3-step5", { capture: "viewport", overwrite: true });
   });
+
+  it("Step-by-step: Emulator testing - Android native back navigation window.__handleAndroidBack() closes modal", () => {
+    cy.log("Step 1: Enabling debug mode to expose Network Requests button");
+    cy.window().then((win) => {
+      win.localStorage.setItem(
+        "yt_app_settings_v1",
+        JSON.stringify({ debugMode: true }),
+      );
+    });
+    cy.reload();
+
+    cy.log("Step 2: Opening Network Requests Inspector modal");
+    cy.get("#navbar-network-button").should("be.visible").click();
+    cy.get("#network-requests-inspector-modal").should("be.visible");
+
+    cy.log("Step 3: Triggering Android back navigation via window.__handleAndroidBack()");
+    cy.window().then((win: any) => {
+      expect(win.__handleAndroidBack).to.be.a("function");
+      const handled = win.__handleAndroidBack();
+      expect(handled).to.eq(true);
+    });
+
+    cy.log("Step 4: Asserting modal is dismissed by back action");
+    cy.get("#network-requests-inspector-modal").should("not.exist");
+
+    cy.log("Step 5: Triggering back navigation again when no modal is active");
+    cy.window().then((win: any) => {
+      const handled = win.__handleAndroidBack();
+      expect(handled).to.eq(false);
+    });
+  });
 });

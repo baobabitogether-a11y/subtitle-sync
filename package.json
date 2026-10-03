@@ -15,6 +15,8 @@
     "test:e2e": "playwright test",
     "test:e2e:web": "playwright test e2e/web.spec.ts",
     "test:e2e:emulation": "playwright test e2e/emulation.spec.ts",
+    "test:e2e:a11y": "playwright test e2e/accessibility.spec.ts",
+    "test:e2e:faults": "playwright test e2e/network-faults.spec.ts",
     "test:e2e:all": "playwright test",
     "test:cy": "cypress run --spec 'cypress/e2e/web.cy.ts'",
     "test:cy:web": "cypress run --spec 'cypress/e2e/web.cy.ts'",
@@ -56,7 +58,12 @@
     "test:back-navigation": "tsx scripts/verify-android-back-navigation.ts",
     "test:tlang-repetition": "tsx scripts/verify-tlang-repetition.ts",
     "test:player-viewport": "tsx scripts/verify-player-viewport-placement.ts",
+    "test:video-library": "tsx scripts/verify-video-library-panel.ts",
+    "test:no-subtitle-caching": "tsx scripts/verify-no-subtitle-caching.ts",
     "test:e2e-video-report": "tsx scripts/verify-android-e2e-video-report.ts",
+    "test:e2e-tools": "tsx scripts/verify-e2e-tools.ts",
+    "test:presented-subtitles": "tsx scripts/verify-presented-video-subtitles.ts",
+    "version:bump": "tsx scripts/bump-android-version.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {
@@ -118,6 +125,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.16.5",

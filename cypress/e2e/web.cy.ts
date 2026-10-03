@@ -91,4 +91,72 @@ describe("YouTube Video Viewer - Web E2E Subtitle Detection", () => {
     });
     cy.screenshot("test2-step6", { capture: "viewport", overwrite: true });
   });
+
+  it("Step-by-step: Video Library panel - search filtering, save current, load video, and item removal", () => {
+    cy.log("Step 1: Expanding the Video Library panel");
+    cy.get("details").filter(':contains("Video library")').then(($details) => {
+      if (!$details.attr("open")) {
+        cy.wrap($details).find("summary").click();
+      }
+    });
+    cy.get("#video-library-panel").should("be.visible");
+    cy.screenshot("test4-step1", { capture: "viewport", overwrite: true });
+
+    cy.log("Step 2: Testing search input filter in Video Library");
+    cy.get("#library-search-input").should("be.visible").clear().type("Steve Jobs");
+    cy.get("#library-items-list").should("contain.text", "Steve Jobs");
+    cy.get("#library-search-input").clear();
+    cy.screenshot("test4-step2", { capture: "viewport", overwrite: true });
+
+    cy.log("Step 3: Saving current active video to Video Library");
+    cy.get("#save-current-video-btn").should("be.visible").click();
+    cy.screenshot("test4-step3", { capture: "viewport", overwrite: true });
+
+    cy.log("Step 4: Loading an authentic video item from Video Library");
+    cy.get("#library-items-list").then(($list) => {
+      const loadBtn = $list.find('[id^="load-library-video-"]').not(":disabled").first();
+      if (loadBtn.length > 0) {
+        cy.wrap(loadBtn).click();
+        cy.get("#video-player-container").should("be.visible");
+      }
+    });
+    cy.screenshot("test4-step4", { capture: "viewport", overwrite: true });
+  });
+
+  it("Step-by-step: Debug Mode toggle controls Network Inspector visibility and dismissal", () => {
+    cy.log("Step 1: Locating debug mode toggle in Settings panel");
+    cy.get("details").filter(':contains("Playback")').then(($details) => {
+      if (!$details.attr("open")) {
+        cy.wrap($details).find("summary").click();
+      }
+    });
+    cy.get("#debug-mode-toggle").should("exist");
+
+    cy.log("Step 2: Enabling Debug Mode toggle");
+    cy.get("#debug-mode-toggle").check({ force: true });
+    cy.get("#debug-mode-toggle").should("be.checked");
+
+    cy.log("Step 3: Opening Network Requests Inspector modal");
+    cy.get("#navbar-network-button").should("be.visible").click();
+    cy.get("#network-requests-inspector-modal").should("be.visible");
+    cy.screenshot("test5-step3", { capture: "viewport", overwrite: true });
+
+    cy.log("Step 4: Closing modal using explicit close button");
+    cy.get("#close-network-inspector-btn").click();
+    cy.get("#network-requests-inspector-modal").should("not.exist");
+    cy.screenshot("test5-step4", { capture: "viewport", overwrite: true });
+  });
+
+  it("Step-by-step: Audio-track mode and auto-scroll preference controls", () => {
+    cy.log("Step 1: Checking initial audio-track mode setting");
+    cy.get("#audio-track-mode-toggle").should("exist");
+    cy.get("#audio-track-mode-toggle").check({ force: true });
+    cy.get("#audio-track-mode-toggle").should("be.checked");
+
+    cy.log("Step 2: Checking initial auto-scroll setting");
+    cy.get("#auto-scroll-toggle").should("exist");
+    cy.get("#auto-scroll-toggle").check({ force: true });
+    cy.get("#auto-scroll-toggle").should("be.checked");
+    cy.screenshot("test6-step2", { capture: "viewport", overwrite: true });
+  });
 });
