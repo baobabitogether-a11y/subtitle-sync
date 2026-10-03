@@ -13,9 +13,17 @@
 
 ## Work tracking
 
+- Follow prompt steps: break every prompt into clear numbered steps and execute them sequentially step after step.
+- Git commit each step: perform a dedicated Git commit after completing each section or step to keep progress incremental and transparent.
+- Test each section and commit each step:
+  1. Implement the section's changes.
+  2. Add or update dedicated tests covering the specific feature requirements.
+  3. Test each section thoroughly with the dedicated tests, verify app compilation (`compile_applet` / `npm run build`), and run code verification (`lint_applet` / `npm run lint`).
+  4. Commit the verified code changes and tests after each step.
+- Check the last GitHub Actions result and fix failed flows: continuously monitor and verify GitHub Actions workflow outcomes (such as `web.yml`, `emulation.yml`, `deploy-demo.yml`, `release-apk.yml`, and `integrity.yml`), diagnose the root cause of any broken or failing CI steps, and fix failed workflows promptly.
 - Break every new prompt into clear tasks and smaller subtasks in `docs/tasks.md`.
-- Obtain explicit user confirmation before creating or updating `docs/tasks.md`.
-- Obtain explicit user confirmation before creating or updating `docs/todo.md`.
+- Obtain explicit user confirmation before creating or updating `docs/tasks.md` unless explicitly instructed by the user prompt.
+- Obtain explicit user confirmation before creating or updating `docs/todo.md` unless explicitly instructed by the user prompt.
 - Keep `docs/todo.md` strictly focused: it must always contain only the single active sub-task currently being executed.
 - For each sub-task in `docs/todo.md`:
   1. Implement the sub-task's changes.
