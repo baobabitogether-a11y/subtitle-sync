@@ -343,19 +343,11 @@ function Index() {
         const translatedUrl = buildTranslatedCaptionUrl(activeUrl, code, "json3");
         const tracker = trackNetworkRequest(translatedUrl, "GET", "native_bridge");
         try {
-          let raw = shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3");
+          let raw = shell.fetchTranslatedCaptionsWithUrl(activeUrl, code, "");
           let json = parseJson3(raw);
           if (!json && shell.fetchTranslatedCaptions) {
-            raw = shell.fetchTranslatedCaptions(code, "json3");
+            raw = shell.fetchTranslatedCaptions(code, "");
             json = parseJson3(raw);
-          }
-          if (!json && (!raw || raw.includes("<title>Sorry...</title>"))) {
-            // ONLY fallback to authentic pre-bundled fixture for this specific videoId
-            const videoFixture = getVideoFixtureJson3(videoId, code);
-            if (videoFixture) {
-              json = videoFixture;
-              raw = JSON.stringify(videoFixture);
-            }
           }
           if (json) {
             tracker.complete(200, raw);
