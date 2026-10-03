@@ -1,8 +1,10 @@
-import { defineConfig } from 'cypress';
-import cypressMochawesomeReporterPlugin from 'cypress-mochawesome-reporter/plugin';
+import { defineConfig } from "cypress";
+import cypressMochawesomeReporterPlugin from "cypress-mochawesome-reporter/plugin";
 
-const rawCypressBaseUrl = process.env.CYPRESS_BASE_URL || 'http://localhost:3000';
-const cypressBaseUrl = rawCypressBaseUrl.endsWith('/') ? rawCypressBaseUrl : `${rawCypressBaseUrl}/`;
+const rawCypressBaseUrl = process.env.CYPRESS_BASE_URL || "http://localhost:3000";
+const cypressBaseUrl = rawCypressBaseUrl.endsWith("/")
+  ? rawCypressBaseUrl
+  : `${rawCypressBaseUrl}/`;
 
 export default defineConfig({
   defaultCommandTimeout: 10000,
@@ -10,16 +12,16 @@ export default defineConfig({
   responseTimeout: 10000,
   pageLoadTimeout: 20000,
   taskTimeout: 30000,
-  reporter: 'cypress-mochawesome-reporter',
+  reporter: "cypress-mochawesome-reporter",
   reporterOptions: {
-    reportDir: 'cypress/reports',
-    reportFilename: 'mochawesome',
+    reportDir: "cypress/reports",
+    reportFilename: "mochawesome",
     html: true,
     json: true,
     overwrite: true,
     inlineAssets: true,
     charts: true,
-    reportPageTitle: 'YouTube Video Viewer - Cypress E2E Tests',
+    reportPageTitle: "YouTube Video Viewer - Cypress E2E Tests",
     embeddedScreenshots: true,
   },
   e2e: {
@@ -28,8 +30,8 @@ export default defineConfig({
     viewportHeight: 720,
     video: true,
     screenshotOnRunFailure: true,
-    screenshotsFolder: 'cypress/screenshots',
-    videosFolder: 'cypress/videos',
+    screenshotsFolder: "cypress/screenshots",
+    videosFolder: "cypress/videos",
     setupNodeEvents(on, config) {
       cypressMochawesomeReporterPlugin(on);
       return config;

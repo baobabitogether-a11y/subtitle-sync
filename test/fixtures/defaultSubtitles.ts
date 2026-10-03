@@ -1,7 +1,7 @@
-import { CaptionCue } from '../../src/types';
-import { parseRawCaptionData } from '../../src/utils/captionParser';
-import { L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS } from './L2Ryrr6txwA/jsonStrings';
-import { EILFKSGNKDA_LANGUAGE_TRACKS } from './eilfksgnkda';
+import { CaptionCue } from "../../src/types";
+import { parseRawCaptionData } from "../../src/utils/captionParser";
+import { L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS } from "./L2Ryrr6txwA/jsonStrings";
+import { EILFKSGNKDA_LANGUAGE_TRACKS } from "./eilfksgnkda";
 
 export const DEFAULT_MOCKED_SUBTITLES: Record<string, CaptionCue[]> = {
   L2Ryrr6txwA: L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS.en,
@@ -11,10 +11,10 @@ export const DEFAULT_MOCKED_SUBTITLES: Record<string, CaptionCue[]> = {
 export { L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS };
 
 export function getMockedSubtitlesForVideo(videoId: string): CaptionCue[] {
-  if (videoId === 'L2Ryrr6txwA') {
+  if (videoId === "L2Ryrr6txwA") {
     return L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS.en;
   }
-  if (videoId === 'EILFkSGNkdA') {
+  if (videoId === "EILFkSGNkdA") {
     return EILFKSGNKDA_LANGUAGE_TRACKS.en;
   }
   if (DEFAULT_MOCKED_SUBTITLES[videoId]) {
@@ -23,29 +23,32 @@ export function getMockedSubtitlesForVideo(videoId: string): CaptionCue[] {
   return [];
 }
 
-export function getCachedJson3ForVideoAndLanguage(videoId: string, langCode: string): CaptionCue[] | null {
-  if (videoId === 'L2Ryrr6txwA') {
-    let clean = (langCode || '').toLowerCase().split(/[-_]/)[0];
-    if (clean === 'iw' || clean === 'il') clean = 'he';
+export function getCachedJson3ForVideoAndLanguage(
+  videoId: string,
+  langCode: string,
+): CaptionCue[] | null {
+  if (videoId === "L2Ryrr6txwA") {
+    let clean = (langCode || "").toLowerCase().split(/[-_]/)[0];
+    if (clean === "iw" || clean === "il") clean = "he";
     return L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS[clean] || null;
   }
-  if (videoId === 'EILFkSGNkdA') {
-    let clean = (langCode || '').toLowerCase().split(/[-_]/)[0];
-    if (clean === 'iw' || clean === 'il') clean = 'he';
+  if (videoId === "EILFkSGNkdA") {
+    let clean = (langCode || "").toLowerCase().split(/[-_]/)[0];
+    if (clean === "iw" || clean === "il") clean = "he";
     return EILFKSGNKDA_LANGUAGE_TRACKS[clean] || null;
   }
   return null;
 }
 
 export function hasCachedJson3ForVideoAndLanguage(videoId: string, langCode: string): boolean {
-  if (videoId === 'L2Ryrr6txwA') {
-    let clean = (langCode || '').toLowerCase().split(/[-_]/)[0];
-    if (clean === 'iw' || clean === 'il') clean = 'he';
+  if (videoId === "L2Ryrr6txwA") {
+    let clean = (langCode || "").toLowerCase().split(/[-_]/)[0];
+    if (clean === "iw" || clean === "il") clean = "he";
     return !!L2RYRR6TXWA_LANGUAGE_JSON3_TRACKS[clean];
   }
-  if (videoId === 'EILFkSGNkdA') {
-    let clean = (langCode || '').toLowerCase().split(/[-_]/)[0];
-    if (clean === 'iw' || clean === 'il') clean = 'he';
+  if (videoId === "EILFkSGNkdA") {
+    let clean = (langCode || "").toLowerCase().split(/[-_]/)[0];
+    if (clean === "iw" || clean === "il") clean = "he";
     return !!EILFKSGNKDA_LANGUAGE_TRACKS[clean];
   }
   return false;
@@ -53,12 +56,11 @@ export function hasCachedJson3ForVideoAndLanguage(videoId: string, langCode: str
 
 export function getAllCachedLanguageCodesForVideo(videoId: string): string[] {
   if (!videoId) return [];
-  if (videoId === 'L2Ryrr6txwA') {
-    return ['en', 'ru', 'he', 'it', 'ar'];
+  if (videoId === "L2Ryrr6txwA") {
+    return ["en", "ru", "he", "it", "ar"];
   }
-  if (videoId === 'EILFkSGNkdA') {
-    return ['en', 'he', 'iw'];
+  if (videoId === "EILFkSGNkdA") {
+    return ["en", "he", "iw"];
   }
   return [];
 }
-

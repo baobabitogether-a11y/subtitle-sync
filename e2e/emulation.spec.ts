@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const observedUrl =
-  "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3";
+const observedUrl = "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3";
 type NativeCaptionRequest = { url: string; language: string; format: string };
 
 async function getNativeCaptionRequests(page: Page): Promise<NativeCaptionRequest[]> {
@@ -95,20 +94,18 @@ test.describe("Android native subtitle emulation", () => {
     await deliverDefaultCaptions(page);
 
     await expect
-      .poll(
-        async () => (await getNativeCaptionRequests(page)).map((request) => request.language),
-        { timeout: 10000 },
-      )
+      .poll(async () => (await getNativeCaptionRequests(page)).map((request) => request.language), {
+        timeout: 10000,
+      })
       .toEqual(expect.arrayContaining(["he", "it"]));
 
     await targetLanguages.selectOption(["es", "fr"]);
     await expect(targetLanguages).toHaveValues(["es", "fr"]);
 
     await expect
-      .poll(
-        async () => (await getNativeCaptionRequests(page)).map((request) => request.language),
-        { timeout: 10000 },
-      )
+      .poll(async () => (await getNativeCaptionRequests(page)).map((request) => request.language), {
+        timeout: 10000,
+      })
       .toEqual(expect.arrayContaining(["es", "fr"]));
 
     const requests = await getNativeCaptionRequests(page);

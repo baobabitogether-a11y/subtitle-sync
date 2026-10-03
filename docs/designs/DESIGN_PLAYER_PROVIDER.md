@@ -26,11 +26,12 @@ The media player provider abstracts underlying video players (such as the YouTub
 ## 2. Core Player Provider Interface
 
 ```ts
-export type PlayerPlaybackState = 'unstarted' | 'ended' | 'playing' | 'paused' | 'buffering' | 'cued';
+export type PlayerPlaybackState =
+  "unstarted" | "ended" | "playing" | "paused" | "buffering" | "cued";
 
 export interface PlayerTimeUpdate {
   currentTime: number; // Current playback time in fractional seconds
-  duration: number;    // Total media duration in fractional seconds
+  duration: number; // Total media duration in fractional seconds
 }
 
 export interface PlayerProvider {
@@ -40,7 +41,7 @@ export interface PlayerProvider {
   seekTo(seconds: number, allowSeekAhead?: boolean): Promise<void>;
   setVolume(volume: number): Promise<void>; // 0 to 100
   getVolume(): number;
-  
+
   // State Queries
   getCurrentTime(): number;
   getDuration(): number;

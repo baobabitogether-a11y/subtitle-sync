@@ -10,6 +10,7 @@ Both repos use the same Android shell. It reads the web files packed inside the 
 This repo's router already strips `/index.html` from the address when the app starts (`src/router.tsx`), so loading `index.html` directly works with the current views.
 
 Other things to check (lower risk; confirm during the fix):
+
 - `index.html` points to `/favicon.ico` with a leading slash. `normalize-web-assets.mjs` already rewrites it.
 - The `verify-android-local-assets.ts` test requires the broken `/$querySuffix` form. It needs updating, or it will keep the bug in place.
 - Android assets are gitignored. The APK only has the web app when CI or Gradle `preBuild` runs `build:android-assets`.

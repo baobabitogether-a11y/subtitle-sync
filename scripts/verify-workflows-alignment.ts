@@ -31,16 +31,22 @@ assert.deepStrictEqual(
   expectedWorkflows.sort(),
   `Workflow set must match Youtubenet6: ${expectedWorkflows.join(", ")}`,
 );
-console.log(`✅ PASS: Workflows directory contains exact Youtubenet6 set: ${actualWorkflows.join(", ")}`);
+console.log(
+  `✅ PASS: Workflows directory contains exact Youtubenet6 set: ${actualWorkflows.join(", ")}`,
+);
 
 // 3. Assert web.yml deployed URL and synthetic script guard
 const webContent = fs.readFileSync(path.join(workflowsDir, "web.yml"), "utf8");
 assert(
-  webContent.includes("DEPLOYED_APP_URL=\"https://${{ github.repository_owner }}.github.io/${REPO_NAME}/\""),
+  webContent.includes(
+    'DEPLOYED_APP_URL="https://${{ github.repository_owner }}.github.io/${REPO_NAME}/"',
+  ),
   "web.yml must point to repo root on github.io instead of non-existent /app/ subpath",
 );
 assert(
-  !webContent.includes("DEPLOYED_APP_URL=\"https://${{ github.repository_owner }}.github.io/${REPO_NAME}/app/\""),
+  !webContent.includes(
+    'DEPLOYED_APP_URL="https://${{ github.repository_owner }}.github.io/${REPO_NAME}/app/"',
+  ),
   "web.yml must not point to /app/",
 );
 assert(
@@ -72,14 +78,18 @@ console.log("✅ PASS: deploy-demo.yml preserves existing gh-pages artifacts");
 // 6. Assert web demo presents all 6 demo languages for Playwright web E2E tests
 const indexRouteContent = fs.readFileSync(path.join(rootDir, "src/routes/index.tsx"), "utf8");
 assert(
-  indexRouteContent.includes("if (!isAndroid) {\n      return languageOrder\n        .filter((code) => LANGS.some((l) => l.code === code))"),
+  indexRouteContent.includes(
+    "if (!isAndroid) {\n      return languageOrder\n        .filter((code) => LANGS.some((l) => l.code === code))",
+  ),
   "src/routes/index.tsx must supply all 6 demo languages on web (!isAndroid) so e2e/web.spec.ts can assert 6 rows",
 );
 assert(
   indexRouteContent.includes("const favoriteSet = new Set(targetLanguages);"),
   "src/routes/index.tsx must scope orderedLangs to favoriteLanguages on Android",
 );
-console.log("✅ PASS: orderedLangs presents 6 demo languages on web demo while preserving favorite scoping on Android");
+console.log(
+  "✅ PASS: orderedLangs presents 6 demo languages on web demo while preserving favorite scoping on Android",
+);
 
 console.log("====================================================");
 console.log("📊 WORKFLOW ALIGNMENT TEST: All tests passed!");

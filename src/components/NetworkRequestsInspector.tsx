@@ -9,6 +9,9 @@ import {
   Clock,
   ArrowDownLeft,
   Filter,
+  ChevronDown,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   useNetworkRequests,
@@ -27,12 +30,19 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedBody, setCopiedBody] = useState(false);
+  const [showFullBody, setShowFullBody] = useState(false);
+  const [expandedListItems, setExpandedListItems] = useState<Record<string, boolean>>({});
 
   if (!isOpen) return null;
 
   const filtered = requests.filter((req) => {
     if (filterType === "timedtext" && !req.url.includes("timedtext")) return false;
-    if (filterType === "native" && req.type !== "native_bridge" && req.type !== "timedtext_interception")
+    if (
+      filterType === "native" &&
+      req.type !== "native_bridge" &&
+      req.type !== "timedtext_interception"
+    )
       return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -48,14 +58,27 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
   const selectedRequest =
     filtered.find((r) => r.id === selectedId) || (filtered.length > 0 ? filtered[0] : null);
 
-  const handleCopy = (text: string) => {
+  const handleCopy = (text: string, isBody = false) => {
     try {
       void navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (isBody) {
+        setCopiedBody(true);
+        setTimeout(() => setCopiedBody(false), 2000);
+      } else {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     } catch {
       // Ignore clipboard error
     }
+  };
+
+  const toggleListItemExpand = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setExpandedListItems((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
   return (
@@ -77,7 +100,9 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-neutral-100">Live Network Traffic Inspector</h2>
+                <h2 className="text-base font-bold text-neutral-100">
+                  Live Network Traffic Inspector
+                </h2>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700">
                   {requests.length} captured
                 </span>
@@ -86,7 +111,8 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                 </span>
               </div>
               <p className="text-xs text-neutral-400">
-                Captures timedtext, native bridge requests, and shows the first 50 characters of response bodies
+                Captures timedtext, native bridge requests, exposes first 250 chars in accordion,
+                and reveals full response body
               </p>
             </div>
           </div>
@@ -165,6 +191,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
             ) : (
               filtered.map((req) => {
                 const isSelected = req.id === selectedRequest?.id;
+                const isItemExpanded = expandedListItems[req.id];
                 return (
                   <div
                     key={req.id}
@@ -201,17 +228,56 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                       )}
                     </div>
 
-                    <div className="font-mono text-[11px] text-neutral-300 truncate" title={req.url}>
+                    <div
+                      className="font-mono text-[11px] text-neutral-300 truncate"
+                      title={req.url}
+                    >
                       {req.url}
                     </div>
 
-                    {/* Prominent first 200 chars preview */}
-                    <div className="flex items-center gap-1 text-[11px] text-neutral-400 font-mono bg-neutral-900/80 px-2 py-1 rounded border border-neutral-800/80">
-                      <ArrowDownLeft className="w-3 h-3 text-blue-400 shrink-0" />
-                      <span className="text-neutral-500">First 200 chars:</span>
-                      <span className="text-emerald-400 font-semibold truncate">
-                        {req.responseBodyPreview ? `"${req.responseBodyPreview}"` : req.isPending ? "loading…" : "[empty]"}
-                      </span>
+                    {/* Accordion / unfoldable first 250 chars preview */}
+                    <div className="text-[11px] font-mono bg-neutral-900/80 rounded border border-neutral-800/80 overflow-hidden">
+                      <div
+                        className="flex items-center justify-between px-2 py-1 cursor-pointer hover:bg-neutral-800/50"
+                        onClick={(e) => toggleListItemExpand(e, req.id)}
+                        title="Click to unfold / collapse preview"
+                      >
+                        <div className="flex items-center gap-1 text-neutral-400 overflow-hidden mr-1">
+                          <ArrowDownLeft className="w-3 h-3 text-blue-400 shrink-0" />
+                          <span className="text-neutral-500 shrink-0">First 250 chars:</span>
+                          {!isItemExpanded && (
+                            <span className="text-emerald-400 font-semibold truncate">
+                              {req.responseBodyPreview
+                                ? `"${req.responseBodyPreview}"`
+                                : req.isPending
+                                  ? "loading…"
+                                  : "[empty]"}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="text-neutral-400 hover:text-white p-0.5 rounded"
+                          aria-label={isItemExpanded ? "Collapse" : "Unfold"}
+                        >
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                              isItemExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      {isItemExpanded && (
+                        <div className="px-2.5 py-1.5 border-t border-neutral-800/60 bg-neutral-950/60 text-emerald-400 break-all whitespace-pre-wrap select-text max-h-36 overflow-y-auto">
+                          {req.responseBodyPreview || (req.isPending ? "loading…" : "[empty]")}
+                          {req.fullResponseBody && req.fullResponseBody.length > 250 && (
+                            <div className="mt-1 text-[10px] text-blue-400 font-sans">
+                              (Select this request to expose the full {req.fullResponseBody.length}{" "}
+                              characters)
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -243,7 +309,11 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                     onClick={() => handleCopy(selectedRequest.url)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition"
                   >
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                     <span>{copied ? "Copied" : "Copy URL"}</span>
                   </button>
                 </div>
@@ -264,33 +334,112 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                   </div>
                   <div className="p-2 rounded bg-neutral-950 border border-neutral-800">
                     <span className="text-neutral-500 block text-[10px]">Duration</span>
-                    <span className="font-mono text-neutral-200">{selectedRequest.duration ?? "—"} ms</span>
+                    <span className="font-mono text-neutral-200">
+                      {selectedRequest.duration ?? "—"} ms
+                    </span>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-neutral-500 font-semibold uppercase text-[10px] tracking-wider">
-                      Response Body Preview (First X=200 Characters)
-                    </div>
-                    {selectedRequest.responseBodyPreview && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 font-mono">
-                        {selectedRequest.responseBodyPreview.length} chars
+                {/* Accordion: Expose first 250 chars and allow unfolding & clicking to expose whole body */}
+                <details
+                  className="border border-neutral-800 rounded-xl bg-neutral-950/60 overflow-hidden"
+                  open
+                >
+                  <summary className="flex items-center justify-between p-3 cursor-pointer bg-neutral-900/70 hover:bg-neutral-800/70 select-none">
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className="w-4 h-4 text-neutral-400 group-open:rotate-180 transition-transform" />
+                      <span className="text-neutral-300 font-semibold uppercase text-[10px] tracking-wider">
+                        Response Body (First 250 Chars Accordion)
                       </span>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {selectedRequest.responseBodyPreview && (
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 font-mono">
+                          {showFullBody && selectedRequest.fullResponseBody
+                            ? `${selectedRequest.fullResponseBody.length} chars (full)`
+                            : `${selectedRequest.responseBodyPreview.length} / 250 chars`}
+                        </span>
+                      )}
+                    </div>
+                  </summary>
+
+                  <div className="p-3 space-y-2.5 border-t border-neutral-800/80">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-[11px] text-neutral-400">
+                        {showFullBody
+                          ? "Showing complete response body:"
+                          : "Showing first 250 characters. Unfold / click below to expose whole body:"}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedRequest.fullResponseBody &&
+                          selectedRequest.fullResponseBody.length > 250 && (
+                            <button
+                              id="toggle-full-response-body-button"
+                              type="button"
+                              onClick={() => setShowFullBody((prev) => !prev)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11px] transition shadow-sm"
+                            >
+                              {showFullBody ? (
+                                <>
+                                  <Minimize2 className="w-3.5 h-3.5" />
+                                  <span>Show First 250 Chars</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                  <span>
+                                    Expose Whole Response Body (
+                                    {selectedRequest.fullResponseBody.length} chars)
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        {(selectedRequest.fullResponseBody ||
+                          selectedRequest.responseBodyPreview) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy(
+                                selectedRequest.fullResponseBody ||
+                                  selectedRequest.responseBodyPreview ||
+                                  "",
+                                true,
+                              )
+                            }
+                            className="flex items-center gap-1 px-2.5 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-[11px] transition"
+                          >
+                            {copiedBody ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                            <span>{copiedBody ? "Copied" : "Copy Body"}</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div
+                      className="p-3 rounded-lg bg-neutral-950 border border-neutral-800 font-mono text-xs text-emerald-400 whitespace-pre-wrap break-all select-text max-h-[45vh] overflow-y-auto"
+                      data-testid="inspector-response-body"
+                    >
+                      {showFullBody
+                        ? selectedRequest.fullResponseBody ||
+                          selectedRequest.responseBodyPreview ||
+                          "[Empty]"
+                        : selectedRequest.responseBodyPreview
+                          ? selectedRequest.responseBodyPreview
+                          : selectedRequest.isPending
+                            ? "Request in progress…"
+                            : "[Empty or Non-string response]"}
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-neutral-950 border border-neutral-800 font-mono text-xs text-emerald-400 whitespace-pre-wrap break-all">
-                    {selectedRequest.responseBodyPreview
-                      ? selectedRequest.responseBodyPreview
-                      : selectedRequest.isPending
-                        ? "Request in progress…"
-                        : "[Empty or Non-string response]"}
-                  </div>
-                </div>
+                </details>
               </>
             ) : (
               <div className="p-8 text-center text-neutral-500">
-                Select a network request to inspect its 15-char preview.
+                Select a network request to inspect its 250-char preview and accordion.
               </div>
             )}
           </div>

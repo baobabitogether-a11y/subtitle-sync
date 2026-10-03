@@ -113,7 +113,7 @@ jobs:
         with:
           install: false
           start: npm start
-          wait-on: 'http://localhost:3000'
+          wait-on: "http://localhost:3000"
           wait-on-timeout: 30
           command: npm run test:cy:report:web
         continue-on-error: true

@@ -4,7 +4,7 @@
  * and facilitates direct in-app installation or ADB updates.
  */
 
-import { logWarn, logInfo, logError } from './logBuffer';
+import { logWarn, logInfo, logError } from "./logBuffer";
 
 export interface ApkAsset {
   name: string;
@@ -17,7 +17,7 @@ export interface ReleaseArtifactAsset {
   size: number;
   downloadUrl: string;
   isWebArtifact: boolean;
-  type: 'apk' | 'web_zip' | 'web_bundle';
+  type: "apk" | "web_zip" | "web_bundle";
 }
 
 export interface ApkReleaseInfo {
@@ -38,7 +38,7 @@ export interface ApkReleaseInfo {
 }
 
 export interface ArtifactUpdateProgress {
-  state: 'idle' | 'downloading' | 'verifying' | 'applying' | 'ready' | 'error';
+  state: "idle" | "downloading" | "verifying" | "applying" | "ready" | "error";
   percent: number;
   loadedBytes: number;
   totalBytes: number;
@@ -47,23 +47,23 @@ export interface ArtifactUpdateProgress {
   tagName?: string;
 }
 
-export const CURRENT_APK_VERSION = 'v1.0.13';
-export const DEFAULT_REPO =  'mostuf2556/subtitle-sync';
-export const FALLBACK_REPO = 'mostuf2556/subtitle-sync';
+export const CURRENT_APK_VERSION = "v1.0.13";
+export const DEFAULT_REPO = "mostuf2556/subtitle-sync";
+export const FALLBACK_REPO = "mostuf2556/subtitle-sync";
 
 /**
  * Retrieves the active app version, checking if a release artifact hot update was applied
  */
 export function getActiveAppVersion(fallbackVersion = CURRENT_APK_VERSION): string {
-  if (typeof window !== 'undefined' && window.AndroidNativeShell?.getAppliedReleaseArtifactTag) {
+  if (typeof window !== "undefined" && window.AndroidNativeShell?.getAppliedReleaseArtifactTag) {
     try {
       const tag = window.AndroidNativeShell.getAppliedReleaseArtifactTag();
       if (tag) return tag;
     } catch {}
   }
-  if (typeof localStorage !== 'undefined') {
+  if (typeof localStorage !== "undefined") {
     try {
-      const stored = localStorage.getItem('active_release_artifact_tag');
+      const stored = localStorage.getItem("active_release_artifact_tag");
       if (stored) return stored;
     } catch {}
   }
@@ -74,7 +74,7 @@ export function getActiveAppVersion(fallbackVersion = CURRENT_APK_VERSION): stri
  * Format bytes to human readable format (MB/KB)
  */
 export function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) return '0 B';
+  if (!bytes || bytes <= 0) return "0 B";
   const mb = bytes / (1024 * 1024);
   if (mb >= 1) {
     return `${mb.toFixed(1)} MB`;
@@ -91,11 +91,11 @@ export function formatBytes(bytes: number): string {
  *   0 if v1 === v2
  */
 export function compareVersions(v1: string, v2: string): number {
-  const clean1 = v1.replace(/^[^\d]*/, '').trim();
-  const clean2 = v2.replace(/^[^\d]*/, '').trim();
+  const clean1 = v1.replace(/^[^\d]*/, "").trim();
+  const clean2 = v2.replace(/^[^\d]*/, "").trim();
 
-  const parts1 = clean1.split('.').map((p) => parseInt(p, 10) || 0);
-  const parts2 = clean2.split('.').map((p) => parseInt(p, 10) || 0);
+  const parts1 = clean1.split(".").map((p) => parseInt(p, 10) || 0);
+  const parts2 = clean2.split(".").map((p) => parseInt(p, 10) || 0);
 
   const maxLen = Math.max(parts1.length, parts2.length);
   for (let i = 0; i < maxLen; i++) {
@@ -110,7 +110,10 @@ export function compareVersions(v1: string, v2: string): number {
 /**
  * Check if target version is strictly newer than current version
  */
-export function isNewerVersion(latestVersion: string, currentVersion: string = CURRENT_APK_VERSION): boolean {
+export function isNewerVersion(
+  latestVersion: string,
+  currentVersion: string = CURRENT_APK_VERSION,
+): boolean {
   return compareVersions(latestVersion, currentVersion) > 0;
 }
 
@@ -120,7 +123,7 @@ export function isNewerVersion(latestVersion: string, currentVersion: string = C
  */
 export async function checkApkUpdate(
   repo: string = DEFAULT_REPO,
-  currentVersion: string = CURRENT_APK_VERSION
+  currentVersion: string = CURRENT_APK_VERSION,
 ): Promise<ApkReleaseInfo> {
   let releaseData: any = null;
 
@@ -131,13 +134,16 @@ export async function checkApkUpdate(
       const ghUrl = `https://api.github.com/repos/${r}/releases`;
       const ghRes = await fetch(ghUrl, {
         headers: {
-          Accept: 'application/vnd.github.v3+json',
+          Accept: "application/vnd.github.v3+json",
         },
       });
 
       if (!ghRes.ok) {
         if (ghRes.status === 403) {
-          logWarn('CORS / GitHub API', `GitHub API rate limit reached (HTTP 403) for ${r}. Falling back to cached release info.`);
+          logWarn(
+            "CORS / GitHub API",
+            `GitHub API rate limit reached (HTTP 403) for ${r}. Falling back to cached release info.`,
+          );
         }
         continue;
       }
@@ -149,17 +155,17 @@ export async function checkApkUpdate(
       for (const rel of releases) {
         const apk = rel.assets?.find(
           (a: any) =>
-            a.name.toLowerCase().includes('youtube-viewer-debug.apk') ||
-            a.name.toLowerCase().endsWith('.apk')
+            a.name.toLowerCase().includes("youtube-viewer-debug.apk") ||
+            a.name.toLowerCase().endsWith(".apk"),
         );
         const webArtifact = rel.assets?.find(
           (a: any) =>
-            a.name.toLowerCase().includes('web-dist') ||
-            a.name.toLowerCase().includes('dist') ||
-            a.name.toLowerCase().includes('bundle') ||
-            a.name.toLowerCase().includes('artifact') ||
-            a.name.toLowerCase().endsWith('.zip') ||
-            a.name.toLowerCase().endsWith('.tar.gz')
+            a.name.toLowerCase().includes("web-dist") ||
+            a.name.toLowerCase().includes("dist") ||
+            a.name.toLowerCase().includes("bundle") ||
+            a.name.toLowerCase().includes("artifact") ||
+            a.name.toLowerCase().endsWith(".zip") ||
+            a.name.toLowerCase().endsWith(".tar.gz"),
         );
 
         if (apk || webArtifact) {
@@ -168,7 +174,7 @@ export async function checkApkUpdate(
             tagName: rel.tag_name,
             name: rel.name || rel.tag_name,
             publishedAt: rel.published_at,
-            body: rel.body || '',
+            body: rel.body || "",
             htmlUrl: rel.html_url,
             repo: r,
             asset: {
@@ -182,14 +188,14 @@ export async function checkApkUpdate(
                   size: webArtifact.size,
                   downloadUrl: webArtifact.browser_download_url,
                   isWebArtifact: true,
-                  type: 'web_zip',
+                  type: "web_zip",
                 }
               : {
                   name: `${rel.tag_name}-web-artifact.zip`,
                   size: 4194304,
                   downloadUrl: `https://github.com/${r}/archive/refs/tags/${rel.tag_name}.zip`,
                   isWebArtifact: true,
-                  type: 'web_bundle',
+                  type: "web_bundle",
                 },
             hasWebReleaseArtifact: true,
           };
@@ -199,12 +205,19 @@ export async function checkApkUpdate(
       if (releaseData) break;
     } catch (clientErr: any) {
       const isCors =
-        clientErr?.name === 'TypeError' ||
-        String(clientErr?.message || '').toLowerCase().includes('failed to fetch') ||
-        String(clientErr?.message || '').toLowerCase().includes('cors');
+        clientErr?.name === "TypeError" ||
+        String(clientErr?.message || "")
+          .toLowerCase()
+          .includes("failed to fetch") ||
+        String(clientErr?.message || "")
+          .toLowerCase()
+          .includes("cors");
 
       if (isCors) {
-        logWarn('CORS / GitHub API', `Direct client fetch to GitHub API for ${r} blocked by CORS or network failure: ${String(clientErr)}`);
+        logWarn(
+          "CORS / GitHub API",
+          `Direct client fetch to GitHub API for ${r} blocked by CORS or network failure: ${String(clientErr)}`,
+        );
       }
     }
   }
@@ -212,7 +225,9 @@ export async function checkApkUpdate(
   const activeAppVer = getActiveAppVersion(currentVersion);
 
   if (!releaseData || !releaseData.asset) {
-    throw new Error(`Unable to fetch release information or update artifacts for repository "${repo}".`);
+    throw new Error(
+      `Unable to fetch release information or update artifacts for repository "${repo}".`,
+    );
   }
 
   const latestTag = releaseData.tagName;
@@ -243,15 +258,15 @@ export async function checkApkUpdate(
 export async function applyReleaseArtifactHotUpdate(
   downloadUrl: string,
   tagName: string,
-  fileName = 'release-artifact.zip',
-  onProgress?: (progress: ArtifactUpdateProgress) => void
+  fileName = "release-artifact.zip",
+  onProgress?: (progress: ArtifactUpdateProgress) => void,
 ): Promise<{ success: boolean; error?: string }> {
   const updateProgress = (p: ArtifactUpdateProgress) => {
     onProgress?.(p);
   };
 
   updateProgress({
-    state: 'downloading',
+    state: "downloading",
     percent: 1,
     loadedBytes: 0,
     totalBytes: 0,
@@ -259,13 +274,16 @@ export async function applyReleaseArtifactHotUpdate(
     tagName,
   });
 
-  if (typeof window !== 'undefined' && window.AndroidNativeShell?.showToast) {
+  if (typeof window !== "undefined" && window.AndroidNativeShell?.showToast) {
     try {
       window.AndroidNativeShell.showToast(`Downloading web release artifact ${tagName}...`);
     } catch {}
   }
 
-  logInfo('ReleaseArtifact', `Initiating web release artifact update for tag ${tagName} from ${downloadUrl}`);
+  logInfo(
+    "ReleaseArtifact",
+    `Initiating web release artifact update for tag ${tagName} from ${downloadUrl}`,
+  );
 
   try {
     const response = await fetch(downloadUrl);
@@ -273,7 +291,7 @@ export async function applyReleaseArtifactHotUpdate(
       throw new Error(`HTTP ${response.status} ${response.statusText}`);
     }
 
-    const contentLengthHeader = response.headers.get('content-length');
+    const contentLengthHeader = response.headers.get("content-length");
     const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 4 * 1024 * 1024;
 
     let loadedBytes = 0;
@@ -290,10 +308,11 @@ export async function applyReleaseArtifactHotUpdate(
           loadedBytes += value.length;
           const elapsedSec = (Date.now() - startTime) / 1000;
           const speedBps = elapsedSec > 0 ? loadedBytes / elapsedSec : 0;
-          const percent = totalBytes > 0 ? Math.min(99, Math.round((loadedBytes / totalBytes) * 100)) : 50;
+          const percent =
+            totalBytes > 0 ? Math.min(99, Math.round((loadedBytes / totalBytes) * 100)) : 50;
 
           updateProgress({
-            state: 'downloading',
+            state: "downloading",
             percent,
             loadedBytes,
             totalBytes: Math.max(totalBytes, loadedBytes),
@@ -305,7 +324,7 @@ export async function applyReleaseArtifactHotUpdate(
     }
 
     updateProgress({
-      state: 'applying',
+      state: "applying",
       percent: 99,
       loadedBytes,
       totalBytes: Math.max(totalBytes, loadedBytes),
@@ -314,28 +333,34 @@ export async function applyReleaseArtifactHotUpdate(
     });
 
     // If native shell support exists
-    if (typeof window !== 'undefined' && window.AndroidNativeShell?.applyReleaseArtifact) {
+    if (typeof window !== "undefined" && window.AndroidNativeShell?.applyReleaseArtifact) {
       try {
         const success = window.AndroidNativeShell.applyReleaseArtifact(downloadUrl, tagName);
         if (success) {
-          logInfo('ReleaseArtifact', `Successfully applied release artifact ${tagName} via AndroidNativeShell bridge.`);
+          logInfo(
+            "ReleaseArtifact",
+            `Successfully applied release artifact ${tagName} via AndroidNativeShell bridge.`,
+          );
         }
       } catch (nativeErr) {
-        logWarn('ReleaseArtifact', `Native Shell bridge call returned error: ${String(nativeErr)}`);
+        logWarn("ReleaseArtifact", `Native Shell bridge call returned error: ${String(nativeErr)}`);
       }
     }
 
     // Store active release artifact tag in localStorage
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('active_release_artifact_tag', tagName);
-      localStorage.setItem('active_release_artifact_url', downloadUrl);
-      localStorage.setItem('active_release_artifact_applied_at', new Date().toISOString());
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("active_release_artifact_tag", tagName);
+      localStorage.setItem("active_release_artifact_url", downloadUrl);
+      localStorage.setItem("active_release_artifact_applied_at", new Date().toISOString());
     }
 
-    logInfo('ReleaseArtifact', `Web release artifact ${tagName} downloaded and stored in local container state.`);
+    logInfo(
+      "ReleaseArtifact",
+      `Web release artifact ${tagName} downloaded and stored in local container state.`,
+    );
 
     updateProgress({
-      state: 'ready',
+      state: "ready",
       percent: 100,
       loadedBytes,
       totalBytes: Math.max(totalBytes, loadedBytes),
@@ -343,25 +368,27 @@ export async function applyReleaseArtifactHotUpdate(
       tagName,
     });
 
-    if (typeof window !== 'undefined' && window.AndroidNativeShell?.showToast) {
+    if (typeof window !== "undefined" && window.AndroidNativeShell?.showToast) {
       try {
-        window.AndroidNativeShell.showToast(`Release artifact ${tagName} applied successfully! Reloading app...`);
+        window.AndroidNativeShell.showToast(
+          `Release artifact ${tagName} applied successfully! Reloading app...`,
+        );
       } catch {}
     }
 
     // Trigger smooth app reload so the new release artifact takes effect immediately
     setTimeout(() => {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         window.location.reload();
       }
     }, 1200);
 
     return { success: true };
   } catch (err: any) {
-    const errMsg = `Failed to apply web release artifact: ${err.message || 'Network error'}`;
-    logError('ReleaseArtifact', errMsg);
+    const errMsg = `Failed to apply web release artifact: ${err.message || "Network error"}`;
+    logError("ReleaseArtifact", errMsg);
     updateProgress({
-      state: 'error',
+      state: "error",
       percent: 0,
       loadedBytes: 0,
       totalBytes: 0,
@@ -374,7 +401,7 @@ export async function applyReleaseArtifactHotUpdate(
 }
 
 export interface ApkDownloadProgress {
-  state: 'idle' | 'downloading' | 'verifying' | 'ready' | 'installing' | 'error';
+  state: "idle" | "downloading" | "verifying" | "ready" | "installing" | "error";
   percent: number;
   loadedBytes: number;
   totalBytes: number;
@@ -388,22 +415,22 @@ export interface ApkDownloadProgress {
  */
 export async function downloadAndInstallApkWithProgress(
   downloadUrl: string,
-  fileName = 'YouTube-Viewer-debug.apk',
-  onProgress?: (progress: ApkDownloadProgress) => void
+  fileName = "YouTube-Viewer-debug.apk",
+  onProgress?: (progress: ApkDownloadProgress) => void,
 ): Promise<{ success: boolean; blobUrl?: string; error?: string }> {
   const updateProgress = (p: ApkDownloadProgress) => {
     onProgress?.(p);
   };
 
   updateProgress({
-    state: 'downloading',
+    state: "downloading",
     percent: 0,
     loadedBytes: 0,
     totalBytes: 0,
     speedBps: 0,
   });
 
-  if (typeof window !== 'undefined' && window.AndroidNativeShell?.showToast) {
+  if (typeof window !== "undefined" && window.AndroidNativeShell?.showToast) {
     try {
       window.AndroidNativeShell.showToast(`Starting download: ${fileName}`);
     } catch {}
@@ -419,9 +446,9 @@ export async function downloadAndInstallApkWithProgress(
       targetFetchUrl = downloadUrl;
       response = await fetch(targetFetchUrl);
     } catch (directErr: any) {
-      const errMsg = `Network error downloading APK: ${err.message || directErr.message || 'Connection refused'}`;
+      const errMsg = `Network error downloading APK: ${err.message || directErr.message || "Connection refused"}`;
       updateProgress({
-        state: 'error',
+        state: "error",
         percent: 0,
         loadedBytes: 0,
         totalBytes: 0,
@@ -433,10 +460,10 @@ export async function downloadAndInstallApkWithProgress(
   }
 
   if (!response || !response.ok) {
-    const statusText = response ? `HTTP ${response.status} ${response.statusText}` : 'No response';
+    const statusText = response ? `HTTP ${response.status} ${response.statusText}` : "No response";
     const errMsg = `Failed to download APK (${statusText}). Please check your internet connection or use the direct download link.`;
     updateProgress({
-      state: 'error',
+      state: "error",
       percent: 0,
       loadedBytes: 0,
       totalBytes: 0,
@@ -446,13 +473,13 @@ export async function downloadAndInstallApkWithProgress(
     return { success: false, error: errMsg };
   }
 
-  const contentLengthHeader = response.headers.get('content-length');
+  const contentLengthHeader = response.headers.get("content-length");
   const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 15 * 1024 * 1024; // default ~15MB
 
   if (!response.body) {
-    const errMsg = 'Readable stream not supported or empty body received.';
+    const errMsg = "Readable stream not supported or empty body received.";
     updateProgress({
-      state: 'error',
+      state: "error",
       percent: 0,
       loadedBytes: 0,
       totalBytes,
@@ -477,10 +504,11 @@ export async function downloadAndInstallApkWithProgress(
         loadedBytes += value.length;
         const elapsedSec = (Date.now() - startTime) / 1000;
         const speedBps = elapsedSec > 0 ? loadedBytes / elapsedSec : 0;
-        const calculatedPercent = totalBytes > 0 ? Math.min(99, Math.round((loadedBytes / totalBytes) * 100)) : 50;
+        const calculatedPercent =
+          totalBytes > 0 ? Math.min(99, Math.round((loadedBytes / totalBytes) * 100)) : 50;
 
         updateProgress({
-          state: 'downloading',
+          state: "downloading",
           percent: calculatedPercent,
           loadedBytes,
           totalBytes: Math.max(totalBytes, loadedBytes),
@@ -489,9 +517,9 @@ export async function downloadAndInstallApkWithProgress(
       }
     }
   } catch (readErr: any) {
-    const errMsg = `Download interrupted: ${readErr.message || 'Connection lost'}`;
+    const errMsg = `Download interrupted: ${readErr.message || "Connection lost"}`;
     updateProgress({
-      state: 'error',
+      state: "error",
       percent: 0,
       loadedBytes,
       totalBytes,
@@ -503,18 +531,18 @@ export async function downloadAndInstallApkWithProgress(
 
   // Verifying downloaded APK blob
   updateProgress({
-    state: 'verifying',
+    state: "verifying",
     percent: 99,
     loadedBytes,
     totalBytes: loadedBytes,
     speedBps: 0,
   });
 
-  const blob = new Blob(chunks as BlobPart[], { type: 'application/vnd.android.package-archive' });
+  const blob = new Blob(chunks as BlobPart[], { type: "application/vnd.android.package-archive" });
   if (blob.size < 1000) {
-    const errMsg = 'Downloaded file is corrupt or invalid (file size less than 1KB).';
+    const errMsg = "Downloaded file is corrupt or invalid (file size less than 1KB).";
     updateProgress({
-      state: 'error',
+      state: "error",
       percent: 0,
       loadedBytes: blob.size,
       totalBytes: blob.size,
@@ -527,7 +555,7 @@ export async function downloadAndInstallApkWithProgress(
   const blobUrl = URL.createObjectURL(blob);
 
   updateProgress({
-    state: 'installing',
+    state: "installing",
     percent: 100,
     loadedBytes: blob.size,
     totalBytes: blob.size,
@@ -535,29 +563,31 @@ export async function downloadAndInstallApkWithProgress(
     blobUrl,
   });
 
-  if (typeof window !== 'undefined' && window.AndroidNativeShell?.showToast) {
+  if (typeof window !== "undefined" && window.AndroidNativeShell?.showToast) {
     try {
-      window.AndroidNativeShell.showToast(`Download complete (${formatBytes(blob.size)}). Opening installer...`);
+      window.AndroidNativeShell.showToast(
+        `Download complete (${formatBytes(blob.size)}). Opening installer...`,
+      );
     } catch {}
   }
 
   // Trigger browser/system download & install prompt
   try {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = blobUrl;
     link.download = fileName;
-    link.style.display = 'none';
+    link.style.display = "none";
     document.body.appendChild(link);
     link.click();
     setTimeout(() => {
       document.body.removeChild(link);
     }, 1000);
   } catch (clickErr: any) {
-    console.warn('Click download trigger failed:', clickErr);
+    console.warn("Click download trigger failed:", clickErr);
   }
 
   updateProgress({
-    state: 'ready',
+    state: "ready",
     percent: 100,
     loadedBytes: blob.size,
     totalBytes: blob.size,
@@ -572,9 +602,9 @@ export async function downloadAndInstallApkWithProgress(
  * Triggers in-app installation of the APK
  * In Android WebView/Chrome, initiating download prompts the Android Package Installer.
  */
-export function installApkViaApp(downloadUrl: string, fileName = 'YouTube-Viewer-debug.apk'): void {
+export function installApkViaApp(downloadUrl: string, fileName = "YouTube-Viewer-debug.apk"): void {
   // 1. If in Android Native Shell, show a native toast
-  if (typeof window !== 'undefined' && window.AndroidNativeShell?.showToast) {
+  if (typeof window !== "undefined" && window.AndroidNativeShell?.showToast) {
     try {
       window.AndroidNativeShell.showToast(`Downloading ${fileName}... Opening package installer.`);
     } catch {
@@ -584,18 +614,18 @@ export function installApkViaApp(downloadUrl: string, fileName = 'YouTube-Viewer
 
   // 2. Trigger browser download
   try {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = downloadUrl;
-    link.setAttribute('download', fileName);
-    link.setAttribute('target', '_blank');
-    link.rel = 'noopener noreferrer';
+    link.setAttribute("download", fileName);
+    link.setAttribute("target", "_blank");
+    link.rel = "noopener noreferrer";
     document.body.appendChild(link);
     link.click();
     setTimeout(() => {
       document.body.removeChild(link);
     }, 200);
   } catch {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       window.location.href = downloadUrl;
     }
   }

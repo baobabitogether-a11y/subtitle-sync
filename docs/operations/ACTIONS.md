@@ -8,18 +8,19 @@ This document details the automated GitHub Actions CI/CD workflows, build pipeli
 
 The repository maintains four dedicated GitHub Actions workflows to guarantee test coverage, release automation, and continuous live demonstration across Web and Android platforms:
 
-| Workflow File | Trigger Events | Primary Responsibilities | Target Artifacts |
-| :--- | :--- | :--- | :--- |
-| **`release-apk.yml`** | Tag push (`v*`), Manual dispatch | Compiles Android native debug APK and packages web bundle. | `YouTube-Viewer-debug.apk`, `web-dist.zip` |
-| **`web.yml`** | Push to `main`, PRs | Runs web companion end-to-end tests across Playwright and Cypress. | Playwright trace, Mochawesome HTML reports |
-| **`emulation.yml`** | Push to `main`, PRs | Runs Android emulator instrumentation and WebView interception tests. | `android-emulator-report.html`, logcat captures |
-| **`deploy-demo.yml`** | Push to `main` (auto) | Builds production web demo and deploys to GitHub Pages (`gh-pages`). | GitHub Pages web app and test dashboards |
+| Workflow File         | Trigger Events                   | Primary Responsibilities                                              | Target Artifacts                                |
+| :-------------------- | :------------------------------- | :-------------------------------------------------------------------- | :---------------------------------------------- |
+| **`release-apk.yml`** | Tag push (`v*`), Manual dispatch | Compiles Android native debug APK and packages web bundle.            | `YouTube-Viewer-debug.apk`, `web-dist.zip`      |
+| **`web.yml`**         | Push to `main`, PRs              | Runs web companion end-to-end tests across Playwright and Cypress.    | Playwright trace, Mochawesome HTML reports      |
+| **`emulation.yml`**   | Push to `main`, PRs              | Runs Android emulator instrumentation and WebView interception tests. | `android-emulator-report.html`, logcat captures |
+| **`deploy-demo.yml`** | Push to `main` (auto)            | Builds production web demo and deploys to GitHub Pages (`gh-pages`).  | GitHub Pages web app and test dashboards        |
 
 ---
 
 ## 2. Workflow Specifications
 
 ### 2.1 Release APK & Web Bundle (`release-apk.yml`)
+
 - **Objective**: Generates release-ready binary artifacts whenever a version tag (`vX.Y.Z`) is pushed to the repository.
 - **Key Steps**:
   1. Sets up JDK 17 and Android SDK environment.
@@ -30,6 +31,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
 - **Update Channel**: Consumed by `update.apk.sh` (ADB CLI installer) and `src/utils/apkUpdater.ts` (in-app OTA hot-updater).
 
 ### 2.2 Web Companion E2E Suite (`web.yml`)
+
 - **Objective**: Automated browser validation in headless Linux CI environments.
 - **Key Steps**:
   1. Checks out repository and configures Node.js 20.
@@ -41,6 +43,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
   7. Publishes test artifacts to GitHub Actions run summaries.
 
 ### 2.3 Android Emulator Suite (`emulation.yml`)
+
 - **Objective**: Runs unmocked Android WebView network interception and hardware TTS synchronization on an Android emulator (API 34).
 - **Key Steps**:
   1. Initializes KVM hardware-accelerated Android emulator.
@@ -53,6 +56,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
   5. Generates `android-emulator-report.html` and captures logcat streams.
 
 ### 2.4 GitHub Pages Deployment (`deploy-demo.yml`)
+
 - **Objective**: Continuously publishes the latest static companion app and test artifacts to GitHub Pages (`gh-pages` branch).
 - **Target URL**: `https://mostuf25561.github.io/subtitle-sync/`
 - **Prerequisites**: Ensure GitHub Pages is enabled in repository settings: **Settings > Pages > Build and deployment > Source: Deploy from a branch (`gh-pages` / `/root`)**.
@@ -66,6 +70,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
 ## 3. Test Failure Diagnostics & CI Log Triage
 
 Whenever diagnosing or rectifying test failures across automated CI pipelines:
+
 - **Reference Architecture**: Inspect and compare solutions against baseline reference repository [https://github.com/mostuf2556/Youtubenet6](https://github.com/mostuf2556/Youtubenet6).
 - **Active CI Workflows**:
   - **APK Release Pipeline**: [https://github.com/mostuf25561/subtitle-sync/actions/workflows/release-apk.yml](https://github.com/mostuf25561/subtitle-sync/actions/workflows/release-apk.yml)

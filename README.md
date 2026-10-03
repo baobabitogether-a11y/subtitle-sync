@@ -1,6 +1,5 @@
 # YouTube Subtitle & Speech Flow Viewer
 
-
 [![Build & Release Android APK](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml)
 [![Web E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml)
 [![Android Emulator E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml)
@@ -19,6 +18,7 @@ curl -fsSL https://raw.githubusercontent.com/mostuf2556/subtitle-sync/main/updat
 ```
 
 ### What this command does:
+
 1. **Locates ADB**: Automatically detects `adb` across Windows (Git Bash / MSYS2 / CMD), macOS, and Linux.
 2. **Downloads APK**: Streams the latest debug APK from the GitHub release to the local downloads folder.
 3. **Installs onto Device**: Executes `adb install -r -d -t` targeting package `com.ytviewer.app` with multi-tiered fallback pipelines.
@@ -30,10 +30,10 @@ curl -fsSL https://raw.githubusercontent.com/mostuf2556/subtitle-sync/main/updat
 
 Access the live web application:
 
-| Resource | Direct URL | Description |
-| :--- | :--- | :--- |
-| 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf2556.github.io/subtitle-sync/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
-| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification. |
+| Resource                           | Direct URL                                                                                                                    | Description                                                                                                                                                  |
+| :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🚀 **Web-App Demo Landing Page**   | [**Open Live Web Demo**](https://mostuf2556.github.io/subtitle-sync/)                                                         | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
+| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification.                                                              |
 
 > **Note on GitHub Pages Availability:**
 > Artifacts and demo assets are automatically published to the `gh-pages` branch on every push. To access the live web demo and screenshot URLs, ensure GitHub Pages is enabled in repository settings:
@@ -45,18 +45,18 @@ Access the live web application:
 
 The project is governed by strict Markdown contracts that decouple visual view implementations from data acquisition and platform internals. Any view can be recreated or swapped using different tools and frameworks by following these specifications:
 
-| Document | Purpose & Scope |
-| :--- | :--- |
-| **[`AGENTS.md`](./AGENTS.md)** | Core architectural foundation, pure view mandates, data-flow boundaries, and testing phases. |
-| **[`ACTIONS.md`](./docs/operations/ACTIONS.md)** | GitHub Actions CI/CD guide: APK release, web testing, emulator pipelines, and artifact flow. |
-| **[`LIBRARY.md`](./docs/specifications/LIBRARY.md)** | JSON3 subtitle fixture library schema (`test/fixtures/<VIDEO_ID>/*.json`) and verification. |
-| **[`DESIGN_SUBTITLE_VIEWS.md`](./docs/designs/DESIGN_SUBTITLE_VIEWS.md)** | Replaceable view contract for subtitle renderers (injected cues, active state, intent dispatch). |
-| **[`DESIGN_VIEW_LANGS.md`](./docs/designs/DESIGN_VIEW_LANGS.md)** | Replaceable view contract for language selectors (injected language options, selection dispatch). |
-| **[`DESIGN_CONTROLS_VIEW.md`](./docs/designs/DESIGN_CONTROLS_VIEW.md)** | Replaceable view contract for media playback controls (injected playback metrics, intent callbacks). |
-| **[`DESIGN_PLAYER_PROVIDER.md`](./docs/designs/DESIGN_PLAYER_PROVIDER.md)** | Vendor-agnostic media player controller and time-synchronization contract. |
-| **[`DESIGN_STATE_COORDINATOR.md`](./docs/designs/DESIGN_STATE_COORDINATOR.md)** | Finite state machine, lifecycle transitions, active cue resolution, and state flow. |
-| **[`SCHEMA_TIMEDTEXT.md`](./docs/specifications/SCHEMA_TIMEDTEXT.md)** | Format definitions, segment timings, entity decoding, and RTL/BiDi normalization. |
-| **[`DEBUG.md`](./docs/operations/DEBUG.md)** | Diagnostic log viewer, network interception, 200-char response preview, and AI troubleshooting prompt generator. |
+| Document                                                                        | Purpose & Scope                                                                                                  |
+| :------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------- |
+| **[`AGENTS.md`](./AGENTS.md)**                                                  | Core architectural foundation, pure view mandates, data-flow boundaries, and testing phases.                     |
+| **[`ACTIONS.md`](./docs/operations/ACTIONS.md)**                                | GitHub Actions CI/CD guide: APK release, web testing, emulator pipelines, and artifact flow.                     |
+| **[`LIBRARY.md`](./docs/specifications/LIBRARY.md)**                            | JSON3 subtitle fixture library schema (`test/fixtures/<VIDEO_ID>/*.json`) and verification.                      |
+| **[`DESIGN_SUBTITLE_VIEWS.md`](./docs/designs/DESIGN_SUBTITLE_VIEWS.md)**       | Replaceable view contract for subtitle renderers (injected cues, active state, intent dispatch).                 |
+| **[`DESIGN_VIEW_LANGS.md`](./docs/designs/DESIGN_VIEW_LANGS.md)**               | Replaceable view contract for language selectors (injected language options, selection dispatch).                |
+| **[`DESIGN_CONTROLS_VIEW.md`](./docs/designs/DESIGN_CONTROLS_VIEW.md)**         | Replaceable view contract for media playback controls (injected playback metrics, intent callbacks).             |
+| **[`DESIGN_PLAYER_PROVIDER.md`](./docs/designs/DESIGN_PLAYER_PROVIDER.md)**     | Vendor-agnostic media player controller and time-synchronization contract.                                       |
+| **[`DESIGN_STATE_COORDINATOR.md`](./docs/designs/DESIGN_STATE_COORDINATOR.md)** | Finite state machine, lifecycle transitions, active cue resolution, and state flow.                              |
+| **[`SCHEMA_TIMEDTEXT.md`](./docs/specifications/SCHEMA_TIMEDTEXT.md)**          | Format definitions, segment timings, entity decoding, and RTL/BiDi normalization.                                |
+| **[`DEBUG.md`](./docs/operations/DEBUG.md)**                                    | Diagnostic log viewer, network interception, 200-char response preview, and AI troubleshooting prompt generator. |
 
 ---
 

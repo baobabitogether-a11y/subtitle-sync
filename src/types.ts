@@ -25,18 +25,18 @@ export interface PlayerOptions {
 }
 
 export type YouTubeFormatType =
-  | 'standard_watch'
-  | 'short_link'
-  | 'shorts'
-  | 'live'
-  | 'embed'
-  | 'iframe_code'
-  | 'legacy_v'
-  | 'attribution'
-  | 'raw_id'
-  | 'text_extracted'
-  | 'playlist_video'
-  | 'mobile_watch';
+  | "standard_watch"
+  | "short_link"
+  | "shorts"
+  | "live"
+  | "embed"
+  | "iframe_code"
+  | "legacy_v"
+  | "attribution"
+  | "raw_id"
+  | "text_extracted"
+  | "playlist_video"
+  | "mobile_watch";
 
 export interface ParsedYouTubeResult {
   videoId: string;
@@ -64,13 +64,13 @@ export interface TargetLanguage {
   color?: string;
 }
 
-export type SyncPlayOrder = 'video_first' | 'tts_first';
+export type SyncPlayOrder = "video_first" | "tts_first";
 
 export interface TTSStatus {
   isSpeaking: boolean;
   currentLang?: string;
   currentText?: string;
-  engine: 'android_native' | 'web_speech';
+  engine: "android_native" | "web_speech";
 }
 
 export interface YouTubePlayerHandle {
@@ -90,25 +90,25 @@ export interface InterceptedCaptionData {
   method: string;
   status: number;
   contentType: string;
-  format: 'json3' | 'unknown';
+  format: "json3" | "unknown";
   rawData: string;
   bytes: number;
   cues: CaptionCue[];
-  source: 'native_webview_interceptor' | 'simulated_test';
+  source: "native_webview_interceptor" | "simulated_test";
 }
 
 export type TranslationSource =
-  | 'youtube_native'
-  | 'youtube_native_client'
-  | 'youtube_native_android'
-  | 'google_translate_fallback'
-  | 'sample_offline';
+  | "youtube_native"
+  | "youtube_native_client"
+  | "youtube_native_android"
+  | "google_translate_fallback"
+  | "sample_offline";
 
 export interface YouTubeNativeTranslationResult {
   success: boolean;
   source: TranslationSource;
   targetLang: string;
-  format?: 'json3' | 'unknown';
+  format?: "json3" | "unknown";
   cues?: CaptionCue[];
   translations?: Record<string, string>;
   error?: string;
@@ -140,4 +140,3 @@ declare global {
     onYouTubeIframeAPIReady?: () => void;
   }
 }
-

@@ -1,20 +1,21 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { parseRawCaptionData } from '../src/utils/captionParser';
+import fs from "node:fs";
+import path from "node:path";
+import { parseRawCaptionData } from "../src/utils/captionParser";
 
 const fixtureRoot = process.cwd();
 const cases = [
   {
-    directory: path.join(fixtureRoot, 'test/fixtures/L2Ryrr6txwA'),
-    extension: '.json',
-    expectedFormat: 'json3' as const,
+    directory: path.join(fixtureRoot, "test/fixtures/L2Ryrr6txwA"),
+    extension: ".json",
+    expectedFormat: "json3" as const,
   },
 ];
 
 let checked = 0;
 
 for (const testCase of cases) {
-  const files = fs.readdirSync(testCase.directory)
+  const files = fs
+    .readdirSync(testCase.directory)
     .filter((file) => file.endsWith(testCase.extension))
     .sort();
 
@@ -23,7 +24,7 @@ for (const testCase of cases) {
   }
 
   for (const file of files) {
-    const raw = fs.readFileSync(path.join(testCase.directory, file), 'utf8');
+    const raw = fs.readFileSync(path.join(testCase.directory, file), "utf8");
     const parsed = parseRawCaptionData(raw);
     if (parsed.format !== testCase.expectedFormat || parsed.cues.length === 0) {
       throw new Error(

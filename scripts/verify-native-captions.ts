@@ -27,11 +27,7 @@ assert.strictEqual(
   "en",
   "Base language parameter must be preserved",
 );
-assert.strictEqual(
-  parsedSame.searchParams.get("fmt"),
-  "json3",
-  "Format parameter must be json3",
-);
+assert.strictEqual(parsedSame.searchParams.get("fmt"), "json3", "Format parameter must be json3");
 console.log("✅ PASS: Native language fetching strips invalid tlang");
 
 // 2. Verify URL building when targetLanguage is different from original lang
@@ -94,7 +90,7 @@ const mainActivityPath = path.join(
 );
 const mainActivityContent = fs.readFileSync(mainActivityPath, "utf8");
 assert(
-  mainActivityContent.includes("uri.getQueryParameter(\"lang\")"),
+  mainActivityContent.includes('uri.getQueryParameter("lang")'),
   "MainActivity.kt must inspect original lang parameter to avoid invalid tlang",
 );
 assert(
@@ -103,12 +99,12 @@ assert(
 );
 console.log("✅ PASS: MainActivity.kt Kotlin bridge and telemetry verified");
 
-// 6. Verify default favorite languages configuration
+// 6. Verify no hardcoded default subtitle language
 const appSettingsPath = path.join(process.cwd(), "src/utils/appSettings.ts");
 const appSettingsContent = fs.readFileSync(appSettingsPath, "utf8");
 assert(
-  appSettingsContent.includes("learningLanguages: ['he', 'it']"),
-  "DEFAULT_APP_SETTINGS must configure ['he', 'it'] as default favorite languages",
+  appSettingsContent.includes("learningLanguages: []"),
+  "DEFAULT_APP_SETTINGS must configure empty list (no hardcoded default subtitle language)",
 );
 
 const indexRoutePath = path.join(process.cwd(), "src/routes/index.tsx");
@@ -118,10 +114,12 @@ assert(
   "index.tsx must initialize targetLanguages from getUserLearningLanguages()",
 );
 assert(
-  indexRouteContent.includes("return [\"he\", \"it\"];"),
-  "index.tsx must fall back to ['he', 'it'] favorite languages",
+  !indexRouteContent.includes('return ["he", "it"];'),
+  "index.tsx must NOT fall back to ['he', 'it'] default subtitle language",
 );
-console.log("✅ PASS: Favorite languages prioritize ordered Hebrew and Italian");
+console.log(
+  "✅ PASS: Verified no default subtitles language is hardcoded (clean unconstrained language configuration)",
+);
 
 console.log("====================================================");
 console.log("📊 NATIVE CAPTIONS TEST: All tests passed!");

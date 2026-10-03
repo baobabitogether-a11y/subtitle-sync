@@ -1,12 +1,12 @@
-import { CaptionCue, LibraryVideoItem } from '../types';
-import { cleanAndFixEncoding } from './captionParser';
-import { STORAGE_KEYS } from '../config/appConfig';
-import { SAMPLE_AUTHENTIC_RUSSIAN_URL } from '../config/fixtures';
+import { CaptionCue, LibraryVideoItem } from "../types";
+import { cleanAndFixEncoding } from "./captionParser";
+import { STORAGE_KEYS } from "../config/appConfig";
+import { SAMPLE_AUTHENTIC_RUSSIAN_URL } from "../config/fixtures";
 import {
   getCachedJson3ForVideoAndLanguage,
   hasCachedJson3ForVideoAndLanguage,
   getAllCachedLanguageCodesForVideo,
-} from '../../test/fixtures/defaultSubtitles';
+} from "../../test/fixtures/defaultSubtitles";
 
 const SUBTITLE_CACHE_PREFIX = STORAGE_KEYS.SUBTITLE_CACHE_PREFIX;
 const LIBRARY_STORAGE_KEY = STORAGE_KEYS.LIBRARY_STORAGE_KEY;
@@ -16,7 +16,7 @@ const LAST_ACTIVE_VIDEO_KEY = STORAGE_KEYS.LAST_ACTIVE_VIDEO_KEY;
 const memoryCache = new Map<string, CaptionCue[]>();
 
 function isStorageAvailable(): boolean {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
 export interface CachedSubtitleData {
@@ -33,7 +33,7 @@ export interface CachedSubtitleData {
 export function sanitizeCues(cues: CaptionCue[]): CaptionCue[] {
   if (!Array.isArray(cues)) return [];
   return cues
-    .filter((cue) => cue && typeof cue.text === 'string' && typeof cue.start === 'number')
+    .filter((cue) => cue && typeof cue.text === "string" && typeof cue.start === "number")
     .map((cue, idx) => ({
       id: cue.id || `cue-${idx + 1}`,
       start: Number(cue.start) || 0,
@@ -133,7 +133,7 @@ export function hasCachedSubtitles(videoId: string): boolean {
 export function saveCachedSubtitles(
   videoId: string,
   cues: CaptionCue[],
-  meta?: { title?: string; originalUrl?: string }
+  meta?: { title?: string; originalUrl?: string },
 ): void {
   if (!videoId || !Array.isArray(cues) || cues.length === 0) return;
 
@@ -155,18 +155,15 @@ export function saveCachedSubtitles(
   };
 
   try {
-    localStorage.setItem(
-      `${SUBTITLE_CACHE_PREFIX}${videoId}`,
-      JSON.stringify(dataToSave)
-    );
+    localStorage.setItem(`${SUBTITLE_CACHE_PREFIX}${videoId}`, JSON.stringify(dataToSave));
   } catch (err) {
-    console.warn('[SubtitleCache] LocalStorage quota exceeded, pruning old cached subtitles...', err);
+    console.warn(
+      "[SubtitleCache] LocalStorage quota exceeded, pruning old cached subtitles...",
+      err,
+    );
     pruneOldSubtitleCaches();
     try {
-      localStorage.setItem(
-        `${SUBTITLE_CACHE_PREFIX}${videoId}`,
-        JSON.stringify(dataToSave)
-      );
+      localStorage.setItem(`${SUBTITLE_CACHE_PREFIX}${videoId}`, JSON.stringify(dataToSave));
     } catch {
       // If still fails, memory cache remains active
     }
@@ -184,7 +181,7 @@ function pruneOldSubtitleCaches(): void {
       const k = localStorage.key(i);
       if (k && k.startsWith(SUBTITLE_CACHE_PREFIX)) {
         try {
-          const val = JSON.parse(localStorage.getItem(k) || '{}');
+          const val = JSON.parse(localStorage.getItem(k) || "{}");
           keys.push({ key: k, time: val.timestamp || 0 });
         } catch {
           keys.push({ key: k, time: 0 });
@@ -208,7 +205,7 @@ export function saveLastActiveVideo(videoId: string, url: string): void {
   try {
     localStorage.setItem(
       LAST_ACTIVE_VIDEO_KEY,
-      JSON.stringify({ videoId, url, timestamp: Date.now() })
+      JSON.stringify({ videoId, url, timestamp: Date.now() }),
     );
   } catch {}
 }
@@ -223,7 +220,10 @@ export function getLastActiveVideo(): { videoId: string; url: string } | null {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.videoId) {
-        return { videoId: parsed.videoId, url: parsed.url || `https://www.youtube.com/watch?v=${parsed.videoId}` };
+        return {
+          videoId: parsed.videoId,
+          url: parsed.url || `https://www.youtube.com/watch?v=${parsed.videoId}`,
+        };
       }
     }
   } catch {}
@@ -269,7 +269,7 @@ export function getObservedTimedTextUrl(videoId: string): string | null {
  * Returns authentic Hebrew subtitles for the default JSON3 demo video.
  */
 export function getAuthenticHebrewCuesForDefaultVideo(): CaptionCue[] {
-  const json3Cues = getCachedJson3ForVideoAndLanguage('L2Ryrr6txwA', 'he');
+  const json3Cues = getCachedJson3ForVideoAndLanguage("L2Ryrr6txwA", "he");
   return json3Cues || [];
 }
 
@@ -278,8 +278,8 @@ export function getAuthenticHebrewCuesForDefaultVideo(): CaptionCue[] {
  */
 export function hasCachedTargetSubtitles(videoId: string, targetLang: string): boolean {
   if (!videoId || !targetLang) return false;
-  let cleanLang = targetLang.toLowerCase().split('-')[0];
-  if (cleanLang === 'iw' || cleanLang === 'il') cleanLang = 'he';
+  let cleanLang = targetLang.toLowerCase().split("-")[0];
+  if (cleanLang === "iw" || cleanLang === "il") cleanLang = "he";
   const targetKey = `${SUBTITLE_CACHE_PREFIX}${videoId}_${cleanLang}`;
   if (hasCachedJson3ForVideoAndLanguage(videoId, cleanLang)) return true;
   if (memoryCache.has(targetKey)) return true;
@@ -299,8 +299,8 @@ export function hasCachedTargetSubtitles(videoId: string, targetLang: string): b
  */
 export function getCachedTargetSubtitles(videoId: string, targetLang: string): CaptionCue[] | null {
   if (!videoId || !targetLang) return null;
-  let cleanLang = targetLang.toLowerCase().split('-')[0];
-  if (cleanLang === 'iw' || cleanLang === 'il') cleanLang = 'he';
+  let cleanLang = targetLang.toLowerCase().split("-")[0];
+  if (cleanLang === "iw" || cleanLang === "il") cleanLang = "he";
   const targetKey = `${SUBTITLE_CACHE_PREFIX}${videoId}_${cleanLang}`;
 
   // 1. Real JSON3 fixtures
@@ -339,9 +339,13 @@ export function getCachedTargetSubtitles(videoId: string, targetLang: string): C
 /**
  * Saves cached target language subtitles for a video ID
  */
-export function saveCachedTargetSubtitles(videoId: string, targetLang: string, cues: CaptionCue[]): void {
+export function saveCachedTargetSubtitles(
+  videoId: string,
+  targetLang: string,
+  cues: CaptionCue[],
+): void {
   if (!videoId || !targetLang || !cues || cues.length === 0) return;
-  const cleanLang = targetLang.toLowerCase().split('-')[0];
+  const cleanLang = targetLang.toLowerCase().split("-")[0];
   const targetKey = `${SUBTITLE_CACHE_PREFIX}${videoId}_${cleanLang}`;
   const sanitized = sanitizeCues(cues);
   memoryCache.set(targetKey, sanitized);
@@ -354,7 +358,7 @@ export function saveCachedTargetSubtitles(videoId: string, targetLang: string, c
         lang: cleanLang,
         cues: sanitized,
         timestamp: Date.now(),
-      })
+      }),
     );
   } catch {}
 }
@@ -379,7 +383,7 @@ export function getAllCachedTargetLanguages(videoId: string): string[] {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
         if (k && k.startsWith(prefix)) {
-          const lang = k.replace(prefix, '');
+          const lang = k.replace(prefix, "");
           if (lang) set.add(lang.toLowerCase());
         }
       }
@@ -390,7 +394,7 @@ export function getAllCachedTargetLanguages(videoId: string): string[] {
   for (const key of memoryCache.keys()) {
     const prefix = `${SUBTITLE_CACHE_PREFIX}${videoId}_`;
     if (key.startsWith(prefix)) {
-      const lang = key.replace(prefix, '');
+      const lang = key.replace(prefix, "");
       if (lang) set.add(lang.toLowerCase());
     }
   }
@@ -415,5 +419,3 @@ export function clearSubtitleCache(): void {
     keysToRemove.forEach((k) => localStorage.removeItem(k));
   } catch {}
 }
-
-

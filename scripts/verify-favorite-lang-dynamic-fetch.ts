@@ -20,7 +20,7 @@ assert(
   "handleTargetLanguagesChange must invoke fetchFavoriteLanguageSubtitles for newly added languages",
 );
 assert(
-  indexRouteContent.includes("buildTranslatedCaptionUrl(activeUrl, code, \"json3\")"),
+  indexRouteContent.includes('buildTranslatedCaptionUrl(activeUrl, code, "json3")'),
   "fetchFavoriteLanguageSubtitles must build translated caption URL for each language",
 );
 assert(

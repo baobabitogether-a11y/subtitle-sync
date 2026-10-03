@@ -6,15 +6,15 @@ on:
       - main
       - master
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag (e.g. v1.0.0). Leave blank to auto-generate from run number'
+        description: "Release Tag (e.g. v1.0.0). Leave blank to auto-generate from run number"
         required: false
-        default: ''
+        default: ""
       is_prerelease:
-        description: 'Mark release as pre-release'
+        description: "Mark release as pre-release"
         required: false
         type: boolean
         default: false
@@ -73,8 +73,8 @@ jobs:
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -104,7 +104,7 @@ jobs:
       - name: Package & Verify APK & OTA Artifacts
         run: |
           mkdir -p release-artifacts
-          
+
           # Create web-dist.zip release artifact for OTA hot updates without APK reinstallation
           if [ -d "dist" ]; then
             echo "Packaging web build output into release-artifacts/web-dist.zip for OTA updates..."
@@ -113,7 +113,7 @@ jobs:
 
           # Find and copy debug APK
           find android-shell/app/build/outputs/apk/debug -type f -name "*.apk" -exec cp {} release-artifacts/YouTube-Viewer-debug.apk \; 2>/dev/null || true
-          
+
           # If debug APK was not in standard folder, find first available apk
           if [ ! -f "release-artifacts/YouTube-Viewer-debug.apk" ]; then
             first_apk=$(find android-shell/app/build/outputs/apk -type f -name "*.apk" 2>/dev/null | head -n 1)
@@ -128,7 +128,7 @@ jobs:
               sha256sum "$item" > "${item}.sha256"
             fi
           done
-          
+
           echo "=== COMPILED APK & OTA RELEASE ARTIFACTS ==="
           ls -lh
           echo "============================================"
@@ -155,7 +155,7 @@ jobs:
             TAG="v1.0.${{ github.run_number }}"
             TITLE="YouTube Viewer v1.0 (Build ${{ github.run_number }})"
           fi
-          
+
           echo "TAG=${TAG}" >> "$GITHUB_OUTPUT"
           echo "TITLE=${TITLE}" >> "$GITHUB_OUTPUT"
           echo "Computed Tag: ${TAG}"
@@ -193,4 +193,3 @@ jobs:
             - **Signed & Verified**: Compatible with Android 7.0+ to Android 14 (API 24 to 35).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

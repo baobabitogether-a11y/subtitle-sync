@@ -8,7 +8,9 @@ const router = getRouter();
 
 // Startup signals read by the Android e2e test (scripts/android-e2e-assert.sh) via logcat.
 window.addEventListener("error", (e) => console.error("[APP_BOOT_ERROR]", e.message));
-window.addEventListener("unhandledrejection", (e) => console.error("[APP_BOOT_ERROR]", String(e.reason)));
+window.addEventListener("unhandledrejection", (e) =>
+  console.error("[APP_BOOT_ERROR]", String(e.reason)),
+);
 
 const rootElement = document.getElementById("root");
 if (rootElement) {

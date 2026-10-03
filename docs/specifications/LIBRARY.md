@@ -41,6 +41,7 @@ test/fixtures/
 ---
 
 ## 3. YouTube JSON3 Timed Text (`.json`)
+
 - **Extension**: `.json` (Note: Represents the YouTube timedtext JSON3 schema; not arbitrary JSON).
 - **Structure**:
   - Root `events` array containing timed caption event objects.
@@ -55,19 +56,19 @@ test/fixtures/
 ## 4. How Fixtures Are Consumed by the Web Companion
 
 1. **Provider Resolution**:
-  When a user loads a video or selects a language track, the fixture provider scans `test/fixtures/<VIDEO_ID>/` for matching JSON3 files by language code.
+   When a user loads a video or selects a language track, the fixture provider scans `test/fixtures/<VIDEO_ID>/` for matching JSON3 files by language code.
 2. **Format Normalization**:
-  The parser parses the JSON3 file and normalizes it into a common `CaptionCue[]` array:
+   The parser parses the JSON3 file and normalizes it into a common `CaptionCue[]` array:
    ```ts
    interface CaptionCue {
-     id: string;        // Unique identifier (e.g. "cue-1", "0")
-     start: number;     // Start timestamp in seconds (float)
-     duration: number;  // Display duration in seconds (float)
-     text: string;      // Normalized subtitle display text
+     id: string; // Unique identifier (e.g. "cue-1", "0")
+     start: number; // Start timestamp in seconds (float)
+     duration: number; // Display duration in seconds (float)
+     text: string; // Normalized subtitle display text
    }
    ```
 3. **Dependency Injection**:
-  The normalized `CaptionCue[]` array is injected into the pure subtitle renderer views defined in `DESIGN_SUBTITLE_VIEWS.md`.
+   The normalized `CaptionCue[]` array is injected into the pure subtitle renderer views defined in `DESIGN_SUBTITLE_VIEWS.md`.
 
 ---
 

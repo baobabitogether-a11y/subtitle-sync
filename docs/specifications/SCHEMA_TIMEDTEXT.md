@@ -37,6 +37,7 @@ YouTube's native timed-text format (`fmt=json3`) provides millisecond segment ac
 ```
 
 #### JSON3 Parsing Rules:
+
 1. `start = event.tStartMs / 1000` (convert milliseconds to fractional seconds).
 2. `duration = event.dDurationMs / 1000`.
 3. If `dDurationMs` is missing or `<= 0`, fallback to `2.5` seconds or calculate distance to the next event start.
@@ -52,7 +53,9 @@ YouTube's native timed-text format (`fmt=json3`) provides millisecond segment ac
 Before cues are injected into views, the parser MUST execute these normalization steps:
 
 ### 2.1 HTML Entity Decoding
+
 All escaped entities must be replaced with their literal UTF-8 equivalents:
+
 - `&amp;` → `&`
 - `&quot;` → `"`
 - `&#39;` or `&apos;` → `'`
@@ -62,6 +65,7 @@ All escaped entities must be replaced with their literal UTF-8 equivalents:
 - `&nbsp;` → standard space
 
 ### 2.2 Mojibake & Encoding Repair
+
 - Strip leading UTF-8 Byte Order Marks (`\uFEFF`).
 - Replace Windows-1252 artifact sequences (e.g. `Ã©` → `é`, `â€™` → `'`) if raw text was incorrectly decoded as ISO-8859-1.
 - Collapse excessive consecutive newlines (`\n{3,}`) into a single newline.
@@ -87,11 +91,12 @@ Regardless of input format, parsers produce the uniform `CaptionCue` structure:
 
 ```ts
 export interface CaptionCue {
-  id: string;          // Formatted index: "cue-1", "cue-2", etc.
-  start: number;       // In seconds (float, >= 0)
-  duration: number;    // In seconds (float, > 0)
-  text: string;        // Clean, trimmed UTF-8 string
-  segments?: Array<{   // Optional word-level timing (from JSON3)
+  id: string; // Formatted index: "cue-1", "cue-2", etc.
+  start: number; // In seconds (float, >= 0)
+  duration: number; // In seconds (float, > 0)
+  text: string; // Clean, trimmed UTF-8 string
+  segments?: Array<{
+    // Optional word-level timing (from JSON3)
     text: string;
     offsetMs: number;
   }>;

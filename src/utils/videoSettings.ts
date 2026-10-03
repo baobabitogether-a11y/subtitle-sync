@@ -1,4 +1,4 @@
-import { TargetLanguage, SyncPlayOrder } from '../types';
+import { TargetLanguage, SyncPlayOrder } from "../types";
 
 export interface VideoSettings {
   videoId: string;
@@ -8,13 +8,13 @@ export interface VideoSettings {
   lastUpdated: number;
 }
 
-const SETTINGS_PREFIX = 'yt_video_settings_';
+const SETTINGS_PREFIX = "yt_video_settings_";
 
 /**
  * Retrieve saved settings for a specific video ID
  */
 export function getVideoSettings(videoId: string): VideoSettings | null {
-  if (typeof window === 'undefined' || !videoId) return null;
+  if (typeof window === "undefined" || !videoId) return null;
   try {
     const raw = localStorage.getItem(`${SETTINGS_PREFIX}${videoId}`);
     if (!raw) return null;
@@ -34,9 +34,9 @@ export function saveVideoSettings(
     targetLanguages?: TargetLanguage[];
     playOrder?: SyncPlayOrder;
     sourceLang?: string;
-  }
+  },
 ): void {
-  if (typeof window === 'undefined' || !videoId) return;
+  if (typeof window === "undefined" || !videoId) return;
   try {
     const existing = getVideoSettings(videoId) || {
       videoId,
@@ -60,7 +60,7 @@ export function saveVideoSettings(
  * Delete settings for a video
  */
 export function deleteVideoSettings(videoId: string): void {
-  if (typeof window === 'undefined' || !videoId) return;
+  if (typeof window === "undefined" || !videoId) return;
   try {
     localStorage.removeItem(`${SETTINGS_PREFIX}${videoId}`);
   } catch {

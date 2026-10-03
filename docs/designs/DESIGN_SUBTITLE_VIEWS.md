@@ -32,10 +32,10 @@ Any subtitle-rendering view receives its state and data strictly through depende
  * A normalized, platform-independent subtitle cue.
  */
 interface SubtitleCue {
-  id: string;          // Stable, unique cue identifier (e.g. "cue-1", "0")
-  start: number;       // Start timestamp in fractional seconds
-  duration: number;    // Cue duration in fractional seconds
-  text: string;        // Clean, unencoded display text
+  id: string; // Stable, unique cue identifier (e.g. "cue-1", "0")
+  start: number; // Start timestamp in fractional seconds
+  duration: number; // Cue duration in fractional seconds
+  text: string; // Clean, unencoded display text
 }
 
 /**
@@ -44,18 +44,18 @@ interface SubtitleCue {
 interface SubtitleViewProps {
   // Primary subtitle cues to render
   cues: SubtitleCue[];
-  
+
   // Currently active cue id corresponding to playback timestamp
   activeCueId?: string | null;
-  
+
   // Optional parallel translated text mapped by original cue ID
   translatedCues?: Record<string, string>;
-  
+
   // Display preferences
   showTranslation?: boolean;
   showTimestamps?: boolean;
-  direction?: 'ltr' | 'rtl' | 'auto';
-  
+  direction?: "ltr" | "rtl" | "auto";
+
   // User interaction callback
   onSelectCue?: (cue: SubtitleCue) => void;
 }
@@ -66,6 +66,7 @@ interface SubtitleViewProps {
 ## 3. View Responsibilities: What It Does vs. What It Does NOT Do
 
 ### The Subtitle View IS Responsible For:
+
 1. **Rendering Injected Cues**: Displaying primary subtitle text in the sequence provided.
 2. **Visual Active State**: Highlighting or autoscrolling to the active cue identified by `activeCueId`.
 3. **Parallel Translations**: Rendering translated text alongside or underneath primary text when `showTranslation` is true and `translatedCues` contains a matching ID.
@@ -73,6 +74,7 @@ interface SubtitleViewProps {
 5. **Emitting Intent**: Calling `onSelectCue(cue)` when the user taps or clicks a cue.
 
 ### The Subtitle View IS NOT Responsible For:
+
 - Fetching or downloading subtitles from YouTube or any external server.
 - Reading or decoding raw JSON3 files.
 - Calculating which cue is active from video playback time (time synchronization is performed by a player coordinator).
@@ -94,10 +96,10 @@ const mockCues: SubtitleCue[] = [
 ];
 
 // Rendering the view
-<MySubtitleView 
-  cues={mockCues} 
-  activeCueId="1" 
-  onSelectCue={(cue) => console.log("User selected cue:", cue.id)} 
+<MySubtitleView
+  cues={mockCues}
+  activeCueId="1"
+  onSelectCue={(cue) => console.log("User selected cue:", cue.id)}
 />
 ```
 
@@ -115,6 +117,7 @@ Because the interface is pure, any visual implementation can drop in as a direct
 4. **Mobile Bottom Sheet**: Displays compact cues tailored for touch gestures on mobile devices.
 
 To replace a view:
+
 - Create a new component that accepts `SubtitleViewProps`.
 - Ensure it respects `cues`, `activeCueId`, and calls `onSelectCue`.
 - Swap the component in the parent container. No data logic or network code needs to be modified.
@@ -124,6 +127,7 @@ To replace a view:
 ## 6. Testing Contract
 
 Because the component is pure, tests require no mock servers or network stubs:
+
 - **Unit Testing**: Render the view with fixed `cues` and verify that cue text appears in the DOM.
 - **Active State Testing**: Pass `activeCueId="cue-2"` and verify the second cue receives the active highlight class/attribute.
 - **Interaction Testing**: Simulate a click on a cue element and verify `onSelectCue` is invoked with the clicked `SubtitleCue` object.

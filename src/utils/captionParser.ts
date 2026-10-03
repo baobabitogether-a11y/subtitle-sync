@@ -1,4 +1,4 @@
-import { CaptionCue } from '../types';
+import { CaptionCue } from "../types";
 
 /**
  * Caption Parser Utility
@@ -7,7 +7,7 @@ import { CaptionCue } from '../types';
  */
 
 export interface ParsedCaptionResult {
-  format: 'json3' | 'unknown';
+  format: "json3" | "unknown";
   cues: CaptionCue[];
 }
 
@@ -20,39 +20,39 @@ export function decodeBase64ToUtf8(base64: string): string {
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
-    return new TextDecoder('utf-8').decode(bytes);
+    return new TextDecoder("utf-8").decode(bytes);
   } catch {
     return base64;
   }
 }
 
 const HTML_ENTITIES: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&apos;': "'",
-  '&nbsp;': '\u00A0',
-  '&hellip;': '…',
-  '&mdash;': '—',
-  '&ndash;': '–',
-  '&laquo;': '«',
-  '&raquo;': '»',
-  '&copy;': '©',
-  '&reg;': '®',
-  '&trade;': '™',
-  '&deg;': '°',
-  '&para;': '¶',
-  '&middot;': '·',
-  '&ldquo;': '\u201C',
-  '&rdquo;': '\u201D',
-  '&lsquo;': '\u2018',
-  '&rsquo;': '\u2019',
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&apos;": "'",
+  "&nbsp;": "\u00A0",
+  "&hellip;": "…",
+  "&mdash;": "—",
+  "&ndash;": "–",
+  "&laquo;": "«",
+  "&raquo;": "»",
+  "&copy;": "©",
+  "&reg;": "®",
+  "&trade;": "™",
+  "&deg;": "°",
+  "&para;": "¶",
+  "&middot;": "·",
+  "&ldquo;": "\u201C",
+  "&rdquo;": "\u201D",
+  "&lsquo;": "\u2018",
+  "&rsquo;": "\u2019",
 };
 
 function decodeHtmlEntities(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
   let result = text;
   // Named entities
   for (const [entity, char] of Object.entries(HTML_ENTITIES)) {
@@ -60,12 +60,14 @@ function decodeHtmlEntities(text: string): string {
   }
   // Numeric entities: &#1234; or &#x4D2;
   result = result.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
-  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+    String.fromCharCode(parseInt(hex, 16)),
+  );
   return result;
 }
 
 export function fixMojibake(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
   // Detect common UTF-8 mojibake patterns and attempt to fix
   // Pattern: text that was UTF-8 but decoded as Latin-1/Windows-1252
   try {
@@ -83,7 +85,7 @@ export function fixMojibake(text: string): string {
           return decodeHtmlEntities(text);
         }
       }
-      const fixed = new TextDecoder('utf-8').decode(bytes.subarray(0, byteLen));
+      const fixed = new TextDecoder("utf-8").decode(bytes.subarray(0, byteLen));
       return decodeHtmlEntities(fixed);
     }
   } catch {}
@@ -91,33 +93,33 @@ export function fixMojibake(text: string): string {
 }
 
 export function cleanAndFixEncoding(text: string): string {
-  if (!text) return '';
+  if (!text) return "";
   let result = text;
   // Fix double-encoded HTML entities
-  result = result.replace(/&amp;(amp|lt|gt|quot|#39|apos|nbsp);/g, '&$1;');
+  result = result.replace(/&amp;(amp|lt|gt|quot|#39|apos|nbsp);/g, "&$1;");
   // Fix mojibake
   result = fixMojibake(result);
   // Decode remaining HTML entities
   result = decodeHtmlEntities(result);
   // Normalize whitespace
-  result = result.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  result = result.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   // Remove zero-width characters
-  result = result.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+  result = result.replace(/[\u200B\u200C\u200D\uFEFF]/g, "");
   return result.trim();
 }
 
 // ─── Timestamp Helpers ──────────────────────────────────────────
 
 export function formatTimestamp(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return '00:00';
+  if (!seconds || isNaN(seconds)) return "00:00";
   const totalSec = Math.floor(seconds);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
   if (h > 0) {
-    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // ─── JSON3 Parser ────────────────────────────────────────────────
@@ -140,11 +142,11 @@ function parseJson3(raw: string): CaptionCue[] {
       const duration = durMs / 1000;
 
       // Build text from segments
-      let text = '';
+      let text = "";
       if (Array.isArray(event.segs)) {
         text = event.segs
-          .map((seg: any) => (seg && typeof seg.utf8 === 'string' ? seg.utf8 : ''))
-          .join('');
+          .map((seg: any) => (seg && typeof seg.utf8 === "string" ? seg.utf8 : ""))
+          .join("");
       }
 
       text = cleanAndFixEncoding(text);
@@ -158,7 +160,7 @@ function parseJson3(raw: string): CaptionCue[] {
       });
     }
   } catch (err) {
-    console.warn('[captionParser] JSON3 parse error:', err);
+    console.warn("[captionParser] JSON3 parse error:", err);
   }
 
   return cues;
@@ -167,19 +169,19 @@ function parseJson3(raw: string): CaptionCue[] {
 // ─── Main Parser ────────────────────────────────────────────────
 
 export function parseRawCaptionData(rawData: string): ParsedCaptionResult {
-  if (!rawData || typeof rawData !== 'string') {
-    return { format: 'unknown', cues: [] };
+  if (!rawData || typeof rawData !== "string") {
+    return { format: "unknown", cues: [] };
   }
 
   const trimmed = rawData.trim();
 
   // JSON3 detection: starts with { and contains "events"
-  if (trimmed.startsWith('{') && /"events"\s*:/.test(trimmed)) {
+  if (trimmed.startsWith("{") && /"events"\s*:/.test(trimmed)) {
     const cues = parseJson3(trimmed);
-    if (cues.length > 0) return { format: 'json3', cues };
+    if (cues.length > 0) return { format: "json3", cues };
   }
 
-  return { format: 'unknown', cues: [] };
+  return { format: "unknown", cues: [] };
 }
 
 export const SAMPLE_YOUTUBE_TIMEDTEXT_JSON3 = JSON.stringify({
@@ -187,17 +189,17 @@ export const SAMPLE_YOUTUBE_TIMEDTEXT_JSON3 = JSON.stringify({
     {
       tStartMs: 500,
       dDurationMs: 3500,
-      segs: [{ utf8: 'Hello and welcome to this video.' }],
+      segs: [{ utf8: "Hello and welcome to this video." }],
     },
     {
       tStartMs: 4200,
       dDurationMs: 4000,
-      segs: [{ utf8: 'Today we will talk about language learning.' }],
+      segs: [{ utf8: "Today we will talk about language learning." }],
     },
     {
       tStartMs: 8500,
       dDurationMs: 3800,
-      segs: [{ utf8: 'Subtitles help you follow along with the audio.' }],
+      segs: [{ utf8: "Subtitles help you follow along with the audio." }],
     },
     {
       tStartMs: 12500,

@@ -6,9 +6,9 @@ on:
       - main
       - master
     paths:
-      - 'README.md'
-      - 'scripts/update-readme.mjs'
-      - '.github/workflows/**'
+      - "README.md"
+      - "scripts/update-readme.mjs"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 concurrency:

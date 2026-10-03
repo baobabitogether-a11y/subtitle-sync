@@ -1,5 +1,5 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
 interface BrokenLink {
   sourceFile: string;
@@ -9,7 +9,7 @@ interface BrokenLink {
 }
 
 const rootDir = process.cwd();
-const ignoredDirs = new Set(['node_modules', 'dist', '.git', '.next']);
+const ignoredDirs = new Set(["node_modules", "dist", ".git", ".next"]);
 
 function getAllMarkdownFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -20,7 +20,7 @@ function getAllMarkdownFiles(dir: string): string[] {
       if (!ignoredDirs.has(entry.name)) {
         files.push(...getAllMarkdownFiles(path.join(dir, entry.name)));
       }
-    } else if (entry.isFile() && entry.name.endsWith('.md')) {
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
       files.push(path.join(dir, entry.name));
     }
   }
@@ -44,13 +44,13 @@ function isInsideCodeSpan(line: string, startIdx: number, endIdx: number): boole
 }
 
 for (const filePath of mdFiles) {
-  const content = fs.readFileSync(filePath, 'utf8');
-  const lines = content.split('\n');
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
   let inCodeBlock = false;
 
   lines.forEach((line, lineIndex) => {
     const trimmed = line.trim();
-    if (trimmed.startsWith('```')) {
+    if (trimmed.startsWith("```")) {
       inCodeBlock = !inCodeBlock;
       return;
     }
@@ -71,13 +71,13 @@ for (const filePath of mdFiles) {
 
       // Skip web links, anchors, email links, and placeholder examples
       if (
-        target.startsWith('http://') ||
-        target.startsWith('https://') ||
-        target.startsWith('mailto:') ||
-        target.startsWith('#') ||
-        target.includes('*') ||
-        target === '...' ||
-        target.startsWith('...')
+        target.startsWith("http://") ||
+        target.startsWith("https://") ||
+        target.startsWith("mailto:") ||
+        target.startsWith("#") ||
+        target.includes("*") ||
+        target === "..." ||
+        target.startsWith("...")
       ) {
         continue;
       }
@@ -85,7 +85,7 @@ for (const filePath of mdFiles) {
       totalLinksChecked++;
 
       // Strip anchor fragment if present
-      const cleanTarget = target.split('#')[0];
+      const cleanTarget = target.split("#")[0];
       if (!cleanTarget) {
         continue; // Pure anchor link within the same page
       }
@@ -106,18 +106,18 @@ for (const filePath of mdFiles) {
 }
 
 // Also verify mkdocs.yml navigation links if present
-const mkdocsPath = path.join(rootDir, 'mkdocs.yml');
+const mkdocsPath = path.join(rootDir, "mkdocs.yml");
 if (fs.existsSync(mkdocsPath)) {
-  const mkdocsContent = fs.readFileSync(mkdocsPath, 'utf8');
+  const mkdocsContent = fs.readFileSync(mkdocsPath, "utf8");
   const navMdRegex = /:\s*([a-zA-Z0-9_\-./]+\.md)\b/g;
   let match: RegExpExecArray | null;
   while ((match = navMdRegex.exec(mkdocsContent)) !== null) {
     const navPath = match[1].trim();
     totalLinksChecked++;
-    const resolvedPath = path.resolve(rootDir, 'docs', navPath);
+    const resolvedPath = path.resolve(rootDir, "docs", navPath);
     if (!fs.existsSync(resolvedPath)) {
       brokenLinks.push({
-        sourceFile: 'mkdocs.yml',
+        sourceFile: "mkdocs.yml",
         targetPath: navPath,
         resolvedPath: path.relative(rootDir, resolvedPath),
         lineNumber: 0,
@@ -133,7 +133,9 @@ console.log(`Checked ${totalLinksChecked} relative links.`);
 if (brokenLinks.length > 0) {
   console.error(`\n❌ Found ${brokenLinks.length} broken relative links:`);
   for (const b of brokenLinks) {
-    console.error(`  - ${b.sourceFile}:${b.lineNumber} -> "${b.targetPath}" (resolved to: ${b.resolvedPath})`);
+    console.error(
+      `  - ${b.sourceFile}:${b.lineNumber} -> "${b.targetPath}" (resolved to: ${b.resolvedPath})`,
+    );
   }
   process.exit(1);
 } else {

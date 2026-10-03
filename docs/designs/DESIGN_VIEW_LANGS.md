@@ -35,12 +35,12 @@ The view receives all data via dependency injection:
  * Normalized language option descriptor.
  */
 interface LanguageOption {
-  code: string;          // Normalized ISO or provider language code (e.g. "he", "it", "en", "ar")
-  name: string;          // User-facing display name in the current UI language (e.g. "Hebrew")
-  nativeName?: string;   // Optional native language label (e.g. "עברית")
-  direction?: 'ltr' | 'rtl'; // Writing direction
-  enabled?: boolean;     // Whether subtitles are available for this language
-  color?: string;        // Optional brand or indicator color
+  code: string; // Normalized ISO or provider language code (e.g. "he", "it", "en", "ar")
+  name: string; // User-facing display name in the current UI language (e.g. "Hebrew")
+  nativeName?: string; // Optional native language label (e.g. "עברית")
+  direction?: "ltr" | "rtl"; // Writing direction
+  enabled?: boolean; // Whether subtitles are available for this language
+  color?: string; // Optional brand or indicator color
 }
 
 /**
@@ -49,16 +49,16 @@ interface LanguageOption {
 interface LanguageViewProps {
   // Available language choices
   languages: LanguageOption[];
-  
+
   // Currently selected language code
   selectedCode?: string | null;
-  
+
   // Overall component disabled state
   disabled?: boolean;
-  
+
   // User selection callback emitting the chosen language code
   onSelect: (code: string) => void;
-  
+
   // Optional multi-select support
   multiple?: boolean;
   selectedCodes?: string[];
@@ -71,6 +71,7 @@ interface LanguageViewProps {
 ## 3. View Responsibilities: What It Does vs. What It Does NOT Do
 
 ### The Language View IS Responsible For:
+
 1. **Rendering Options**: Displaying options using `name` and optional `nativeName`.
 2. **Indicating Selection**: Accessibly highlighting the option matching `selectedCode`.
 3. **Respecting Availability**: Rendering options as disabled or unselectable when `enabled === false` or parent `disabled === true`.
@@ -78,6 +79,7 @@ interface LanguageViewProps {
 5. **Emitting Intent**: Triggering `onSelect(code)` upon user interaction.
 
 ### The Language View IS NOT Responsible For:
+
 - Querying network APIs to discover which languages a video supports.
 - Resolving language code aliases (e.g., deciding whether `iw` equals `he`).
 - Fetching subtitle files or translations for the selected language.

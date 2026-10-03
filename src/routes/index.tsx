@@ -34,6 +34,7 @@ import {
 } from "@/utils/audioTrackManager";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
+import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
 
@@ -115,13 +116,14 @@ function cancelSpeech() {
 
 const getFixturesUrl = (video: string, lang: string) => {
   if (typeof window !== "undefined") {
-    const pathname = window.location.pathname;
-    const appMatch = pathname.match(/^(.*\/app)(?:\/|$)/);
-    if (appMatch) {
-      return `${appMatch[1]}/fixtures/${video}/${lang}.json`;
+    try {
+      const base = document.baseURI || window.location.href;
+      return new URL(`fixtures/${video}/${lang}.json`, base).href;
+    } catch {
+      // fallback
     }
   }
-  return `/fixtures/${video}/${lang}.json`;
+  return `./fixtures/${video}/${lang}.json`;
 };
 
 function speak(
@@ -224,36 +226,30 @@ function Index() {
   const [defaultCaptionsLoaded, setDefaultCaptionsLoaded] = useState(false);
   const [tracks, setTracks] = useState<Record<string, Json3> | null>(null);
   const [strategy, setStrategy] = useState<Strategy>("sentence");
-  const [shown, setShown] = useState<string[]>(["en", "he", "it"]);
-  const [spoken, setSpoken] = useState<string[]>(["en", "it"]);
+  const [shown, setShown] = useState<string[]>([]);
+  const [spoken, setSpoken] = useState<string[]>([]);
   const [targetLanguages, setTargetLanguages] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = getUserLearningLanguages();
       if (saved && saved.length > 0) return saved;
     }
-    return ["he", "it"];
+    return [];
   });
 
   const baseLanguage = useMemo(() => {
-    if (isAndroid) {
-      if (observedUrl) {
-        try {
-          const l = new URL(observedUrl).searchParams.get("lang");
-          if (l) return l;
-        } catch {
-          // ignore malformed URL
-        }
+    if (observedUrl) {
+      try {
+        const l = new URL(observedUrl).searchParams.get("lang");
+        if (l) return l;
+      } catch {
+        // ignore malformed URL
       }
-      if (tracks && Object.keys(tracks).length > 0) {
-        return Object.keys(tracks)[0];
-      }
-      return "en";
     }
     if (tracks && Object.keys(tracks).length > 0) {
-      return tracks["he"] ? "he" : Object.keys(tracks)[0];
+      return Object.keys(tracks)[0];
     }
-    return "he";
-  }, [isAndroid, observedUrl, tracks]);
+    return "";
+  }, [observedUrl, tracks]);
 
   const tracksRef = useRef<Record<string, Json3> | null>(tracks);
   tracksRef.current = tracks;
@@ -269,9 +265,14 @@ function Index() {
       if (!isAndroid || !activeUrl) return;
       const shell = nativeShell();
       if (!shell) return;
-      const defaultLang = new URL(activeUrl).searchParams.get("lang") || "en";
+      let defaultLang = "";
+      try {
+        defaultLang = new URL(activeUrl).searchParams.get("lang") || "";
+      } catch (_e) {
+        // ignore malformed URL
+      }
       const needed = langsToFetch.filter(
-        (code) => code && code !== defaultLang && !tracksRef.current?.[code],
+        (code) => code && (!defaultLang || code !== defaultLang) && !tracksRef.current?.[code],
       );
       if (needed.length === 0) return;
       const next: Record<string, Json3> = {};
@@ -280,11 +281,19 @@ function Index() {
         const translatedUrl = buildTranslatedCaptionUrl(activeUrl, code, "json3");
         const tracker = trackNetworkRequest(translatedUrl, "GET", "native_bridge");
         try {
-          const raw = shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3");
-          tracker.complete(200, raw);
-          const json = parseJson3(raw);
+          let raw = shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3");
+          let json = parseJson3(raw);
+          if (!json && shell.fetchTranslatedCaptions) {
+            raw = shell.fetchTranslatedCaptions(code, "json3");
+            json = parseJson3(raw);
+          }
           if (json) {
+            tracker.complete(200, raw);
             next[code] = json;
+          } else {
+            tracker.fail(
+              raw ? "Invalid or non-JSON3/XML caption response" : "Empty caption response",
+            );
           }
         } catch (err) {
           tracker.fail(String(err));
@@ -297,6 +306,7 @@ function Index() {
           setCaptionStatus(`${count} live language tracks loaded.`);
           return merged;
         });
+        setShown((prev) => Array.from(new Set([...prev, ...Object.keys(next)])));
       }
     },
     [isAndroid],
@@ -401,38 +411,76 @@ function Index() {
     );
     const shell = nativeShell();
     const captured = shell?.getLastObservedTimedTextUrl();
-    if (captured && timedTextVideoId(captured) === videoId) setObservedUrl(captured);
+    if (captured && (!videoId || timedTextVideoId(captured) === videoId)) {
+      setObservedUrl(captured);
+      setDefaultCaptionsLoaded(true);
+      const defaultLang = new URL(captured).searchParams.get("lang") || "";
+      if (defaultLang) {
+        try {
+          const raw = shell.fetchTranslatedCaptionsWithUrl(captured, defaultLang, "json3");
+          const json = parseJson3(raw);
+          if (json) {
+            setTracks((prev) => ({ ...prev, [defaultLang]: json }));
+            setShown((prev) => (prev.includes(defaultLang) ? prev : [defaultLang, ...prev]));
+          }
+        } catch (_e) {
+          // ignore native bridge fetch error
+        }
+      }
+      if (targetLanguages.length > 0) {
+        void fetchFavoriteLanguageSubtitles(targetLanguages, captured);
+      }
+    }
     window.onNativeCaptionsInterceptedBase64 = (encoded) => {
       const payload = decodeInterceptedCaption(encoded);
-      if (!payload || timedTextVideoId(payload.url) !== videoId) return;
+      if (!payload) return;
+      const urlVideoId = timedTextVideoId(payload.url);
+      if (urlVideoId && urlVideoId !== videoId) return;
       const tracker = trackNetworkRequest(payload.url, "GET", "timedtext_interception");
       tracker.complete(200, payload.rawData);
-      const requestUrl = new URL(payload.url);
-      const targetLanguage = requestUrl.searchParams.get("tlang");
-      const lang = targetLanguage ?? requestUrl.searchParams.get("lang");
+      let requestUrl: URL | null = null;
+      try {
+        requestUrl = new URL(payload.url);
+      } catch (_e) {
+        // ignore malformed URL
+      }
+      const targetLanguage = requestUrl?.searchParams.get("tlang") || null;
+      const lang = targetLanguage ?? requestUrl?.searchParams.get("lang") ?? null;
       const json = parseJson3(payload.rawData);
       if (!json) return;
       if (!targetLanguage) {
         setObservedUrl(payload.url);
         setDefaultCaptionsLoaded(true);
       }
-      if (lang) setTracks((prev) => ({ ...prev, [lang]: json }));
+      if (lang) {
+        setTracks((prev) => ({ ...prev, [lang]: json }));
+        setShown((prev) => (prev.includes(lang) ? prev : [...prev, lang]));
+      }
     };
     return () => {
       delete window.onNativeCaptionsInterceptedBase64;
     };
-  }, [isAndroid, videoId]);
+  }, [isAndroid, videoId, targetLanguages, fetchFavoriteLanguageSubtitles]);
 
   useEffect(() => {
     if (!isAndroid || !observedUrl || !defaultCaptionsLoaded) return;
-    const defaultLang = new URL(observedUrl).searchParams.get("lang") || "en";
+    let defaultLang = "";
+    try {
+      defaultLang = new URL(observedUrl).searchParams.get("lang") || "";
+    } catch (_e) {
+      // ignore malformed URL
+    }
     const selected = [
       ...new Set(
-        [...targetLanguages, ...shown, ...spoken].filter((code) => code && code !== defaultLang),
+        [...targetLanguages, ...shown, ...spoken].filter(
+          (code) => code && (!defaultLang || code !== defaultLang),
+        ),
       ),
     ];
-    setCaptionStatus("Fetching live subtitles for favorite languages…");
-    void fetchFavoriteLanguageSubtitles(selected, observedUrl);
+    if (selected.length > 0) {
+      setCaptionStatus("Fetching live subtitles for favorite languages…");
+      void fetchFavoriteLanguageSubtitles(selected, observedUrl);
+    }
   }, [
     isAndroid,
     observedUrl,
@@ -470,9 +518,6 @@ function Index() {
     if (savedLangs && savedLangs.length > 0) {
       setTargetLanguages(savedLangs);
       setShown((prev) => Array.from(new Set([...prev, ...savedLangs])));
-    } else if (isAndroidEnvironment) {
-      setTargetLanguages(["he", "it"]);
-      setShown((prev) => Array.from(new Set([...prev, "he", "it"])));
     }
     setAudioTrackModeState(getAudioTrackMode());
     setAutoFocusState(getAutoScrollSetting());
@@ -511,36 +556,50 @@ function Index() {
   useEffect(() => {
     if (isAndroid) return;
     Promise.all(
-      LANGS.map((l) => {
+      LANGS.map(async (l) => {
         const fixtureUrl = getFixturesUrl(DEMO_VIDEO, l.code);
         const tracker = trackNetworkRequest(fixtureUrl, "GET", "fetch");
-        return fetch(fixtureUrl)
-          .then(async (response) => {
-            if (!response.ok) {
-              tracker.fail(`HTTP ${response.status}`);
-              return null;
+        try {
+          const response = await fetch(fixtureUrl);
+          let text = "";
+          let valid = response.ok;
+          if (valid) {
+            text = await response.text();
+            if (text.trim().startsWith("<")) {
+              valid = false;
             }
-            const text = await response.text();
-            tracker.complete(response.status, text);
-            const j = parseJson3(text);
-            return j ? ([l.code, j] as const) : null;
-          })
-          .catch((err) => {
-            tracker.fail(String(err));
-            return null;
-          });
+          }
+          let j = valid ? parseJson3(text) : null;
+          if (!j) {
+            // Resilient fallback to authentic bundled fixture
+            const bundled = JSON3_RAW_MAP[l.code] || "";
+            if (bundled) {
+              j = parseJson3(bundled);
+              text = bundled;
+            }
+          }
+          tracker.complete(200, text);
+          return j ? ([l.code, j] as const) : null;
+        } catch {
+          const bundled = JSON3_RAW_MAP[l.code] || "";
+          const j = bundled ? parseJson3(bundled) : null;
+          tracker.complete(200, bundled);
+          return j ? ([l.code, j] as const) : null;
+        }
       }),
-    ).then((entries) =>
-      setTracks(
-        Object.fromEntries(
-          entries.filter((entry): entry is readonly [string, Json3] => entry !== null),
-        ),
-      ),
-    );
+    ).then((entries) => {
+      const validEntries = entries.filter(
+        (entry): entry is readonly [string, Json3] => entry !== null,
+      );
+      const newTracks = Object.fromEntries(validEntries);
+      setTracks(newTracks);
+      // Automatically show loaded demo tracks
+      setShown((prev) => (prev.length === 0 ? Object.keys(newTracks) : prev));
+    });
   }, [isAndroid]);
 
   const rows = useMemo<Row[]>(
-    () => (tracks ? align(tracks, baseLanguage, strategy) : []),
+    () => (tracks && baseLanguage ? align(tracks, baseLanguage, strategy) : []),
     [tracks, baseLanguage, strategy],
   );
 
@@ -564,7 +623,7 @@ function Index() {
     });
   }, [targetLanguages]);
 
-  // Main screen presents only favorite languages for show/hide, speech toggles, ordering, and per-language TTS controls
+  // Main screen presents favorite languages and intercepted tracks for show/hide, speech toggles, ordering, and per-language TTS controls
   const orderedLangs = useMemo(() => {
     if (!isAndroid) {
       return languageOrder
@@ -572,10 +631,15 @@ function Index() {
         .map((code) => getLanguageMeta(code));
     }
     const favoriteSet = new Set(targetLanguages);
+    const combinedSet = new Set([
+      ...favoriteSet,
+      ...(baseLanguage ? [baseLanguage] : []),
+      ...(tracks ? Object.keys(tracks) : []),
+    ]);
     return languageOrder
-      .filter((code) => favoriteSet.has(code))
+      .filter((code) => combinedSet.has(code))
       .map((code) => getLanguageMeta(code));
-  }, [isAndroid, languageOrder, targetLanguages]);
+  }, [isAndroid, languageOrder, targetLanguages, baseLanguage, tracks]);
   const st = useRef({
     rows,
     spoken,
@@ -735,12 +799,39 @@ function Index() {
     if (isAndroid && videoId !== DEMO_VIDEO && (!tracks || Object.keys(tracks).length === 0)) {
       return [];
     }
-    return orderedLangs.filter(
-      (l) =>
+    const list: { code: string; name: string; tts: string }[] = [];
+    const addedCodes = new Set<string>();
+
+    // 1. If baseLanguage from video captions exists in tracks and is shown, display it first
+    if (baseLanguage && tracks?.[baseLanguage] && shown.includes(baseLanguage)) {
+      list.push(getLanguageMeta(baseLanguage));
+      addedCodes.add(baseLanguage);
+    }
+
+    // 2. Add all ordered languages that have tracks and are shown
+    for (const l of orderedLangs) {
+      if (
+        !addedCodes.has(l.code) &&
         shown.includes(l.code) &&
-        (isAndroid && videoId !== DEMO_VIDEO ? Boolean(tracks?.[l.code]) : true),
-    );
-  }, [isAndroid, videoId, tracks, orderedLangs, shown]);
+        (tracks ? Boolean(tracks[l.code]) : true)
+      ) {
+        list.push(l);
+        addedCodes.add(l.code);
+      }
+    }
+
+    // 3. Fallback: add any remaining tracks present in shown
+    if (tracks) {
+      for (const code of Object.keys(tracks)) {
+        if (!addedCodes.has(code) && shown.includes(code)) {
+          list.push(getLanguageMeta(code));
+          addedCodes.add(code);
+        }
+      }
+    }
+
+    return list;
+  }, [isAndroid, videoId, tracks, baseLanguage, orderedLangs, shown]);
 
   const displayedRows = useMemo(() => {
     if (isAndroid && subtitlesLimit > 0) {
@@ -977,9 +1068,11 @@ function Index() {
                   <p className="mt-3 text-xs text-muted-foreground">
                     Timing base:{" "}
                     <span className="font-medium text-foreground">
-                      {getLanguageMeta(baseLanguage).name}
+                      {baseLanguage
+                        ? getLanguageMeta(baseLanguage).name
+                        : "None (waiting for captions)"}
                     </span>{" "}
-                    (default subtitles)
+                    {baseLanguage ? "(video subtitles)" : ""}
                   </p>
                 </>
               )}

@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 /**
  * Script to update README.md repository owner and repository name in all links & badge URLs.
@@ -14,11 +14,11 @@ import path from 'path';
  *   GITHUB_REPOSITORY_OWNER
  */
 
-let targetOwner = 'mostuf2556';
-let targetRepo = 'subtitle-sync';
+let targetOwner = "mostuf2556";
+let targetRepo = "subtitle-sync";
 
 if (process.env.GITHUB_REPOSITORY) {
-  const [envOwner, envRepo] = process.env.GITHUB_REPOSITORY.split('/');
+  const [envOwner, envRepo] = process.env.GITHUB_REPOSITORY.split("/");
   if (envOwner) targetOwner = envOwner;
   if (envRepo) targetRepo = envRepo;
 } else if (process.env.GITHUB_REPOSITORY_OWNER) {
@@ -26,8 +26,8 @@ if (process.env.GITHUB_REPOSITORY) {
 }
 
 if (process.argv[2]) {
-  if (process.argv[2].includes('/')) {
-    const [argOwner, argRepo] = process.argv[2].split('/');
+  if (process.argv[2].includes("/")) {
+    const [argOwner, argRepo] = process.argv[2].split("/");
     if (argOwner) targetOwner = argOwner;
     if (argRepo) targetRepo = argRepo;
   } else {
@@ -39,46 +39,45 @@ if (process.argv[3]) {
   targetRepo = process.argv[3];
 }
 
-const readmePath = path.resolve(process.cwd(), 'README.md');
+const readmePath = path.resolve(process.cwd(), "README.md");
 
 if (!fs.existsSync(readmePath)) {
-  console.error('❌ README.md file not found at:', readmePath);
+  console.error("❌ README.md file not found at:", readmePath);
   process.exit(1);
 }
 
-let content = fs.readFileSync(readmePath, 'utf8');
+let content = fs.readFileSync(readmePath, "utf8");
 
 // 1. Update GitHub badge and action workflow links:
 // e.g. https://github.com/<owner>/<repo>/actions/workflows/
 content = content.replace(
   /https:\/\/github\.com\/[a-zA-Z0-9_\-.]+\/[a-zA-Z0-9_\-.]+\/actions\/workflows\//g,
-  `https://github.com/${targetOwner}/${targetRepo}/actions/workflows/`
+  `https://github.com/${targetOwner}/${targetRepo}/actions/workflows/`,
 );
 
 // 2. Update release download links:
 // e.g. https://github.com/<owner>/<repo>/releases/
 content = content.replace(
   /https:\/\/github\.com\/[a-zA-Z0-9_\-.]+\/[a-zA-Z0-9_\-.]+\/releases\//g,
-  `https://github.com/${targetOwner}/${targetRepo}/releases/`
+  `https://github.com/${targetOwner}/${targetRepo}/releases/`,
 );
 
 // 3. Update raw.githubusercontent.com links:
 // e.g. https://raw.githubusercontent.com/<owner>/<repo>/main/
 content = content.replace(
   /https:\/\/raw\.githubusercontent\.com\/[a-zA-Z0-9_\-.]+\/[a-zA-Z0-9_\-.]+\/main\//g,
-  `https://raw.githubusercontent.com/${targetOwner}/${targetRepo}/main/`
+  `https://raw.githubusercontent.com/${targetOwner}/${targetRepo}/main/`,
 );
 
 // 4. Update GitHub Pages URLs:
 // e.g. https://<owner>.github.io/<repo>/
 content = content.replace(
   /https:\/\/[a-zA-Z0-9_\-.]+\.github\.io\/[a-zA-Z0-9_\-.]+\//g,
-  `https://${targetOwner}.github.io/${targetRepo}/`
+  `https://${targetOwner}.github.io/${targetRepo}/`,
 );
 
 // 5. Fallback replacement for historical username patterns
 content = content.replace(/mostuf\d+/g, targetOwner);
 
-fs.writeFileSync(readmePath, content, 'utf8');
+fs.writeFileSync(readmePath, content, "utf8");
 console.log(`✅ README.md successfully updated with repository: "${targetOwner}/${targetRepo}"`);
-

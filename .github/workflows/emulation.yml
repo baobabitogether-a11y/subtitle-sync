@@ -110,8 +110,8 @@ jobs:
         if: steps.stage_apk.outputs.have_apk != 'true'
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Setup Gradle (Fallback)
         if: steps.stage_apk.outputs.have_apk != 'true'
@@ -222,4 +222,3 @@ jobs:
           publish_branch: gh-pages
           destination_dir: .
           keep_files: true
-

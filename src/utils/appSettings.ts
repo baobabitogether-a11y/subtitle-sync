@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '../config/appConfig';
+import { STORAGE_KEYS } from "../config/appConfig";
 
 /**
  * App Settings Configuration and Local Persistence
@@ -6,9 +6,9 @@ import { STORAGE_KEYS } from '../config/appConfig';
  * Subtitle fetching methods are configurable and enabled by default.
  */
 
-export type SubtitlePosition = 'top' | 'above' | 'under' | 'bottom';
-export type TTSSyncMode = 'word_boundary' | 'time_linear' | 'word_step' | 'full_sentence';
-export type AppTheme = 'minimal-light' | 'pure-dark' | 'warm-slate';
+export type SubtitlePosition = "top" | "above" | "under" | "bottom";
+export type TTSSyncMode = "word_boundary" | "time_linear" | "word_step" | "full_sentence";
+export type AppTheme = "minimal-light" | "pure-dark" | "warm-slate";
 
 export interface AppSettings {
   // UI Display: Compact, lightweight view by default (Android UI Guidelines: no scrolling, minimal controls)
@@ -66,7 +66,7 @@ export interface AppSettings {
   };
 
   // Playback Order
-  playOrder: 'video_then_tts' | 'tts_then_video';
+  playOrder: "video_then_tts" | "tts_then_video";
 
   // Limits
   onDemandCount: number; // Limited to next X=4 subtitles (Step 4.4)
@@ -74,87 +74,87 @@ export interface AppSettings {
 }
 
 export const SUPPORTED_LANGUAGES_CATALOG: { code: string; name: string }[] = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish (Español)' },
-  { code: 'fr', name: 'French (Français)' },
-  { code: 'de', name: 'German (Deutsch)' },
-  { code: 'it', name: 'Italian (Italiano)' },
-  { code: 'pt', name: 'Portuguese (Português)' },
-  { code: 'ru', name: 'Russian (Русский)' },
-  { code: 'ja', name: 'Japanese (日本語)' },
-  { code: 'ko', name: 'Korean (한국어)' },
-  { code: 'zh-CN', name: 'Chinese Simplified (简体中文)' },
-  { code: 'zh-TW', name: 'Chinese Traditional (繁體中文)' },
-  { code: 'ar', name: 'Arabic (العربية)' },
-  { code: 'he', name: 'Hebrew (עברית)' },
-  { code: 'hi', name: 'Hindi (हिन्दी)' },
-  { code: 'tr', name: 'Turkish (Türkçe)' },
-  { code: 'nl', name: 'Dutch (Nederlands)' },
-  { code: 'pl', name: 'Polish (Polski)' },
-  { code: 'sv', name: 'Swedish (Svenska)' },
-  { code: 'no', name: 'Norwegian (Norsk)' },
-  { code: 'da', name: 'Danish (Dansk)' },
-  { code: 'fi', name: 'Finnish (Suomi)' },
-  { code: 'vi', name: 'Vietnamese (Tiếng Việt)' },
-  { code: 'th', name: 'Thai (ไทย)' },
-  { code: 'el', name: 'Greek (Ελληνικά)' },
-  { code: 'uk', name: 'Ukrainian (Українська)' },
-  { code: 'cs', name: 'Czech (Čeština)' },
-  { code: 'ro', name: 'Romanian (Română)' },
-  { code: 'hu', name: 'Hungarian (Magyar)' },
-  { code: 'id', name: 'Indonesian (Bahasa Indonesia)' },
-  { code: 'ms', name: 'Malay (Bahasa Melayu)' },
-  { code: 'tl', name: 'Tagalog / Filipino' },
-  { code: 'bn', name: 'Bengali (বাংলা)' },
-  { code: 'pa', name: 'Punjabi (ਪੰਜਾਬੀ)' },
-  { code: 'mr', name: 'Marathi (मराठी)' },
-  { code: 'gu', name: 'Gujarati (ગુજરાતી)' },
-  { code: 'ta', name: 'Tamil (தமிழ்)' },
-  { code: 'te', name: 'Telugu (తెలుగు)' },
-  { code: 'kn', name: 'Kannada (ಕನ್ನಡ)' },
-  { code: 'ml', name: 'Malayalam (മലയാളം)' },
-  { code: 'ur', name: 'Urdu (اردو)' },
-  { code: 'fa', name: 'Persian (فارسی)' },
-  { code: 'bg', name: 'Bulgarian (Български)' },
-  { code: 'hr', name: 'Croatian (Hrvatski)' },
-  { code: 'sr', name: 'Serbian (Српски)' },
-  { code: 'sk', name: 'Slovak (Slovenčina)' },
-  { code: 'sl', name: 'Slovenian (Slovenščina)' },
-  { code: 'lt', name: 'Lithuanian (Lietuvių)' },
-  { code: 'lv', name: 'Latvian (Latviešu)' },
-  { code: 'et', name: 'Estonian (Eesti)' },
-  { code: 'ca', name: 'Catalan (Català)' },
-  { code: 'eu', name: 'Basque (Euskara)' },
-  { code: 'gl', name: 'Galician (Galego)' },
-  { code: 'ga', name: 'Irish (Gaeilge)' },
-  { code: 'cy', name: 'Welsh (Cymraeg)' },
-  { code: 'is', name: 'Icelandic (Íslenska)' },
-  { code: 'sw', name: 'Swahili (Kiswahili)' },
-  { code: 'af', name: 'Afrikaans' },
-  { code: 'hy', name: 'Armenian (Հայերեն)' },
-  { code: 'ka', name: 'Georgian (ქართული)' },
-  { code: 'az', name: 'Azerbaijani (Azərbaycan)' },
-  { code: 'kk', name: 'Kazakh (Қазақ)' },
-  { code: 'uz', name: 'Uzbek (Oʻzbek)' },
-  { code: 'mn', name: 'Mongolian (Монгол)' },
-  { code: 'ne', name: 'Nepali (नेपाली)' },
-  { code: 'si', name: 'Sinhala (සිංහල)' },
-  { code: 'my', name: 'Burmese (မြန်မာ)' },
-  { code: 'km', name: 'Khmer (ខ្មែរ)' },
-  { code: 'lo', name: 'Lao (ລາວ)' },
-  { code: 'sq', name: 'Albanian (Shqip)' },
-  { code: 'mk', name: 'Macedonian (Македонски)' },
-  { code: 'bs', name: 'Bosnian (Bosanski)' },
-  { code: 'mt', name: 'Maltese (Malti)' },
-  { code: 'la', name: 'Latin (Latina)' },
-  { code: 'eo', name: 'Esperanto' },
-  { code: 'yi', name: 'Yiddish (ייִדיש)' },
+  { code: "en", name: "English" },
+  { code: "es", name: "Spanish (Español)" },
+  { code: "fr", name: "French (Français)" },
+  { code: "de", name: "German (Deutsch)" },
+  { code: "it", name: "Italian (Italiano)" },
+  { code: "pt", name: "Portuguese (Português)" },
+  { code: "ru", name: "Russian (Русский)" },
+  { code: "ja", name: "Japanese (日本語)" },
+  { code: "ko", name: "Korean (한국어)" },
+  { code: "zh-CN", name: "Chinese Simplified (简体中文)" },
+  { code: "zh-TW", name: "Chinese Traditional (繁體中文)" },
+  { code: "ar", name: "Arabic (العربية)" },
+  { code: "he", name: "Hebrew (עברית)" },
+  { code: "hi", name: "Hindi (हिन्दी)" },
+  { code: "tr", name: "Turkish (Türkçe)" },
+  { code: "nl", name: "Dutch (Nederlands)" },
+  { code: "pl", name: "Polish (Polski)" },
+  { code: "sv", name: "Swedish (Svenska)" },
+  { code: "no", name: "Norwegian (Norsk)" },
+  { code: "da", name: "Danish (Dansk)" },
+  { code: "fi", name: "Finnish (Suomi)" },
+  { code: "vi", name: "Vietnamese (Tiếng Việt)" },
+  { code: "th", name: "Thai (ไทย)" },
+  { code: "el", name: "Greek (Ελληνικά)" },
+  { code: "uk", name: "Ukrainian (Українська)" },
+  { code: "cs", name: "Czech (Čeština)" },
+  { code: "ro", name: "Romanian (Română)" },
+  { code: "hu", name: "Hungarian (Magyar)" },
+  { code: "id", name: "Indonesian (Bahasa Indonesia)" },
+  { code: "ms", name: "Malay (Bahasa Melayu)" },
+  { code: "tl", name: "Tagalog / Filipino" },
+  { code: "bn", name: "Bengali (বাংলা)" },
+  { code: "pa", name: "Punjabi (ਪੰਜਾਬੀ)" },
+  { code: "mr", name: "Marathi (मराठी)" },
+  { code: "gu", name: "Gujarati (ગુજરાતી)" },
+  { code: "ta", name: "Tamil (தமிழ்)" },
+  { code: "te", name: "Telugu (తెలుగు)" },
+  { code: "kn", name: "Kannada (ಕನ್ನಡ)" },
+  { code: "ml", name: "Malayalam (മലയാളം)" },
+  { code: "ur", name: "Urdu (اردو)" },
+  { code: "fa", name: "Persian (فارسی)" },
+  { code: "bg", name: "Bulgarian (Български)" },
+  { code: "hr", name: "Croatian (Hrvatski)" },
+  { code: "sr", name: "Serbian (Српски)" },
+  { code: "sk", name: "Slovak (Slovenčina)" },
+  { code: "sl", name: "Slovenian (Slovenščina)" },
+  { code: "lt", name: "Lithuanian (Lietuvių)" },
+  { code: "lv", name: "Latvian (Latviešu)" },
+  { code: "et", name: "Estonian (Eesti)" },
+  { code: "ca", name: "Catalan (Català)" },
+  { code: "eu", name: "Basque (Euskara)" },
+  { code: "gl", name: "Galician (Galego)" },
+  { code: "ga", name: "Irish (Gaeilge)" },
+  { code: "cy", name: "Welsh (Cymraeg)" },
+  { code: "is", name: "Icelandic (Íslenska)" },
+  { code: "sw", name: "Swahili (Kiswahili)" },
+  { code: "af", name: "Afrikaans" },
+  { code: "hy", name: "Armenian (Հայերեն)" },
+  { code: "ka", name: "Georgian (ქართული)" },
+  { code: "az", name: "Azerbaijani (Azərbaycan)" },
+  { code: "kk", name: "Kazakh (Қазақ)" },
+  { code: "uz", name: "Uzbek (Oʻzbek)" },
+  { code: "mn", name: "Mongolian (Монгол)" },
+  { code: "ne", name: "Nepali (नेपाली)" },
+  { code: "si", name: "Sinhala (සිංහල)" },
+  { code: "my", name: "Burmese (မြန်မာ)" },
+  { code: "km", name: "Khmer (ខ្មែរ)" },
+  { code: "lo", name: "Lao (ລາວ)" },
+  { code: "sq", name: "Albanian (Shqip)" },
+  { code: "mk", name: "Macedonian (Македонски)" },
+  { code: "bs", name: "Bosnian (Bosanski)" },
+  { code: "mt", name: "Maltese (Malti)" },
+  { code: "la", name: "Latin (Latina)" },
+  { code: "eo", name: "Esperanto" },
+  { code: "yi", name: "Yiddish (ייִדיש)" },
 ];
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   // Default compact density is required by AGENTS.md across both hosts.
   compactView: true,
-  theme: 'pure-dark',
+  theme: "pure-dark",
   showExpandedControls: true,
   showTeacherPanel: true,
   showLinkBar: true,
@@ -163,7 +163,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   alwaysShowKeyControls: true,
 
   // By default keep translated subtitles on top, overlay inside top of video (Requirement 1)
-  subtitlePosition: 'top',
+  subtitlePosition: "top",
   showTranslatedOnTop: true,
 
   // By default enable TTS narration (plays synchronized TTS and highlights text)
@@ -176,7 +176,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   showSubtitleTimestamps: true,
 
   // TTS Play & Text Highlight Sync Mode (4 Alternatives, default: word_boundary)
-  ttsSyncMode: 'word_boundary',
+  ttsSyncMode: "word_boundary",
 
   // Non-Native TTS Fallback: enabled by default
   allowNonNativeTTSFallback: true,
@@ -184,8 +184,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   // Present TTS input and TTS queue by default for real-time debugging
   showTtsDebugQueue: true,
 
-  // Favorite languages / learning targets by default: Hebrew ('he') and Italian ('it')
-  learningLanguages: ['he', 'it'],
+  // Favorite languages / learning targets: empty by default (no hardcoded default subtitles language)
+  learningLanguages: [],
   subtitlesPerPage: 25,
 
   // By default try to subtitle fetch using tlang param change once after default subs loaded (Requirement 6)
@@ -206,7 +206,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     offlineLocalCache: true,
   },
 
-  playOrder: 'video_then_tts',
+  playOrder: "video_then_tts",
   onDemandCount: 4,
   maxRetries: 2,
 };
@@ -214,7 +214,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 const SETTINGS_STORAGE_KEY = STORAGE_KEYS.SETTINGS_STORAGE_KEY;
 
 export function loadAppSettings(): AppSettings {
-  if (typeof window === 'undefined') return DEFAULT_APP_SETTINGS;
+  if (typeof window === "undefined") return DEFAULT_APP_SETTINGS;
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (raw) {
@@ -231,7 +231,7 @@ export function loadAppSettings(): AppSettings {
       };
     }
   } catch (err) {
-    console.warn('[AppSettings] Failed to load stored settings:', err);
+    console.warn("[AppSettings] Failed to load stored settings:", err);
   }
   return {
     ...DEFAULT_APP_SETTINGS,
@@ -240,11 +240,11 @@ export function loadAppSettings(): AppSettings {
 }
 
 export function saveAppSettings(settings: AppSettings): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   } catch (err) {
-    console.warn('[AppSettings] Failed to save settings:', err);
+    console.warn("[AppSettings] Failed to save settings:", err);
   }
 }
 
@@ -254,16 +254,16 @@ export function saveAppSettings(settings: AppSettings): void {
 export interface VideoSpecificSettings {
   targetLanguages?: any[];
   ttsRates?: Record<string, number>; // langCode -> rate
-  playOrder?: 'video_first' | 'tts_first';
+  playOrder?: "video_first" | "tts_first";
   sourceLang?: string;
   activeTargetLang?: string;
   lastUpdated?: number;
 }
 
-const VIDEO_SETTINGS_KEY_PREFIX = 'yt_video_settings_';
+const VIDEO_SETTINGS_KEY_PREFIX = "yt_video_settings_";
 
 export function loadVideoSettings(videoId: string): VideoSpecificSettings | null {
-  if (typeof window === 'undefined' || !videoId) return null;
+  if (typeof window === "undefined" || !videoId) return null;
   try {
     const raw = localStorage.getItem(`${VIDEO_SETTINGS_KEY_PREFIX}${videoId}`);
     if (raw) {
@@ -275,11 +275,8 @@ export function loadVideoSettings(videoId: string): VideoSpecificSettings | null
   return null;
 }
 
-export function saveVideoSettings(
-  videoId: string,
-  settings: Partial<VideoSpecificSettings>
-): void {
-  if (typeof window === 'undefined' || !videoId) return;
+export function saveVideoSettings(videoId: string, settings: Partial<VideoSpecificSettings>): void {
+  if (typeof window === "undefined" || !videoId) return;
   try {
     const existing = loadVideoSettings(videoId) || {};
     const updated: VideoSpecificSettings = {
@@ -291,10 +288,7 @@ export function saveVideoSettings(
       },
       lastUpdated: Date.now(),
     };
-    localStorage.setItem(
-      `${VIDEO_SETTINGS_KEY_PREFIX}${videoId}`,
-      JSON.stringify(updated)
-    );
+    localStorage.setItem(`${VIDEO_SETTINGS_KEY_PREFIX}${videoId}`, JSON.stringify(updated));
   } catch (err) {
     console.warn(`[AppSettings] Failed to save settings for video ${videoId}:`, err);
   }
@@ -302,9 +296,7 @@ export function saveVideoSettings(
 
 export function getUserLearningLanguages(): string[] {
   const current = loadAppSettings();
-  return current.learningLanguages && current.learningLanguages.length > 0
-    ? current.learningLanguages
-    : DEFAULT_APP_SETTINGS.learningLanguages;
+  return Array.isArray(current.learningLanguages) ? current.learningLanguages : [];
 }
 
 export function setUserLearningLanguages(languages: string[]): void {
@@ -347,16 +339,16 @@ export interface AppStateSnapshot {
   activeTargetLang?: string;
   videoSettings?: Record<string, VideoSpecificSettings>;
   status?: {
-    platform: 'android_native' | 'web';
+    platform: "android_native" | "web";
     userAgent?: string;
     timestamp?: number;
   };
 }
 
 export function isAndroidAppEnvironment(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   if ((window as any).AndroidNativeShell) return true;
-  if (typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent)) return true;
+  if (typeof navigator !== "undefined" && /android/i.test(navigator.userAgent)) return true;
   return false;
 }
 
@@ -364,12 +356,12 @@ export function exportFullAppState(extraStatus?: Record<string, any>): string {
   const currentSettings = loadAppSettings();
   const allVideoSettings: Record<string, VideoSpecificSettings> = {};
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(VIDEO_SETTINGS_KEY_PREFIX)) {
-          const videoId = key.replace(VIDEO_SETTINGS_KEY_PREFIX, '');
+          const videoId = key.replace(VIDEO_SETTINGS_KEY_PREFIX, "");
           const val = loadVideoSettings(videoId);
           if (val) allVideoSettings[videoId] = val;
         }
@@ -383,12 +375,12 @@ export function exportFullAppState(extraStatus?: Record<string, any>): string {
 
   const snapshot: AppStateSnapshot = {
     exportedAt: new Date().toISOString(),
-    version: '1.0.13',
+    version: "1.0.13",
     settings: currentSettings,
     videoSettings: allVideoSettings,
     status: {
-      platform: isNative ? 'android_native' : 'web',
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+      platform: isNative ? "android_native" : "web",
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "Unknown",
       timestamp: Date.now(),
       ...extraStatus,
     },
@@ -404,8 +396,8 @@ export function importFullAppState(jsonString: string): {
 } {
   try {
     const parsed = JSON.parse(jsonString);
-    if (!parsed || typeof parsed !== 'object') {
-      return { success: false, error: 'Invalid JSON format: expected object' };
+    if (!parsed || typeof parsed !== "object") {
+      return { success: false, error: "Invalid JSON format: expected object" };
     }
 
     // Validate settings object
@@ -414,46 +406,50 @@ export function importFullAppState(jsonString: string): {
       ...(parsed.settings || (parsed.methods ? parsed : {})),
       methods: {
         ...DEFAULT_APP_SETTINGS.methods,
-        ...((parsed.settings?.methods || parsed.methods) || {}),
+        ...(parsed.settings?.methods || parsed.methods || {}),
       },
     };
 
     saveAppSettings(newSettings);
 
     // If videoSettings are provided, persist each
-    if (parsed.videoSettings && typeof parsed.videoSettings === 'object' && typeof window !== 'undefined') {
+    if (
+      parsed.videoSettings &&
+      typeof parsed.videoSettings === "object" &&
+      typeof window !== "undefined"
+    ) {
       try {
         Object.entries(parsed.videoSettings).forEach(([videoId, vSettings]) => {
-          if (videoId && typeof vSettings === 'object') {
+          if (videoId && typeof vSettings === "object") {
             localStorage.setItem(
               `${VIDEO_SETTINGS_KEY_PREFIX}${videoId}`,
-              JSON.stringify(vSettings)
+              JSON.stringify(vSettings),
             );
           }
         });
       } catch (e) {
-        console.warn('[AppSettings] Failed restoring video settings:', e);
+        console.warn("[AppSettings] Failed restoring video settings:", e);
       }
     }
 
     return { success: true, settings: newSettings };
   } catch (err: any) {
-    return { success: false, error: err?.message || 'Failed to parse JSON string' };
+    return { success: false, error: err?.message || "Failed to parse JSON string" };
   }
 }
 
-export const AUTO_SCROLL_STORAGE_KEY = 'yt_auto_scroll';
+export const AUTO_SCROLL_STORAGE_KEY = "yt_auto_scroll";
 
 /**
  * Get whether auto-focus and scroll to current subtitle is enabled.
  * Defaults to FALSE (off) as required by Subtask 16.4.
  */
 export function getAutoScrollSetting(): boolean {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  if (typeof window === "undefined" || !window.localStorage) {
     return false;
   }
   try {
-    return window.localStorage.getItem(AUTO_SCROLL_STORAGE_KEY) === 'true';
+    return window.localStorage.getItem(AUTO_SCROLL_STORAGE_KEY) === "true";
   } catch {
     return false;
   }
@@ -463,15 +459,12 @@ export function getAutoScrollSetting(): boolean {
  * Persist auto-focus and scroll to current subtitle setting.
  */
 export function setAutoScrollSetting(enabled: boolean): void {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  if (typeof window === "undefined" || !window.localStorage) {
     return;
   }
   try {
-    window.localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, enabled ? 'true' : 'false');
+    window.localStorage.setItem(AUTO_SCROLL_STORAGE_KEY, enabled ? "true" : "false");
   } catch {
     // Ignore storage errors in restricted contexts
   }
 }
-
-
-

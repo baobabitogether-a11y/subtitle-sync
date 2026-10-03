@@ -8,15 +8,16 @@ export interface NetworkRequestRecord {
   startTime: number;
   duration?: number;
   status: number;
-  responseBodyPreview?: string; // Strictly first X=200 characters
+  responseBodyPreview?: string; // Strictly first X=250 characters
+  fullResponseBody?: string; // Complete raw or formatted response body
   error?: string;
   isPending?: boolean;
 }
 
-export const MAX_RESPONSE_BODY_PREVIEW_CHARS = 200;
+export const MAX_RESPONSE_BODY_PREVIEW_CHARS = 250;
 
 /**
- * Truncate response body strictly to the first X=200 characters
+ * Truncate response body strictly to the first X=250 characters
  */
 export function truncateResponseBody(
   body: unknown,
@@ -31,6 +32,7 @@ export function truncateResponseBody(
 export const truncateToFirst15Chars = truncateResponseBody;
 export const truncateToFirst50Chars = truncateResponseBody;
 export const truncateToFirst200Chars = truncateResponseBody;
+export const truncateToFirst250Chars = truncateResponseBody;
 
 let requests: NetworkRequestRecord[] = [];
 const listeners = new Set<() => void>();
@@ -66,7 +68,13 @@ export function trackNetworkRequest(
     id,
     complete: (status: number, responseBody?: unknown) => {
       const duration = Date.now() - startTime;
-      const preview = truncateResponseBody(responseBody);
+      const fullStr =
+        responseBody === undefined || responseBody === null
+          ? ""
+          : typeof responseBody === "string"
+            ? responseBody
+            : JSON.stringify(responseBody, null, 2);
+      const preview = truncateResponseBody(fullStr, MAX_RESPONSE_BODY_PREVIEW_CHARS);
       requests = requests.map((req) =>
         req.id === id
           ? {
@@ -75,6 +83,7 @@ export function trackNetworkRequest(
               duration,
               isPending: false,
               responseBodyPreview: preview,
+              fullResponseBody: fullStr,
             }
           : req,
       );

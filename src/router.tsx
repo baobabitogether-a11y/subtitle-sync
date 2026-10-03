@@ -27,7 +27,11 @@ export const getRouter = () => {
     // If we're at basepath without trailing slash (e.g. /subtitle-sync/app), normalize with trailing slash
     const base = getBasepath();
     if (base && window.location.pathname === base) {
-      window.history.replaceState(null, "", base + "/" + window.location.search + window.location.hash);
+      window.history.replaceState(
+        null,
+        "",
+        base + "/" + window.location.search + window.location.hash,
+      );
     }
   }
 

@@ -1,89 +1,103 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import assert from 'node:assert';
+import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert";
 
-console.log('====================================================');
-console.log('🧪 Starting Android Local Assets & Offline Mandate Test');
-console.log('====================================================');
+console.log("====================================================");
+console.log("🧪 Starting Android Local Assets & Offline Mandate Test");
+console.log("====================================================");
 
 const rootDir = process.cwd();
 
 // 1. Verify MainActivity.kt architecture
 const mainActivityPath = path.join(
   rootDir,
-  'android-shell/app/src/main/java/com/ytviewer/app/MainActivity.kt'
+  "android-shell/app/src/main/java/com/ytviewer/app/MainActivity.kt",
 );
-assert(fs.existsSync(mainActivityPath), 'MainActivity.kt must exist');
-const activityContent = fs.readFileSync(mainActivityPath, 'utf8');
+assert(fs.existsSync(mainActivityPath), "MainActivity.kt must exist");
+const activityContent = fs.readFileSync(mainActivityPath, "utf8");
 
 // Assert APP_URL is purged
-assert(!activityContent.includes('APP_URL'), 'MainActivity.kt must NOT contain any APP_URL definition or usage');
-console.log('✅ PASS: APP_URL is completely removed from MainActivity.kt');
+assert(
+  !activityContent.includes("APP_URL"),
+  "MainActivity.kt must NOT contain any APP_URL definition or usage",
+);
+console.log("✅ PASS: APP_URL is completely removed from MainActivity.kt");
 
 // Assert remote website host (github.io) is purged
-assert(!activityContent.includes('github.io'), 'MainActivity.kt must NOT reference remote github.io host');
-console.log('✅ PASS: Remote web-app domain (github.io) is completely removed from MainActivity.kt');
+assert(
+  !activityContent.includes("github.io"),
+  "MainActivity.kt must NOT reference remote github.io host",
+);
+console.log(
+  "✅ PASS: Remote web-app domain (github.io) is completely removed from MainActivity.kt",
+);
 
 // Assert LOCAL_ASSET_DOMAIN is defined and used
 assert(
   activityContent.includes('LOCAL_ASSET_DOMAIN = "appassets.androidplatform.net"'),
-  'MainActivity.kt must define LOCAL_ASSET_DOMAIN as appassets.androidplatform.net'
+  "MainActivity.kt must define LOCAL_ASSET_DOMAIN as appassets.androidplatform.net",
 );
-console.log('✅ PASS: LOCAL_ASSET_DOMAIN is configured for appassets.androidplatform.net');
+console.log("✅ PASS: LOCAL_ASSET_DOMAIN is configured for appassets.androidplatform.net");
 
 // Assert onCreate exclusively loads from local asset domain
 assert(
   activityContent.includes('webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")'),
-  'MainActivity.kt must unconditionally load from local asset domain'
+  "MainActivity.kt must unconditionally load from local asset domain",
 );
-console.log('✅ PASS: onCreate unconditionally loads from local asset domain');
+console.log("✅ PASS: onCreate unconditionally loads from local asset domain");
 
 // Assert onNewIntent exclusively loads from local asset domain
 assert(
-  activityContent.includes('Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix'),
-  'MainActivity.kt onNewIntent must route through local asset domain'
+  activityContent.includes(
+    "Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix",
+  ),
+  "MainActivity.kt onNewIntent must route through local asset domain",
 );
-console.log('✅ PASS: onNewIntent unconditionally routes through local asset domain');
+console.log("✅ PASS: onNewIntent unconditionally routes through local asset domain");
 
 // Assert shouldOverrideUrlLoading keeps only local assets and YouTube player embeds
 assert(
-  activityContent.includes('if (host == LOCAL_ASSET_DOMAIN)'),
-  'shouldOverrideUrlLoading must preserve LOCAL_ASSET_DOMAIN'
+  activityContent.includes("if (host == LOCAL_ASSET_DOMAIN)"),
+  "shouldOverrideUrlLoading must preserve LOCAL_ASSET_DOMAIN",
 );
-console.log('✅ PASS: shouldOverrideUrlLoading preserves local assets in WebView');
+console.log("✅ PASS: shouldOverrideUrlLoading preserves local assets in WebView");
 
 // 2. Verify Android assets bundling
-const assetsDir = path.join(rootDir, 'android-shell/app/src/main/assets');
-assert(fs.existsSync(assetsDir), 'android-shell assets directory must exist');
-assert(fs.existsSync(path.join(assetsDir, 'index.html')), 'assets/index.html must exist');
-console.log('✅ PASS: Local assets directory contains bundled production index.html');
+const assetsDir = path.join(rootDir, "android-shell/app/src/main/assets");
+assert(fs.existsSync(assetsDir), "android-shell assets directory must exist");
+assert(fs.existsSync(path.join(assetsDir, "index.html")), "assets/index.html must exist");
+console.log("✅ PASS: Local assets directory contains bundled production index.html");
 
 // WebViewAssetLoader serves exact files only, so bundled HTML must use relative asset paths
-const bundledHtml = fs.readFileSync(path.join(assetsDir, 'index.html'), 'utf8');
-assert(!/(src|href)="\/(assets|src)\//.test(bundledHtml), 'bundled index.html must not use absolute /assets or /src paths');
-assert(bundledHtml.includes('./assets/'), 'bundled index.html must reference ./assets/');
+const bundledHtml = fs.readFileSync(path.join(assetsDir, "index.html"), "utf8");
+assert(
+  !/(src|href)="\/(assets|src)\//.test(bundledHtml),
+  "bundled index.html must not use absolute /assets or /src paths",
+);
+assert(bundledHtml.includes("./assets/"), "bundled index.html must reference ./assets/");
 for (const ref of bundledHtml.matchAll(/"\.\/(assets\/[^"]+)"/g)) {
   assert(fs.existsSync(path.join(assetsDir, ref[1])), `referenced asset missing: ${ref[1]}`);
 }
-console.log('✅ PASS: Bundled index.html references existing relative ./assets/ files');
+console.log("✅ PASS: Bundled index.html references existing relative ./assets/ files");
 
 // 3. Verify build scripts ensure assets are always packaged
-const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
+const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
 assert(
-  pkg.scripts['build:android-assets']?.includes('cp -r dist/* android-shell/app/src/main/assets/'),
-  'package.json must contain build:android-assets script'
+  pkg.scripts["build:android-assets"]?.includes("cp -r dist/* android-shell/app/src/main/assets/"),
+  "package.json must contain build:android-assets script",
 );
-console.log('✅ PASS: package.json provides build:android-assets bundling command');
+console.log("✅ PASS: package.json provides build:android-assets bundling command");
 
 // 4. Verify build.gradle.kts integrates asset build on preBuild
-const buildGradlePath = path.join(rootDir, 'android-shell/app/build.gradle.kts');
-const buildGradleContent = fs.readFileSync(buildGradlePath, 'utf8');
+const buildGradlePath = path.join(rootDir, "android-shell/app/build.gradle.kts");
+const buildGradleContent = fs.readFileSync(buildGradlePath, "utf8");
 assert(
-  buildGradleContent.includes('prepareWebAssets') && buildGradleContent.includes('build:android-assets'),
-  'build.gradle.kts must prepare web assets before assembling APK'
+  buildGradleContent.includes("prepareWebAssets") &&
+    buildGradleContent.includes("build:android-assets"),
+  "build.gradle.kts must prepare web assets before assembling APK",
 );
-console.log('✅ PASS: build.gradle.kts attaches web assets preparation to preBuild');
+console.log("✅ PASS: build.gradle.kts attaches web assets preparation to preBuild");
 
-console.log('====================================================');
-console.log('📊 ANDROID LOCAL ASSETS TEST: All tests passed!');
-console.log('====================================================');
+console.log("====================================================");
+console.log("📊 ANDROID LOCAL ASSETS TEST: All tests passed!");
+console.log("====================================================");

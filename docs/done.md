@@ -3,6 +3,7 @@
 ## Task 29: Streamline subtitle timing to default base language & ensure GitHub Pages screenshot availability
 
 ### Subtask 29.1: Remove "Timing from" selector and lock subtitle alignment timing to the default base language
+
 - Removed manual "Timing from" `<select>` and associated `[pivot, setPivot]` state from `src/routes/index.tsx`.
 - Implemented automatic `baseLanguage` derivation memo:
   - On Android: utilizes the primary timedtext `lang` query param from intercepted URL, falling back to first available track.
@@ -12,6 +13,7 @@
 - Rebuilt Android bundle assets and verified all 18 verification suites pass.
 
 ### Subtask 29.2: Bundle authentic emulator screenshot into static assets, document GitHub Pages activation, and extend response body size to 200 characters
+
 - Bundled authentic Android emulator screenshot into `public/screenshots/android-emulator-screenshot.png` and `public/assets/android-emulator-screenshot.png`.
 - Documented GitHub Pages manual activation requirement in `README.md` and `docs/operations/ACTIONS.md` (`Settings > Pages > Source: Deploy from a branch gh-pages / root`).
 - Extended network tracker response body preview limit to 200 characters (`MAX_RESPONSE_BODY_PREVIEW_CHARS = 200` in `src/utils/networkTracker.ts`).
@@ -23,6 +25,7 @@
 ## Task 28: Fix README broken links and GitHub Actions workflow resilience
 
 ### Subtask 28.1: Import architectural specification and design contracts from `mostuf2556/Youtubenet6` and fix Markdown link checker
+
 - Imported all 9 architectural documentation and design contracts from `mostuf2556/Youtubenet6` into `docs/operations/`, `docs/specifications/`, and `docs/designs/`:
   - `docs/operations/ACTIONS.md`
   - `docs/specifications/LIBRARY.md`
@@ -38,6 +41,7 @@
 - Updated file registry in `docs/files.md` and verified `npm run test:md` passes with 0 broken links.
 
 ### Subtask 28.2: Ensure GitHub Actions workflow resilience and add dedicated README links verification suite
+
 - Added verification steps to `.github/workflows/integrity.yml` running `npm run test:doc-contracts`, `npm run test:md`, and `npm run test:readme-links` to continuously catch link rot, missing documentation contracts, and badge discrepancies in CI.
 - Updated `README.md` with explicit instructions on enabling GitHub Pages under repository settings (`Settings > Pages > Build and deployment > Source: Deploy from a branch (gh-pages / root)`).
 - Updated `docs/operations/ACTIONS.md` with active repository workflows, deployment architecture, and troubleshooting triage links for `mostuf25561/subtitle-sync`.
@@ -47,6 +51,7 @@
 ## Task 27: Fix GitHub Actions workflows and E2E test alignment with Youtubenet6
 
 ### Subtask 27.1: Align `.github/workflows/` with `mostuf2556/Youtubenet6` and resolve workflow step failures
+
 - Removed redundant `.github/workflows/ci.yml` which failed due to missing `package-lock.json` and is not present in `mostuf2556/Youtubenet6`.
 - Corrected deployed URL detection in `.github/workflows/web.yml` from `/${REPO_NAME}/app/` to `/${REPO_NAME}/`.
 - Guarded `scripts/prepare-report.mjs` invocation in `web.yml` to prevent failures caused by the absence of synthetic scripts.
@@ -55,6 +60,7 @@
 - Added dedicated test `scripts/verify-workflows-alignment.ts` and `npm run test:workflows`.
 
 ### Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites
+
 - Ensured in `src/routes/index.tsx` that `orderedLangs` on web demo (`!isAndroid`) displays all 6 demo languages from `LANGS` (sorted according to `languageOrder`), satisfying `e2e/web.spec.ts` (`toHaveCount(6)`).
 - Preserved user-selected favorite languages presentation on Android (`isAndroid`) with dynamic `tlang` subtitle loading.
 - Rebuilt Android web bundle assets in `android-shell/app/src/main/assets/`.
@@ -63,6 +69,7 @@
 ## Task 26: Extend network request response body preview limit to 50 characters
 
 ### Subtask 26.1: Update response body preview length to 50 characters across tracker, inspector UI, and verification suite
+
 - Extended `MAX_RESPONSE_BODY_PREVIEW_CHARS` in `src/utils/networkTracker.ts` from 15 to 50 characters.
 - Updated `src/components/NetworkRequestsInspector.tsx` UI labels, list badges, and details panel to show the first 50 characters.
 - Updated `scripts/verify-network-inspector.ts` asserting 50-character response preview truncation.
@@ -71,12 +78,14 @@
 ## Task 25: Dynamic favorite language subtitle fetching and network requests inspector with response body preview
 
 ### Subtask 25.1: Proactively fetch subtitles for newly added favorite languages via `tlang`
+
 - Updated `handleTargetLanguagesChange` in `src/routes/index.tsx` to detect newly added favorite languages dynamically.
 - Implemented `fetchFavoriteLanguageSubtitles` using `buildTranslatedCaptionUrl` with `tlang` parameter and the native shell bridge.
 - Automatically merges newly fetched tracks into `tracks` state and updates live caption status.
 - Added dedicated test `scripts/verify-favorite-lang-dynamic-fetch.ts` and registered `test:favorite-dynamic-fetch` in `package.json`.
 
 ### Subtask 25.2: Network requests panel with initial response body preview
+
 - Created modular external store `src/utils/networkTracker.ts` tracking timedtext, bridge, and fetch requests.
 - Implemented `NetworkRequestsInspector.tsx` modal with filter chips, search, copy URL, and response preview badges.
 - Connected network tracking in `src/routes/index.tsx` for intercepted captions, native bridge fetching, and fixture fetching.
@@ -85,6 +94,7 @@
 ## Task 24: Align Android subtitle fetching flow with Youtubenet6 (default caption fetch followed by ordered favorite languages)
 
 ### Subtask 24.1: Implement proactive default subtitle fetch and ordered favorite language translations on Android
+
 - Configured default favorite languages to `['he', 'it']` in `src/utils/appSettings.ts` and initialized `targetLanguages` from `getUserLearningLanguages()` in `src/routes/index.tsx`.
 - Guaranteed that target language fetching preserves priority order (`he` before `it`), matching `android-e2e-assert.sh` ordering expectations.
 - Configured YouTube player `playerVars` with `autoplay: isAndroid ? 1 : 0` and `cc_load_policy: isAndroid ? 1 : 0`.
@@ -93,6 +103,7 @@
 ## Task 23: Enforce 100% local, offline web-app architecture in Android shell
 
 ### Subtask 23.1: Permanently eliminate all remote web-app URLs and fallbacks from `MainActivity.kt` and guarantee local asset execution
+
 - Completely purged `APP_URL` and all remote `github.io` fallback references from `MainActivity.kt`.
 - Configured WebView to unconditionally load `https://appassets.androidplatform.net/index.html$querySuffix` from local bundled APK assets.
 - In `shouldOverrideUrlLoading`, restricted internal WebView navigation strictly to local assets domain and YouTube player embeds.
@@ -103,6 +114,7 @@
 ## Task 22: Publish Android emulator screenshots to GitHub Pages
 
 ### Subtask 22.1: Configure GitHub Actions workflow to publish Android emulator screenshot artifact to GitHub Pages
+
 - Configured `.github/workflows/emulation.yml` with steps to stage `android-emulator-screenshot.png` and `android-emulator-logcat.txt` into `gh-pages-staging/screenshots/`.
 - Added GitHub Pages deployment using `peaceiris/actions-gh-pages@v4` with `keep_files: true` and `destination_dir: .` targeting `gh-pages` branch.
 - Configured `.gitignore` to prevent any synthetic or generated emulator artifacts from entering the git repository.
@@ -113,6 +125,7 @@
 ## Task 21: Android dynamic subtitle fetching and 10-line presentation for favorite languages
 
 ### Subtask 21.1: Dynamically load and present first 10 lines of subtitles for each favorite language on Android
+
 - Connected Android dynamic caption fetching to dispatch `fetchTranslatedCaptionsWithUrl` with `tlang` for all selected favorite languages upon intercepting live captions.
 - Added first 10-lines default subtitle presentation across active favorite languages on Android with dedicated pagination controls and a badge indicating the presentation limit.
 - Maintained isolated web demo fixture behavior.
@@ -232,12 +245,14 @@
 ## Task 16: Align favorite languages, TTS settings, video reset, multi-track audio mode, and auto-scroll default with mostuf2556/Youtubenet6
 
 ### Subtask 16.1: Favorite languages and main screen controls
+
 - Exposed `#target-language-select` on both the web demo (populated from fixture tracks) and Android (populated from the 84-language catalog with live `tlang` fetching).
 - Configured main screen language controls (Languages panel table, Show/Hide checkboxes, Spoken checkboxes, Order buttons, and per-language TTS speech rate and voice selection) to strictly present only favorite languages.
 - Updated `e2e/web.spec.ts` to assert that `#target-language-select` is visible on the web demo.
 - Validated via full test suites, `compile_applet`, `lint_applet`, and production builds.
 
 ### Subtask 16.2: Clear columns on new video on Android
+
 - Added immediate clearing of subtitle tracks (`setTracks(null)`), columns, active index, and speech synthesis when loading any video ID other than the default video on Android.
 - Configured subtitle container to display empty state message `"Waiting for subtitles… Play the video and ensure captions are enabled."` until the live timedtext URL is intercepted.
 - Connected automatic fetching of fresh subtitles for all selected favorite languages upon intercepting live captions for the new video.
@@ -245,6 +260,7 @@
 - Updated `AGENTS.md` requiring dedicated tests for verifying all features and subtasks.
 
 ### Subtask 16.3: YouTube multi-audio track repeat mode
+
 - Decomposed multi-audio track repeat functionality into dedicated modular utility `src/utils/audioTrackManager.ts` following `AGENTS.md` modularity rules and registered in `docs/files.md`.
 - Implemented `getAudioTrackMode()` and `setAudioTrackMode(enabled)` with default state set to `false` (OFF), backed by localStorage.
 - Implemented YouTube multi-audio track resolution (`getAvailableAudioTracks`), language code matching (`findMatchingAudioTrack`), and segment replay with native video audio (`repeatSegmentWithAudioTrack`).
@@ -253,6 +269,7 @@
 - Validated via full test suites, production build, report integrity test, and applet compilation.
 
 ### Subtask 16.4: Disable auto-focus and scroll by default
+
 - Changed auto-focus and auto-scroll state (`autoFocus` / `autoScroll`) to default to `false` (OFF).
 - Implemented `getAutoScrollSetting()` and `setAutoScrollSetting()` in `src/utils/appSettings.ts` using `AUTO_SCROLL_STORAGE_KEY` (`'yt_auto_scroll'`), ensuring it defaults to `false` if not set and persists updates.
 - Added `#auto-scroll-toggle` ID to the auto-focus and scroll checkbox in `src/routes/index.tsx` and connected it to `onAutoFocusChange`.
@@ -261,6 +278,7 @@
 - Documented in `docs/files.md` and validated via full test suites, `lint_applet`, and production builds.
 
 ### Subtask 16.5: E2E testing & verification
+
 - Updated and unified test suites (`e2e/web.spec.ts`, `e2e/app.spec.ts`, `e2e/emulation.spec.ts`, `cypress/e2e/web.cy.ts`).
 - Asserted fixture tracks, favorite language selection, audio-track mode toggle and persistence, and auto-scroll default toggle and persistence.
 - Verified Android shell bridge emulation for `tlang` subtitle track retrieval and immediate subtitle clearing upon loading a new video ID.
@@ -270,6 +288,7 @@
 ## Task 19: Remove server dependencies and convert to pure client SPA
 
 ### Subtask 19.1: Remove server dependencies and convert to pure client SPA
+
 - Removed `@tanstack/react-start`, `nitro`, and `@lovable.dev/vite-tanstack-config` from `package.json`.
 - Deleted server entry files `src/server.ts`, `src/start.ts`, and SSR helper files `src/lib/error-capture.ts` and `src/lib/error-page.ts`.
 - Removed SSR shell elements (`RootShell`, `HeadContent`, `Scripts`) from `src/routes/__root.tsx`.
@@ -283,6 +302,7 @@
 ## Task 20: Remove synthetic report generators, fake artifact scripts, and generated HTML files
 
 ### Subtask 20.1: Remove synthetic report generators, fake artifact scripts, and generated HTML files
+
 - Deleted synthetic report scripts: `scripts/generate-android-report.mjs`, `scripts/prepare-report.mjs`, and `scripts/verify-reports-integrity.mjs`.
 - Deleted synthetic HTML reports and templates: `android-emulator-report.html`, `cypress/runner-template.html`, `cypress/reports/`, and `playwright-report/`.
 - Updated `.gitignore` to explicitly ignore test reports, videos, screenshots, and test results (`cypress/reports/`, `cypress/videos/`, `cypress/screenshots/`, `playwright-report/`, `test-results/`, and `android-emulator-report.html`).
@@ -292,10 +312,3 @@
 - Updated `.github/workflows/integrity.yml` to run authentic tests (`test:hygiene`, `test:client-spa`).
 - Cleaned references to deleted synthetic reports in `README.md` and `docs/files.md`.
 - Ran all authentic tests, builds, and lint successfully.
-
-
-
-
-
-
-

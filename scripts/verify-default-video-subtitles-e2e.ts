@@ -31,7 +31,10 @@ console.log(`✅ PASS: Demo Web App default video ID verified: ${JSON3_DEMO_VIDE
 console.log(`✅ PASS: Demo Web App default video URL verified: ${JSON3_DEMO_VIDEO_URL}`);
 
 const fixturesDir = path.resolve(rootDir, "public", "fixtures", JSON3_DEMO_VIDEO_ID);
-assert(fs.existsSync(fixturesDir), `Fixtures directory must exist for default demo video: ${fixturesDir}`);
+assert(
+  fs.existsSync(fixturesDir),
+  `Fixtures directory must exist for default demo video: ${fixturesDir}`,
+);
 
 const requiredDemoLangs = ["en", "he", "it", "es", "ar", "ru"];
 const loadedTracks: Record<string, Json3> = {};
@@ -39,9 +42,12 @@ const loadedTracks: Record<string, Json3> = {};
 for (const lang of requiredDemoLangs) {
   const fixtureFile = path.resolve(fixturesDir, `${lang}.json`);
   assert(fs.existsSync(fixtureFile), `Missing subtitle fixture for default video: ${fixtureFile}`);
-  
+
   const rawContent = fs.readFileSync(fixtureFile, "utf8");
-  assert(rawContent.length > 50, `Fixture ${lang}.json is unexpectedly small (${rawContent.length} bytes)`);
+  assert(
+    rawContent.length > 50,
+    `Fixture ${lang}.json is unexpectedly small (${rawContent.length} bytes)`,
+  );
 
   const parsed = parseJson3(rawContent);
   assert(parsed !== null, `Failed to parse JSON3 timedtext for lang ${lang}`);
@@ -71,13 +77,18 @@ for (const lang of requiredDemoLangs) {
 
   assert(textSegmentsCount > 0, `Fixture ${lang}.json must contain non-empty text segments`);
   loadedTracks[lang] = parsed;
-  console.log(`✅ PASS: Web demo track "${lang}" validated (${parsed.events.length} events, ${textSegmentsCount} text segs)`);
+  console.log(
+    `✅ PASS: Web demo track "${lang}" validated (${parsed.events.length} events, ${textSegmentsCount} text segs)`,
+  );
 }
 
 // Verify multi-language sentence alignment on default video
 const sentenceRows = align(loadedTracks, "he", "sentence");
 assert(Array.isArray(sentenceRows), "Sentence alignment must produce an array of rows");
-assert(sentenceRows.length >= 10, `Expected at least 10 aligned rows for default demo video, got ${sentenceRows.length}`);
+assert(
+  sentenceRows.length >= 10,
+  `Expected at least 10 aligned rows for default demo video, got ${sentenceRows.length}`,
+);
 
 for (let i = 0; i < Math.min(sentenceRows.length, 5); i++) {
   const row = sentenceRows[i];
@@ -87,7 +98,9 @@ for (let i = 0; i < Math.min(sentenceRows.length, 5); i++) {
   assert(row.texts["en"], `Row ${i} must contain English translated subtitle text`);
   assert(row.texts["it"], `Row ${i} must contain Italian translated subtitle text`);
 }
-console.log(`✅ PASS: Default demo video multi-language sentence alignment OK (${sentenceRows.length} synchronized rows)`);
+console.log(
+  `✅ PASS: Default demo video multi-language sentence alignment OK (${sentenceRows.length} synchronized rows)`,
+);
 
 // Verify word-level alignment on default video
 const wordRows = align(loadedTracks, "he", "word");
@@ -115,7 +128,9 @@ assert(
   runScriptContent.includes(DEFAULT_VIDEO_ID),
   `scripts/run-android-e2e.sh must target DEFAULT_VIDEO_ID (${DEFAULT_VIDEO_ID})`,
 );
-console.log(`✅ PASS: scripts/run-android-e2e.sh configured for default video (${DEFAULT_VIDEO_ID})`);
+console.log(
+  `✅ PASS: scripts/run-android-e2e.sh configured for default video (${DEFAULT_VIDEO_ID})`,
+);
 
 // Verify native caption interception pipeline for default video
 const simulatedTimedTextUrl = `https://www.youtube.com/api/timedtext?v=${DEFAULT_VIDEO_ID}&lang=en&fmt=json3`;
@@ -130,12 +145,20 @@ console.log(`✅ PASS: Native interceptor correctly extracts default video ID: $
 // Verify translated caption URL generator for favorite languages (he, it, es)
 const hebrewTranslatedUrl = buildTranslatedCaptionUrl(simulatedTimedTextUrl, "he", "json3");
 assert(hebrewTranslatedUrl.includes("tlang=he"), "Translated URL must contain tlang=he");
-assert(hebrewTranslatedUrl.includes(`v=${DEFAULT_VIDEO_ID}`), "Translated URL must preserve default video ID");
+assert(
+  hebrewTranslatedUrl.includes(`v=${DEFAULT_VIDEO_ID}`),
+  "Translated URL must preserve default video ID",
+);
 
 const italianTranslatedUrl = buildTranslatedCaptionUrl(simulatedTimedTextUrl, "it", "json3");
 assert(italianTranslatedUrl.includes("tlang=it"), "Translated URL must contain tlang=it");
-assert(italianTranslatedUrl.includes(`v=${DEFAULT_VIDEO_ID}`), "Translated URL must preserve default video ID");
-console.log("✅ PASS: Android native bridge tlang URL generation verified for default video favorite languages");
+assert(
+  italianTranslatedUrl.includes(`v=${DEFAULT_VIDEO_ID}`),
+  "Translated URL must preserve default video ID",
+);
+console.log(
+  "✅ PASS: Android native bridge tlang URL generation verified for default video favorite languages",
+);
 
 // Verify base64 caption decoding pipeline for default video
 const mockRawPayload = JSON.stringify({
@@ -157,7 +180,9 @@ assert.strictEqual(decoded.rawData, mockRawPayload);
 
 const parsedMock = parseJson3(decoded.rawData);
 assert(parsedMock !== null && parsedMock.events.length === 2);
-console.log("✅ PASS: Native caption interceptor base64 payload decoding verified for default video");
+console.log(
+  "✅ PASS: Native caption interceptor base64 payload decoding verified for default video",
+);
 
 // ============================================================================
 // PART 3: E2E Subtitle Logcat Assertion Contract Verification
@@ -179,7 +204,9 @@ assert(
   assertContent.includes("ITALIAN_CAPTION_PATTERN"),
   "scripts/android-e2e-assert.sh must define ITALIAN_CAPTION_PATTERN",
 );
-console.log("✅ PASS: E2E assert script enforces default caption and Hebrew/Italian subtitle verification");
+console.log(
+  "✅ PASS: E2E assert script enforces default caption and Hebrew/Italian subtitle verification",
+);
 
 console.log("\n====================================================");
 console.log("🎉 ALL E2E DEFAULT VIDEO SUBTITLES CHECKS PASSED!");
