@@ -256,19 +256,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
 
         // Extract shared link/deep link text from intent to pass directly as a query parameter
-        val sharedText = if (Intent.ACTION_SEND == intent?.action && intent.type != null) {
-            intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
-        } else if (Intent.ACTION_VIEW == intent?.action) {
-            intent?.dataString
-        } else {
-            null
-        }
-
-        val querySuffix = if (!sharedText.isNullOrBlank()) {
-            "?url=" + android.net.Uri.encode(sharedText)
-        } else {
-            ""
-        }
+        val sharedText = extractSharedText(intent)
+        val querySuffix = buildQuerySuffix(sharedText)
 
         // Load the application exclusively from local bundled web assets
         Log.i(TAG, "Loading local offline web assets from https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
@@ -284,61 +273,96 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         handleSharedIntent(intent)
         
         // If app is already active, immediately navigate the WebView to the incoming video URL
-        val sharedText = if (Intent.ACTION_SEND == intent?.action && intent.type != null) {
-            intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
-        } else if (Intent.ACTION_VIEW == intent?.action) {
-            intent?.dataString
-        } else {
-            null
-        }
+        val sharedText = extractSharedText(intent)
         if (!sharedText.isNullOrBlank()) {
-            val querySuffix = "?url=" + android.net.Uri.encode(sharedText)
+            val querySuffix = buildQuerySuffix(sharedText)
             Log.i(TAG, "Navigating to shared URL via local asset domain: https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
-            webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
+            val target = extractYouTubeVideoId(sharedText) ?: sharedText
+            val jsCode = """
+                (function() {
+                    var link = ${JSONObject.quote(target)};
+                    if (window.onNativeSharedLinkReceived) {
+                        window.onNativeSharedLinkReceived(link);
+                    } else {
+                        window.__pendingSharedLink = link;
+                        window.location.href = "https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix";
+                    }
+                })();
+            """.trimIndent()
+            webView.evaluateJavascript(jsCode) { res ->
+                if (res == null || res == "null") {
+                    webView.loadUrl("https://$LOCAL_ASSET_DOMAIN/index.html$querySuffix")
+                }
+            }
+        }
+    }
+
+    private fun extractSharedText(intent: Intent?): String? {
+        if (intent == null) return null
+        val extraText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            ?: intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
+            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        if (!extraText.isNullOrBlank()) return extraText.trim()
+
+        val clipData = intent.clipData
+        if (clipData != null && clipData.itemCount > 0) {
+            val item = clipData.getItemAt(0)
+            val clipText = item.text?.toString() ?: item.uri?.toString()
+            if (!clipText.isNullOrBlank()) return clipText.trim()
+        }
+
+        val dataString = intent.dataString ?: intent.data?.toString()
+        if (!dataString.isNullOrBlank()) return dataString.trim()
+
+        return null
+    }
+
+    private fun extractYouTubeVideoId(input: String?): String? {
+        if (input.isNullOrBlank()) return null
+        val trimmed = input.trim()
+        if (trimmed.matches(Regex("^[a-zA-Z0-9_-]{11}$"))) {
+            return trimmed
+        }
+        val youtuBeMatch = Regex("(?:youtu\\.be|y2u\\.be)/([a-zA-Z0-9_-]{11})").find(trimmed)
+        if (youtuBeMatch != null) return youtuBeMatch.groupValues[1]
+
+        val watchMatch = Regex("[?&]v=([a-zA-Z0-9_-]{11})").find(trimmed)
+        if (watchMatch != null) return watchMatch.groupValues[1]
+
+        val pathMatch = Regex("/(?:shorts|embed|live|v)/([a-zA-Z0-9_-]{11})").find(trimmed)
+        if (pathMatch != null) return pathMatch.groupValues[1]
+
+        return null
+    }
+
+    private fun buildQuerySuffix(rawText: String?): String {
+        if (rawText.isNullOrBlank()) return ""
+        val videoId = extractYouTubeVideoId(rawText)
+        return when {
+            !videoId.isNullOrBlank() -> "?v=$videoId&url=" + android.net.Uri.encode(rawText)
+            else -> "?url=" + android.net.Uri.encode(rawText)
         }
     }
 
     private fun handleSharedIntent(intent: Intent?) {
-        if (intent == null) return
-        val action = intent.action
-        val type = intent.type
+        val sharedText = extractSharedText(intent) ?: return
+        val extractedId = extractYouTubeVideoId(sharedText)
+        val target = extractedId ?: sharedText
+        Log.i(TAG, "Received shared link from Android intent: $sharedText (target: $target)")
 
-        if (Intent.ACTION_SEND == action && type != null) {
-            if ("text/plain" == type || type.startsWith("text/")) {
-                val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
-                    ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
-                if (!sharedText.isNullOrBlank()) {
-                    Log.i(TAG, "Received shared link from Android intent: $sharedText")
-                    mainHandler.postDelayed({
-                        val jsCode = """
-                            (function() {
-                                if (window.onNativeSharedLinkReceived) {
-                                    window.onNativeSharedLinkReceived(${JSONObject.quote(sharedText)});
-                                } else {
-                                    window.__pendingSharedLink = ${JSONObject.quote(sharedText)};
-                                }
-                            })();
-                        """.trimIndent()
-                        webView.evaluateJavascript(jsCode, null)
-                    }, 500)
-                }
-            }
-        } else if (Intent.ACTION_VIEW == action && !intent.dataString.isNullOrBlank()) {
-            val sharedText = intent.dataString
-            Log.i(TAG, "Received ACTION_VIEW deep link: $sharedText")
-            mainHandler.postDelayed({
-                val jsCode = """
-                    (function() {
-                        if (window.onNativeSharedLinkReceived) {
-                            window.onNativeSharedLinkReceived(${JSONObject.quote(sharedText)});
-                        } else {
-                            window.__pendingSharedLink = ${JSONObject.quote(sharedText)};
-                        }
-                    })();
-                """.trimIndent()
-                webView.evaluateJavascript(jsCode, null)
-            }, 500)
-        }
+        mainHandler.postDelayed({
+            val jsCode = """
+                (function() {
+                    var link = ${JSONObject.quote(target)};
+                    if (window.onNativeSharedLinkReceived) {
+                        window.onNativeSharedLinkReceived(link);
+                    } else {
+                        window.__pendingSharedLink = link;
+                    }
+                })();
+            """.trimIndent()
+            webView.evaluateJavascript(jsCode, null)
+        }, 300)
     }
 
     private fun saveCaptionToFile(url: String, data: ByteArray) {

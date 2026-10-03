@@ -232,7 +232,20 @@ function Index() {
       new URLSearchParams(window.location.search).get("android") === "true"
     );
   });
-  const [videoId, setVideoId] = useState(DEMO_VIDEO);
+  const [videoId, setVideoId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const target =
+        params.get("v") ||
+        params.get("url") ||
+        (window as Window & { __pendingSharedLink?: string }).__pendingSharedLink;
+      if (target) {
+        const id = parseVideoId(target);
+        if (id) return id;
+      }
+    }
+    return DEMO_VIDEO;
+  });
   const [videoInput, setVideoInput] = useState("");
   const [captionStatus, setCaptionStatus] = useState("");
   const [observedUrl, setObservedUrl] = useState("");
@@ -386,11 +399,6 @@ function Index() {
   const [subtitlesPage, setSubtitlesPage] = useState<number>(1);
 
   useEffect(() => {
-    const shell = nativeShell();
-    if (!shell) return;
-    setIsAndroid(true);
-    setSubtitlesLimit(10);
-    setSubtitlesPage(1);
     const openLink = (link: string) => {
       const id = parseVideoId(link);
       if (id) {
@@ -412,9 +420,21 @@ function Index() {
       }
     };
     window.onNativeSharedLinkReceived = openLink;
-    if (window.__pendingSharedLink) openLink(window.__pendingSharedLink);
-    const query = new URLSearchParams(location.search).get("url");
+    if (window.__pendingSharedLink) {
+      openLink(window.__pendingSharedLink);
+      delete window.__pendingSharedLink;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get("v") || params.get("url");
     if (query) openLink(query);
+
+    const shell = nativeShell();
+    if (shell) {
+      setIsAndroid(true);
+      setSubtitlesLimit(10);
+      setSubtitlesPage(1);
+    }
+
     return () => {
       delete window.onNativeSharedLinkReceived;
     };

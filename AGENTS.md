@@ -15,6 +15,7 @@
 
 - Follow prompt steps: break every prompt into clear numbered steps and execute them sequentially step after step.
 - Git commit each step: perform a dedicated Git commit after completing each section or step to keep progress incremental and transparent.
+- After git commit, try using git push: after performing each git commit, attempt `git push` (handling failure gracefully if no remote or push credentials are configured) to keep remote branches and editor synchronized.
 - Test each section and commit each step:
   1. Implement the section's changes.
   2. Add or update dedicated tests covering the specific feature requirements.
