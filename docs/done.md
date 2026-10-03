@@ -1,5 +1,57 @@
 # Done tasks
 
+## Task 45: Enhance E2E Testing with Multi-Tool Suite
+
+### Subtask 45.3: Unified E2E Multi-Tool Runner & Documentation
+
+- Implemented unified verification script `scripts/verify-e2e-tools.ts` (`npm run test:e2e-tools`) validating:
+  - All 5 Playwright spec files (`web.spec.ts`, `emulation.spec.ts`, `app.spec.ts`, `accessibility.spec.ts`, `network-faults.spec.ts`) exist, parse cleanly, and contain real tests.
+  - `@axe-core/playwright` is installed and imported for WCAG audits.
+  - Cypress spec files (`web.cy.ts`, `emulation.cy.ts`) exist and cover Video Library, Debug Mode, and Subtitle Sync.
+  - `playwright.config.ts` includes `web`, `emulation`, `app`, `a11y`, and `faults` projects.
+  - `package.json` contains valid scripts for all E2E tools (`test:e2e`, `test:e2e:a11y`, `test:e2e:faults`, `test:cy:web`, `test:e2e-tools`).
+- Registered `test:e2e-tools` in `package.json` and documented all new test files in `docs/files.md`.
+- Executed `npm run test:e2e-tools`: 100% pass rate.
+- Verified clean build, zero lint warnings, and applet compilation.
+
+### Subtask 45.2: Expand Cypress E2E Test Suite (cypress/e2e/)
+
+- Expanded `cypress/e2e/web.cy.ts` with authentic end-to-end tests for the Video Library panel: tested opening the panel, filtering items with `#library-search-input`, saving the current active video with `#save-current-video-btn`, and loading videos.
+- Added step-by-step test for the Debug Mode toggle in Settings: verifies that toggling debug mode exposes the `#navbar-network-button`, opens `#network-requests-inspector-modal`, and closes the modal cleanly via `#close-network-inspector-btn`.
+- Added step-by-step test for persistent audio-track repeat mode (`#audio-track-mode-toggle`) and auto-scroll preference (`#auto-scroll-toggle`).
+- Expanded `cypress/e2e/emulation.cy.ts` with Android back navigation testing: verifies that `window.__handleAndroidBack()` dismisses active modals and returns `true`, and returns `false` when no modal is open.
+- Verified clean build, zero lint warnings, and applet compilation.
+
+### Subtask 45.1: Integrate Automated Accessibility E2E Testing (@axe-core/playwright) & Network Fault Injection
+
+- Installed `@axe-core/playwright` as a development dependency for automated WCAG accessibility auditing.
+- Implemented `e2e/accessibility.spec.ts` scanning the main landing page, navbar, color theme controls, Video Library panel, and Parallel Subtitles table, asserting zero critical accessibility violations.
+- Implemented `e2e/network-faults.spec.ts` using Playwright network interception to test simulated 3G latency, HTTP 429 rate limiting with auto-retry resilience, offline fallback to authentic bundled fixtures, and malformed non-JSON payloads without UI crashes.
+- Registered `test:e2e:a11y` and `test:e2e:faults` in `package.json` and added `a11y` and `faults` project targets to `playwright.config.ts`.
+- Verified clean build, zero lint warnings, and applet compilation.
+
+## Task 42: Remove subtitle caching
+
+### Subtask 42.1: Remove subtitle caching from app to simplify data flow
+
+- Neutralized subtitle caching layer in `src/utils/subtitleCache.ts` (`saveCachedSubtitles` and `saveCachedTargetSubtitles` made no-ops) to guarantee that subtitles are always freshly retrieved and eliminate stale cache invalidation issues.
+- Updated `getCachedSubtitles` to return `null` and `hasCachedSubtitles` to return `false`, preventing reading stale tracks from `localStorage` under `yt_subtitles_*` or memory cache.
+- Updated `clearSubtitleCache` to cleanly purge legacy `yt_subtitles_*` keys using `window.localStorage`.
+- Verified that `src/routes/index.tsx` enforces fresh track acquisition on video change (`setTracks(null)`) while preserving authentic bundled JSON3 demo fixtures for offline fallback.
+- Created dedicated verification test `scripts/verify-no-subtitle-caching.ts` (`npm run test:no-subtitle-caching`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified 100% pass rate across test suite, clean build, and zero lint warnings.
+
+## Task 41: Video library panel (watch history)
+
+### Subtask 41.1: Implement Video Library / Watch History panel
+
+- Integrated `VideoLibraryPanel` component (`src/components/VideoLibraryPanel.tsx`) into `PANELS` in `src/routes/index.tsx` and navbar button `#navbar-library-button`.
+- Implemented persistent video watch history in `localStorage` under `yt_video_library_v2` (`STORAGE_KEYS.LIBRARY_STORAGE_KEY`), automatically recording current video ID, timestamp, thumbnail URL (`https://i.ytimg.com/vi/${id}/mqdefault.jpg`), and original URL.
+- Provided default educational video seeds (`DEFAULT_LIBRARY_ITEMS`) in `src/config/appConfig.ts`.
+- Implemented search/filter input (`#library-search-input`), load video action (`#load-library-video-${id}`), save current video button (`#save-current-video-btn`), remove item button (`#remove-library-video-${id}`), and reset defaults.
+- Created dedicated verification test `scripts/verify-video-library-panel.ts` (`npm run test:video-library`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified 100% pass rate across test suite, clean build, and zero lint warnings.
+
 ## Task 40: Support app history (Android back navigation)
 
 ### Subtask 40.1: Implement Android back navigation and router/browser history integration

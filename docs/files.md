@@ -23,6 +23,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI  | Displays live captured network requests with URL, method, status, duration, and first 200 characters response body preview.       |
 | `src/components/ApkReleaseModal.tsx`          | Latest APK Release Modal      | Displays direct APK downloads, GitHub release links, web artifacts, and CLI install commands for both mostuf2556 and mostuf25561. |
 | `src/components/SubtitleFetchToast.tsx`       | Subtitle Fetch Notification   | Popup indicator notifying when subtitle fetching begins and finishes, with quick link to table and mute option.                   |
+| `src/components/VideoLibraryPanel.tsx`        | Video Watch Library Panel     | Displays persistent watch history in localStorage, search/filter, quick load/play actions, and library management controls.        |
 
 ## Feature Utilities (`src/utils/`)
 
@@ -36,11 +37,12 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/utils/networkInterceptor.ts` | Network Traffic Interceptor        | Monitors browser requests to capture YouTube timedtext subtitle URLs.                                                  |
 | `src/utils/networkTracker.ts`     | Live Network Request Tracker       | Records timedtext, bridge, and fetch requests, keeping response bodies strictly truncated to the first 200 characters. |
 | `src/utils/rtlUtils.ts`           | Text Direction Manager             | Detects RTL languages (Hebrew, Arabic, etc.) and formats directional rendering.                                        |
-| `src/utils/subtitleCache.ts`      | Subtitle Cache Service             | Stores fetched subtitles in local browser storage to support offline replay.                                           |
+| `src/utils/subtitleCache.ts`      | Subtitle Cache Service (Neutralized) | Caching removed to guarantee fresh subtitle retrieval and eliminate stale tracks; purges legacy cache keys.            |
 | `src/utils/urlStateManager.ts`    | URL Parameter Synchronizer         | Reflects active video, languages, and settings into query parameters for deep linking.                                 |
 | `src/utils/videoSettings.ts`      | Per-Video Preferences Store        | Persists language choices and playback configurations specific to individual video IDs.                                |
 | `src/utils/logBuffer.ts`          | Diagnostic Log Buffer              | Captures and retains rolling logs for network, bridge, and playback diagnostic inspection.                             |
 | `src/utils/subtitleNotificationManager.ts` | Subtitle Notification State | Manages subtitle fetch notifications, auto-dismiss timers, broadcast events, and notification mute state. |
+| `src/utils/videoFixturesRegistry.ts` | Video Subtitles Fixtures Registry | Scopes and retrieves authentic multilingual JSON3 subtitles strictly per video ID, preventing default video bleeding. |
 
 ## Configuration & Data Fixtures (`src/config/`)
 
@@ -102,6 +104,12 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-android-back-navigation.ts`    | Android Back Navigation & History Verification   | Validates OnBackPressedCallback in MainActivity, window.__handleAndroidBack modal consumption, history.pushState, and popstate navigation. |
 | `scripts/verify-tlang-repetition.ts`           | Android Shell tlang Repetition Verification      | Validates query preservation, token preservation, fallback headers, and tlang swapping matching mostuf2556/Youtubenet6.                |
 | `scripts/verify-player-viewport-placement.ts`  | Player Viewport Placement & Options Verification | Validates video container positioning, testids, enablejsapi: 1, origin, and onReady Android autoplay integration.                      |
+| `scripts/verify-video-library-panel.ts`        | Video Library Panel & Watch History Test         | Validates Video Library panel in PANELS, localStorage watch history persistence, item adding/removing, and UI controls.                |
+| `scripts/verify-no-subtitle-caching.ts`        | No Subtitle Caching Verification                 | Validates elimination of subtitle caching, disabled localStorage writes, fresh track retrieval, and legacy cache purging.               |
 | `scripts/verify-android-e2e-video-report.ts`   | Android E2E Video Recording & Report Verification | Validates screenrecord execution, GitHub Actions exclusivity, gh-pages artifact staging, and README video linking.                      |
+| `scripts/verify-e2e-tools.ts`                  | Multi-Tool E2E Testing Verification              | Validates Playwright a11y, fault injection, Cypress expanded suites, and runner configurations.                                         |
+| `scripts/verify-presented-video-subtitles.ts`  | Presented Video Subtitles Verification           | Validates that subtitles strictly correspond to the presented video without defaulting or cross-video bleeding.                        |
+| `e2e/accessibility.spec.ts`                    | Automated WCAG Accessibility E2E Test Suite      | Performs automated WCAG 2.1 AA accessibility scans using @axe-core/playwright across player, subtitles, and panels.                       |
+| `e2e/network-faults.spec.ts`                   | Network Fault Injection E2E Test Suite           | Tests simulated latency, HTTP 429 rate limiting, offline mode, and malformed payload resilience using Playwright route interception.    |
 | `scripts/verify-md-links.ts`                    | Markdown Links Checker                           | Validates that all documentation cross-references and links resolve properly.                                                           |
 | `scripts/normalize-web-assets.mjs`              | Build Asset Normalizer                           | Adjusts asset paths for GitHub Pages sub-path hosting.                                                                                  |
