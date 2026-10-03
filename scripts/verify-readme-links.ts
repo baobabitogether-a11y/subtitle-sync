@@ -84,27 +84,15 @@ assert(
   "README.md must contain emulator screenshot reference",
 );
 
-const screenshotAsset = path.resolve(
-  rootDir,
-  "public",
-  "screenshots",
-  "android-emulator-screenshot.png",
-);
+const gitignorePath = path.resolve(rootDir, ".gitignore");
+assert(fs.existsSync(gitignorePath), ".gitignore must exist");
+const gitignoreContent = fs.readFileSync(gitignorePath, "utf8");
 assert(
-  fs.existsSync(screenshotAsset),
-  "public/screenshots/android-emulator-screenshot.png asset must exist",
+  gitignoreContent.includes("android-emulator-screenshot.png") ||
+    gitignoreContent.includes("screenshots/"),
+  "screenshots must be ignored in .gitignore to keep main branch clean of build outputs",
 );
-const assetScreenshot = path.resolve(
-  rootDir,
-  "public",
-  "assets",
-  "android-emulator-screenshot.png",
-);
-assert(
-  fs.existsSync(assetScreenshot),
-  "public/assets/android-emulator-screenshot.png asset must exist",
-);
-console.log("✅ PASS: Authentic emulator screenshot static assets present in public/");
+console.log("✅ PASS: Emulator screenshot properly configured as ephemeral CI artifact for gh-pages");
 console.log("✅ PASS: GitHub Pages demo and screenshot URLs present in README.md");
 
 console.log("====================================================");

@@ -64,6 +64,8 @@ android-emulator-report.html
 gh-pages-staging/
 android-emulator-screenshot.png
 android-emulator-logcat.txt
+android-emulator-e2e.mp4
+*.mp4
 screenshots/
 
 # Editor directories and files

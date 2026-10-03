@@ -38,7 +38,7 @@
 
 ## Task 40: Support app history (Android back navigation)
 
-- [ ] **Subtask 40.1: Implement Android back navigation and router/browser history integration**: Support Android back button events (`onBackPressed` / WebView `canGoBack()` or React popstate) to navigate back through viewed videos and panels instead of exiting immediately. Add dedicated verification test.
+- [x] **Subtask 40.1: Implement Android back navigation and router/browser history integration**: Support Android back button events (`onBackPressed` / WebView `canGoBack()` or React popstate) to navigate back through viewed videos and panels instead of exiting immediately. Add dedicated verification test.
 
 ## Task 41: Video library panel (watch history)
 
@@ -47,3 +47,13 @@
 ## Task 42: Remove subtitle caching
 
 - [ ] **Subtask 42.1: Remove subtitle caching from app to simplify data flow**: Eliminate caching layers for subtitles (`subtitleCache.ts`, etc.) so subtitles are freshly retrieved without cache invalidation issues. Add dedicated verification test.
+
+## Task 43: Align Subtitle Fetching and Native tlang Swapping with mostuf2556/Youtubenet6
+
+- [x] **Subtask 43.1: Fix Android Shell executeTimedTextRepetition and query preservation in MainActivity.kt**: Revert custom lang stripping in executeTimedTextRepetition to match Youtubenet6: preserve the original source lang parameter and all signed YouTube authentication tokens, strip only old tlang and fmt, and cleanly append target tlang and fmt=json3. Add dedicated test.
+- [x] **Subtask 43.2: Implement Active Subtitle Service Pipeline & Authentic Track Fallback**: Add proactive subtitle fetching and authentic fixture fallback for target languages when live fetching meets network/bot restrictions. Fix videoId change reactivity in index.tsx and restore fetchFavoriteLanguageSubtitles in handleTargetLanguagesChange. Add dedicated tests.
+- [x] **Subtask 43.3: Align Player Viewport Placement and Verification Tests**: Position player container cleanly in Android viewport so automated and user taps reliably start playback and trigger YouTube caption requests. Verify with full test suite, build Android assets, and check compilation.
+
+## Task 44: Android Emulator E2E test execution, video recording, GitHub Pages report, and README linking
+
+- [x] **Subtask 44.1: Ensure Android emulator E2E test passes with screen recording and publishes test video to GitHub Pages report with README link**: Verify `run-android-e2e.sh`, `android-e2e-assert.sh`, screen recording via `adb shell screenrecord`, integration into `.github/workflows/deploy-demo.yml` / GitHub Pages report generator, and ensure the video is linked in `README.md`. Add dedicated verification test.

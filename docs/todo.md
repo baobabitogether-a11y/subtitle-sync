@@ -1,18 +1,26 @@
 # Active Sub-task
 
-## Subtask 40.1: Implement Android back navigation and router/browser history integration
+## Subtask 41.1: Implement Video Library / Watch History panel
 
 - **Goal**:
-  1. Inspect `MainActivity.kt` in `android-shell/app/src/main/java/com/ytviewer/app/MainActivity.kt`:
-     - Implement proper back button handling using AndroidX `OnBackPressedCallback` or `onBackPressedDispatcher`:
-       - If modal/inspector is open, notify webview / evaluate JS or pop state.
-       - If `webView.canGoBack()`, navigate back with `webView.goBack()`.
-       - Otherwise delegate to default back press behavior (exit app).
-  2. In the React app (`src/routes/index.tsx` / `src/utils/urlStateManager.ts`):
-     - Ensure video changes and modal openings push or manage browser history entries (`window.history.pushState` / `popstate` listener).
-     - When user or Android back button triggers `popstate`, handle closing open modals (like `NetworkRequestsInspector` or `ApkReleaseModal`) or restoring previous video ID from URL search params.
-  3. Create dedicated verification test `scripts/verify-android-back-navigation.ts` and add script `test:back-navigation` to `package.json`.
-  4. Register new test in `docs/files.md`.
-  5. Commit changes and tests before executing them (`git commit` and try `git push`).
-  6. Test thoroughly with dedicated test, build Android assets, compile, and lint.
-  7. Advance to the next task.
+  1. Add `library` panel to `PANELS` in `src/routes/index.tsx` (or dedicated modular component `src/components/VideoLibraryPanel.tsx`).
+  2. Implement persistent video watch history in `localStorage` under `yt_video_library_v2`:
+     - Tracks video ID, title, timestamp, thumbnail URL (`https://i.ytimg.com/vi/${id}/mqdefault.jpg`), and original URL.
+     - Automatically saves current video into library when played or loaded.
+     - Seeds with default educational/demo items if empty (matching `appConfig.ts` / `mostuf2556/Youtubenet6`).
+  3. Provide UI controls in the Library panel:
+     - Search / filter input by video title or ID.
+     - Thumbnail preview, title, formatted date/time, and video ID badge.
+     - "Load Video" action that switches player to the selected video and updates history.
+     - "Remove" action to delete individual videos from the library.
+     - "Clear Library" action with confirmation.
+     - "Save Current Video" button to manually add or update the current active video.
+     - Test IDs and accessibility attributes: `#video-library-panel`, `data-testid="video-library-panel"`, `data-testid="library-search-input"`, `data-testid="library-item-${id}"`, etc.
+  4. Create dedicated verification test `scripts/verify-video-library-panel.ts` validating:
+     - Panel presence in `PANELS` and UI rendering.
+     - Persistence in `localStorage` (`yt_video_library_v2`).
+     - Adding, switching/loading, and removing items.
+     - Thumbnail and metadata generation.
+  5. Register test in `package.json` (`test:video-library`) and `docs/files.md`.
+  6. Verify compilation (`compile_applet`) and zero lint warnings (`lint_applet`).
+  7. Run all tests and present results for user confirmation.

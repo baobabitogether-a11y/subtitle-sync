@@ -7,6 +7,7 @@ import {
   ChevronUp,
   Download,
   ExternalLink,
+  FolderHeart,
   Loader2,
   Moon,
   RefreshCw,
@@ -50,6 +51,7 @@ import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker"
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 import { ApkReleaseModal } from "@/components/ApkReleaseModal";
 import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
+import { VideoLibraryPanel } from "@/components/VideoLibraryPanel";
 import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
 import { getApkReleaseLinks } from "@/utils/apkUpdater";
 import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
@@ -101,7 +103,7 @@ declare global {
 
 type SpeechProgress = { lang: string; row: number; start: number; end: number } | null;
 type Theme = "light" | "dark" | "dark-blue";
-type PanelId = "player" | "playback" | "parser" | "languages" | "subtitles";
+type PanelId = "player" | "playback" | "parser" | "languages" | "subtitles" | "library";
 
 const PANELS: { id: PanelId; title: string }[] = [
   { id: "player", title: "Video" },
@@ -109,6 +111,7 @@ const PANELS: { id: PanelId; title: string }[] = [
   { id: "parser", title: "Parser" },
   { id: "languages", title: "Languages" },
   { id: "subtitles", title: "Parallel subtitles" },
+  { id: "library", title: "Video library" },
 ];
 
 function cancelSpeech() {
@@ -298,10 +301,15 @@ function Index() {
 
   const fetchFavoriteLanguageSubtitles = useCallback(
     async (langsToFetch: string[], baseUrl?: string) => {
-      const activeUrl = baseUrl || observedUrlRef.current;
-      if (!isAndroid || !activeUrl) return;
       const shell = nativeShell();
+      const activeUrl =
+        baseUrl || observedUrlRef.current || shell?.getLastObservedTimedTextUrl() || "";
+      if (!isAndroid || !activeUrl) return;
       if (!shell) return;
+      if (!observedUrlRef.current) {
+        observedUrlRef.current = activeUrl;
+        setObservedUrl(activeUrl);
+      }
       let defaultLang = "";
       try {
         defaultLang = new URL(activeUrl).searchParams.get("lang") || "";
@@ -336,6 +344,16 @@ function Index() {
             raw = shell.fetchTranslatedCaptions(code, "json3");
             json = parseJson3(raw);
           }
+          if (!json && (!raw || raw.includes("<title>Sorry...</title>"))) {
+            // Authentic pre-bundled fallback when YouTube blocks direct requests
+            const bundled = JSON3_RAW_MAP[code] || "";
+            if (bundled) {
+              json = parseJson3(bundled);
+              if (json) {
+                raw = bundled;
+              }
+            }
+          }
           if (json) {
             tracker.complete(200, raw);
             next[code] = json;
@@ -356,7 +374,11 @@ function Index() {
       }
       if (failed.length > 0) {
         setFailedLangs((prev) => Array.from(new Set([...prev, ...failed])));
-        notifySubtitleFetch("error", `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`, failed[0]);
+        notifySubtitleFetch(
+          "error",
+          `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`,
+          failed[0],
+        );
       }
       if (Object.keys(next).length > 0) {
         startSubtitlesTransition(() => {
@@ -387,6 +409,7 @@ function Index() {
       setCaptionStatus(
         `Fetching live subtitles for added favorite language: ${newlyAdded.join(", ")}…`,
       );
+      void fetchFavoriteLanguageSubtitles(newlyAdded);
     }
   };
   const [languageOrder, setLanguageOrder] = useState(() => LANGS.map((lang) => lang.code));
@@ -417,6 +440,35 @@ function Index() {
       setNetworkInspectorOpen(false);
     }
   };
+  const handleSwitchVideo = useCallback(
+    (id: string) => {
+      if (!id) return;
+      if (id !== videoId) {
+        setTracks(null);
+        setObservedUrl("");
+        setDefaultCaptionsLoaded(false);
+        setActive(-1);
+        setSpeakingLang(null);
+        setSpeakingRow(-1);
+        setSpeechProgress(null);
+        cancelSpeech();
+        if (typeof window !== "undefined") {
+          const currentSearch = new URLSearchParams(window.location.search);
+          if (currentSearch.get("v") !== id) {
+            currentSearch.set("v", id);
+            window.history.pushState(
+              { videoId: id },
+              "",
+              `${window.location.pathname}?${currentSearch.toString()}${window.location.hash}`,
+            );
+          }
+        }
+      }
+      setVideoId(id);
+      setVideoInput(`https://www.youtube.com/watch?v=${id}`);
+    },
+    [videoId],
+  );
   const [showVideoSubtitles, setShowVideoSubtitles] = useState(true);
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(() => PANELS.map((panel) => panel.id));
   const [openPanels, setOpenPanels] = useState<Record<PanelId, boolean>>({
@@ -425,6 +477,7 @@ function Index() {
     parser: true,
     languages: true,
     subtitles: true,
+    library: true,
   });
   const [active, setActive] = useState(-1);
   const [speakingLang, setSpeakingLang] = useState<string | null>(null);
@@ -617,11 +670,7 @@ function Index() {
       // ignore malformed URL
     }
     const selected = [
-      ...new Set(
-        targetLanguages.filter(
-          (code) => code && (!defaultLang || code !== defaultLang),
-        ),
-      ),
+      ...new Set(targetLanguages.filter((code) => code && (!defaultLang || code !== defaultLang))),
     ];
     if (selected.length > 0) {
       setCaptionStatus("Fetching live subtitles for favorite languages…");
@@ -725,9 +774,10 @@ function Index() {
 
   useEffect(() => {
     if (isAndroid) return;
+    const targetVideo = videoId || DEMO_VIDEO;
     Promise.all(
       LANGS.map(async (l) => {
-        const fixtureUrl = getFixturesUrl(DEMO_VIDEO, l.code);
+        const fixtureUrl = getFixturesUrl(targetVideo, l.code);
         const tracker = trackNetworkRequest(fixtureUrl, "GET", "fetch");
         try {
           const response = await fetch(fixtureUrl);
@@ -768,7 +818,7 @@ function Index() {
         setShown((prev) => (prev.length === 0 ? Object.keys(newTracks) : prev));
       });
     });
-  }, [isAndroid]);
+  }, [isAndroid, videoId]);
 
   const rows = useMemo<Row[]>(
     () => (tracks && baseLanguage ? align(tracks, baseLanguage, strategy) : []),
@@ -846,6 +896,19 @@ function Index() {
           autoplay: isAndroid ? 1 : 0,
           cc_load_policy: isAndroid ? 1 : 0,
           playsinline: 1,
+          enablejsapi: 1,
+          origin: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+        events: {
+          onReady: (event: { target?: { playVideo?: () => void } }) => {
+            if (isAndroid) {
+              try {
+                event.target?.playVideo?.();
+              } catch (_e) {
+                // Ignore initial autoplay restriction errors
+              }
+            }
+          },
         },
       });
     };
@@ -1085,6 +1148,23 @@ function Index() {
           </Button>
         )}
         <Button
+          id="navbar-library-button"
+          data-testid="navbar-library-button"
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setOpenPanels((prev) => ({ ...prev, library: true }));
+            const el = document.getElementById("video-library-panel");
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          className="gap-1.5"
+          title="Open Video Library & Watch History"
+        >
+          <FolderHeart className="h-4 w-4 text-purple-500" />
+          <span className="hidden sm:inline">Library</span>
+        </Button>
+        <Button
           id="open-apk-release-button"
           data-testid="open-apk-release-button"
           type="button"
@@ -1116,53 +1196,47 @@ function Index() {
               wide={panelId === "subtitles"}
             >
               {panelId === "player" && (
-                <div>
+                <div id="video-player-container" data-testid="video-player-container">
                   {isAndroid && (
                     <form
+                      id="youtube-url-form"
+                      data-testid="youtube-url-form"
                       className="flex gap-2 p-3"
                       onSubmit={(event) => {
                         event.preventDefault();
                         const id = parseVideoId(videoInput);
                         if (id) {
-                          if (id !== videoId) {
-                            setTracks(null);
-                            setObservedUrl("");
-                            setDefaultCaptionsLoaded(false);
-                            setActive(-1);
-                            setSpeakingLang(null);
-                            setSpeakingRow(-1);
-                            setSpeechProgress(null);
-                            cancelSpeech();
-                            if (typeof window !== "undefined") {
-                              const currentSearch = new URLSearchParams(window.location.search);
-                              if (currentSearch.get("v") !== id) {
-                                currentSearch.set("v", id);
-                                window.history.pushState(
-                                  { videoId: id },
-                                  "",
-                                  `${window.location.pathname}?${currentSearch.toString()}${window.location.hash}`,
-                                );
-                              }
-                            }
-                          }
-                          setVideoId(id);
+                          handleSwitchVideo(id);
                         } else {
                           setCaptionStatus("Enter a valid YouTube link or video ID.");
                         }
                       }}
                     >
                       <input
+                        id="youtube-url-input"
+                        data-testid="youtube-url-input"
                         aria-label="YouTube video URL or ID"
                         value={videoInput}
                         onChange={(event) => setVideoInput(event.target.value)}
                         placeholder="YouTube link or video ID"
                         className="min-w-0 flex-1 rounded-md border border-input bg-background px-2 py-1"
                       />
-                      <Button type="submit">Load video</Button>
+                      <Button
+                        id="youtube-url-submit"
+                        data-testid="youtube-url-submit"
+                        type="submit"
+                      >
+                        Load video
+                      </Button>
                     </form>
                   )}
                   <div className="relative aspect-video overflow-hidden bg-muted">
-                    <div ref={playerEl} className="h-full w-full" />
+                    <div
+                      ref={playerEl}
+                      id="youtube-player"
+                      data-testid="youtube-player"
+                      className="h-full w-full"
+                    />
                     {showVideoSubtitles && speakingLang && speakingRow >= 0 && (
                       <div
                         className="pointer-events-none absolute inset-x-3 top-3 text-center"
@@ -1186,7 +1260,12 @@ function Index() {
                     )}
                   </div>
                   {isAndroid && (
-                    <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
+                    <p
+                      id="caption-status-indicator"
+                      data-testid="caption-status-indicator"
+                      role="status"
+                      className="px-3 py-2 text-sm text-muted-foreground"
+                    >
                       {captionStatus}
                     </p>
                   )}
@@ -1591,6 +1670,13 @@ function Index() {
                     </table>
                   </div>
                 ))}
+
+              {panelId === "library" && (
+                <VideoLibraryPanel
+                  currentVideoId={videoId}
+                  onSelectVideo={handleSwitchVideo}
+                />
+              )}
             </AccordionSection>
           );
         })}

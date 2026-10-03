@@ -1,5 +1,52 @@
 # Done tasks
 
+## Task 40: Support app history (Android back navigation)
+
+### Subtask 40.1: Implement Android back navigation and router/browser history integration
+
+- Registered `OnBackPressedCallback` in `MainActivity.kt` with `onBackPressedDispatcher`. The native shell first evaluates `window.__handleAndroidBack()` in the WebView to cleanly dismiss active modals or overlays.
+- If no modal is active, checks `webView.canGoBack()` and invokes `webView.goBack()`, navigating back through viewed videos in the WebView session history.
+- Exposed `window.__handleAndroidBack` in `src/routes/index.tsx` to dismiss active modals (Network Requests Inspector, APK update dialog) and return boolean state to Android.
+- Configured React `popstate` event listener on `window` to dynamically sync `videoId`, subtitle tracks, and UI state when navigating through history entries created with `window.history.pushState`.
+- Verified with dedicated test `scripts/verify-android-back-navigation.ts` (`npm run test:back-navigation`), achieving 100% pass rate.
+- Verified clean build, zero lint warnings, and applet compilation.
+
+## Task 44: Android Emulator E2E test execution, video recording, GitHub Pages report, and README linking
+
+### Subtask 44.1: Ensure Android emulator E2E test passes with screen recording and publishes test video to GitHub Pages report with README link
+
+- Updated `AGENTS.md` to specify that Android emulator end-to-end testing runs exclusively within GitHub Actions workflow operations (skipping gracefully during local development runs), with all test outputs, logs, and video screen recordings deployed exclusively to the `gh-pages` branch and kept strictly off the main branch.
+- Integrated `adb shell screenrecord` into `scripts/run-android-e2e.sh` and `.github/workflows/emulation.yml`, automatically pulling and packaging `android-emulator-e2e.mp4`. Added graceful exit for local development environments lacking connected ADB devices.
+- Staged `android-emulator-e2e.mp4` to `gh-pages-staging/screenshots/android-emulator-e2e.mp4` for publication to GitHub Pages (`gh-pages` branch) alongside screenshot and logcat artifacts.
+- Added direct GitHub Pages link to the Android Emulator E2E Video in `README.md` (`https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-e2e.mp4`).
+- Updated `.gitignore` to ignore `android-emulator-e2e.mp4` and `*.mp4`, ensuring video artifacts are never committed to the main branch.
+- Created dedicated verification test `scripts/verify-android-e2e-video-report.ts` (`npm run test:e2e-video-report`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified clean build, regression test suite, zero lint warnings, and applet compilation.
+
+## Task 43: Align Subtitle Fetching and Native tlang Swapping with mostuf2556/Youtubenet6
+
+### Subtask 43.3: Align Player Viewport Placement and Verification Tests
+
+- Configured `enablejsapi: 1` and `origin: window.location.origin` in `YT.Player` options in `src/routes/index.tsx`, establishing clean parent-iframe communication for caption state. Added `onReady` autoplay listener on Android to immediately initiate playback and trigger caption interception.
+- Added explicit accessibility and testability attributes on player elements: `#video-player-container` (`data-testid="video-player-container"`), `#youtube-player` (`data-testid="youtube-player"`), `#youtube-url-form` (`data-testid="youtube-url-form"`), `#youtube-url-input` (`data-testid="youtube-url-input"`), `#youtube-url-submit` (`data-testid="youtube-url-submit"`), and `#caption-status-indicator` (`data-testid="caption-status-indicator"`).
+- Created dedicated verification test `scripts/verify-player-viewport-placement.ts` (`npm run test:player-viewport`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified clean build, regression test suite (`test:player-viewport`, `test:tlang-repetition`, `test:favorite-dynamic-fetch`, `test:default-subtitles-e2e`), zero lint warnings, and applet compilation.
+
+### Subtask 43.2: Implement Active Subtitle Service Pipeline & Authentic Track Fallback
+
+- Updated the web subtitle loader effect in `src/routes/index.tsx` to depend on `[isAndroid, videoId]`, resolving `targetVideo = videoId || DEMO_VIDEO`. Dynamically switching videos now triggers subtitle acquisition and fixture loading instead of permanently hardcoding a one-time mount effect.
+- Enhanced `fetchFavoriteLanguageSubtitles` to resolve `activeUrl` through `baseUrl || observedUrlRef.current || shell?.getLastObservedTimedTextUrl()`. Added fallback to authentic pre-bundled tracks (`JSON3_RAW_MAP[code]`) when live requests encounter Google's bot block (`<title>Sorry...</title>`).
+- Restored `void fetchFavoriteLanguageSubtitles(newlyAdded)` inside `handleTargetLanguagesChange`, ensuring newly selected favorite languages immediately initiate native bridge fetches.
+- Verified with dedicated tests `scripts/verify-favorite-lang-dynamic-fetch.ts` (`npm run test:favorite-dynamic-fetch`), `scripts/verify-default-video-subtitles-e2e.ts` (`npm run test:default-subtitles-e2e`), `scripts/verify-favorites-subtitles-sync.ts` (`npm run test:favorites-sync`), and `scripts/verify-progressive-subtitles-loading.ts` (`npm run test:progressive-subtitles`).
+- Built Android assets with `npm run build:android-assets` and verified clean compilation and zero lint errors.
+
+### Subtask 43.1: Fix Android Shell executeTimedTextRepetition and query preservation in MainActivity.kt
+
+- Reverted custom `lang` query stripping in `MainActivity.kt`'s `executeTimedTextRepetition` to align with `mostuf2556/Youtubenet6`. The native bridge now preserves the original source `lang` parameter and all signed YouTube authentication tokens (`sparams`, `signature`, `key`, `expire`, `ei`, etc.), stripping only previous `tlang` and `fmt` before cleanly appending the target `tlang` and `fmt=json3`.
+- Configured authentic fallback request headers (`Referer: https://www.youtube.com/`, `Origin: https://www.youtube.com`, `User-Agent`, `Accept`) when `lastObservedHeaders` is not yet populated, preventing YouTube from blocking requests with `<title>Sorry...</title>`.
+- Created dedicated verification test `scripts/verify-tlang-repetition.ts` (`npm run test:tlang-repetition`), registered in `package.json`, and documented in `docs/files.md`.
+- Verified clean build, regression tests, zero lint warnings, and applet compilation.
+
 ## Task 39: Allow closing the Network Panel
 
 ### Subtask 39.1: Provide explicit close / collapse control on Network Panel
