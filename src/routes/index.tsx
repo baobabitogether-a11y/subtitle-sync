@@ -356,7 +356,7 @@ function Index() {
       }
       if (failed.length > 0) {
         setFailedLangs((prev) => Array.from(new Set([...prev, ...failed])));
-        notifySubtitleFetch("failed", `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`, failed[0]);
+        notifySubtitleFetch("error", `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`, failed[0]);
       }
       if (Object.keys(next).length > 0) {
         startSubtitlesTransition(() => {

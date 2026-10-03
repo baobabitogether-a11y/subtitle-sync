@@ -18,83 +18,41 @@ assert(
 );
 console.log("✅ PASS: Subtitles columns unconditionally present all active favorite languages");
 
-// 2. Verify auto-sync effect synchronizes shown and triggers auto-fetch-retry
+// 2. No automatic retries: no retry counters, no backoff timers, single attempt per URL+language
+assert(!indexContent.includes("retriesRef"), "index.tsx must not keep retry counters");
+assert(!indexContent.includes("Math.pow(2"), "index.tsx must not schedule backoff retries");
 assert(
-  indexContent.includes("missingInShown = targetLanguages.filter((l) => !shown.includes(l))") &&
-    indexContent.includes("missingTracks = targetLanguages.filter("),
-  "index.tsx must continuously synchronize shown and trigger auto-fetch-retry for missing favorite tracks",
+  indexContent.includes("attemptedRef.current.has(`${activeUrl}|${code}`)"),
+  "fetch must be attempted once per observed URL and language",
 );
-assert(
-  indexContent.includes("fetchFavoriteLanguageSubtitles(missingTracks, observedUrl)"),
-  "index.tsx must trigger auto-fetch-retry for missingTracks",
-);
-console.log("✅ PASS: Continuous favorite languages auto-sync & auto-fetch-retry effect verified");
+console.log("✅ PASS: No automatic fetch retries");
 
-// 3. Verify retry backoff logic in fetchFavoriteLanguageSubtitles
+// 3. Manual fetch on failure
+assert(indexContent.includes('data-testid="subtitles-manual-fetch"'), "manual Fetch again button must exist");
 assert(
-  indexContent.includes("retriesRef.current[code] = (retriesRef.current[code] || 0) + 1") &&
-    indexContent.includes("retriesRef.current[code] = 0"),
-  "fetchFavoriteLanguageSubtitles must track retries and reset on success",
+  indexContent.includes("attemptedRef.current.delete(`${url}|${code}`)"),
+  "manual fetch must clear the attempt marker before re-fetching",
 );
-console.log("✅ PASS: Retry counter and backoff execution verified");
+console.log("✅ PASS: Manual fetch for failed languages");
 
-// 4. Verify UI alignment badges and loading placeholder
-assert(
-  indexContent.includes('data-testid="subtitles-sync-aligned"'),
-  "index.tsx must render subtitles-sync-aligned badge when all favorites are aligned",
-);
-assert(
-  indexContent.includes('data-testid="subtitles-sync-retrying"'),
-  "index.tsx must render subtitles-sync-retrying badge when favorite tracks are missing/syncing",
-);
-assert(
-  indexContent.includes("Loading subtitles…"),
-  "index.tsx must render graceful loading placeholder in cells for pending favorite language tracks",
-);
-console.log("✅ PASS: Synchronization indicators and cell placeholder verified");
-
-// 5. Functional simulation of auto-fetch-retry alignment loop
-interface MockTrackState {
-  tracks: Record<string, { events: any[] }>;
-  favorites: string[];
+// 4. Functional simulation: failed fetch stays failed until manual action
+const attempted = new Set<string>();
+const failedLangs: string[] = [];
+let calls = 0;
+function fetchOnce(url: string, lang: string, ok: boolean) {
+  const key = `${url}|${lang}`;
+  if (attempted.has(key)) return;
+  attempted.add(key);
+  calls++;
+  if (!ok) failedLangs.push(lang);
 }
-
-const state: MockTrackState = {
-  tracks: { en: { events: [{ tStartMs: 0, dDurationMs: 1000 }] } },
-  favorites: ["he", "es"],
-};
-
-let attempts: Record<string, number> = {};
-
-function simulateFetchWithRetry(lang: string): boolean {
-  attempts[lang] = (attempts[lang] || 0) + 1;
-  // Simulate failure on first attempt, success on second
-  if (attempts[lang] < 2) {
-    return false;
-  }
-  state.tracks[lang] = { events: [{ tStartMs: 0, dDurationMs: 1000 }] };
-  return true;
-}
-
-// Initial state: missing favorites
-let missing = state.favorites.filter((l) => !state.tracks[l]);
-assert.strictEqual(missing.length, 2, "Expected 2 missing favorite tracks initially");
-
-// First attempt: both fail
-for (const lang of missing) {
-  simulateFetchWithRetry(lang);
-}
-missing = state.favorites.filter((l) => !state.tracks[l]);
-assert.strictEqual(missing.length, 2, "Both tracks still missing after attempt 1");
-
-// Second attempt: auto-retry succeeds
-for (const lang of missing) {
-  simulateFetchWithRetry(lang);
-}
-missing = state.favorites.filter((l) => !state.tracks[l]);
-assert.strictEqual(missing.length, 0, "All tracks aligned after auto-fetch-retry attempt 2");
-assert.ok(state.tracks.he && state.tracks.es, "Both favorite tracks loaded successfully");
-console.log("✅ PASS: Functional auto-fetch-retry alignment simulation succeeded");
+fetchOnce("u", "he", false);
+fetchOnce("u", "he", false); // effect re-run: must not refetch
+assert.strictEqual(calls, 1, "no automatic second attempt");
+attempted.delete("u|he");
+fetchOnce("u", "he", true); // manual
+assert.strictEqual(calls, 2, "manual fetch triggers exactly one new attempt");
+console.log("✅ PASS: Single-attempt + manual fetch simulation");
 
 console.log("====================================================");
 console.log("🎉 All Favorites & Subtitles Sync tests PASSED successfully!");
