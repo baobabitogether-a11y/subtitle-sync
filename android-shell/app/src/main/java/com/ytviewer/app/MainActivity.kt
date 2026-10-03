@@ -680,16 +680,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val queryParamNames = uri.queryParameterNames
                 val builder = uri.buildUpon().clearQuery()
                 for (name in queryParamNames) {
+                    val isLang = name.equals("lang", ignoreCase = true)
                     val isTlang = name.equals("tlang", ignoreCase = true)
                     val isFmt = name.equals("fmt", ignoreCase = true) && format.isNotEmpty()
-                    if (!isTlang && !isFmt) {
+                    if (!isLang && !isTlang && !isFmt) {
                         for (value in uri.getQueryParameters(name)) {
                             builder.appendQueryParameter(name, value)
                         }
                     }
                 }
-                val originalLang = uri.getQueryParameter("lang")
-                if (originalLang == null || !originalLang.equals(targetLang, ignoreCase = true)) {
+                val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"
+                builder.appendQueryParameter("lang", originalLang)
+                if (!originalLang.equals(targetLang, ignoreCase = true)) {
                     builder.appendQueryParameter("tlang", targetLang)
                 }
                 if (format.isNotEmpty()) {

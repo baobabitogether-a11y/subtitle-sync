@@ -1,4 +1,6 @@
 # YouTube Subtitle & Speech Flow Viewer
+x
+x
 
 [![Build & Release Android APK](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml)
 [![Web E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml)
