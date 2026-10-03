@@ -20,7 +20,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/lib/native-captions.ts` | Native Android Bridge Interop | Decodes intercepted base64 caption payloads and extracts timedtext URL parameters. |
 | `src/lib/lovable-error-reporting.ts` | Lovable Studio Telemetry | Dispatches runtime error reports to the Lovable integration layer. |
 | `src/lib/utils.ts` | UI Utilities | Provides class name concatenation (`cn`) merging Tailwind classes and clsx. |
-| `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI | Displays live captured network requests with URL, method, status, duration, and first 15 characters response body preview. |
+| `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI | Displays live captured network requests with URL, method, status, duration, and first 200 characters response body preview. |
 
 ## Feature Utilities (`src/utils/`)
 
@@ -32,7 +32,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/utils/audioTrackManager.ts` | Multi-Audio Track & Repeat Manager | Manages Audio-Track Mode preferences, native YouTube audio track matching, and segment repeating. |
 | `src/utils/apkUpdater.ts` | OTA Hot Update Manager | Checks GitHub Releases, downloads release zip artifacts, and performs live web bundle updates. |
 | `src/utils/networkInterceptor.ts` | Network Traffic Interceptor | Monitors browser requests to capture YouTube timedtext subtitle URLs. |
-| `src/utils/networkTracker.ts` | Live Network Request Tracker | Records timedtext, bridge, and fetch requests, keeping response bodies strictly truncated to the first 15 characters. |
+| `src/utils/networkTracker.ts` | Live Network Request Tracker | Records timedtext, bridge, and fetch requests, keeping response bodies strictly truncated to the first 200 characters. |
 | `src/utils/rtlUtils.ts` | Text Direction Manager | Detects RTL languages (Hebrew, Arabic, etc.) and formats directional rendering. |
 | `src/utils/subtitleCache.ts` | Subtitle Cache Service | Stores fetched subtitles in local browser storage to support offline replay. |
 | `src/utils/urlStateManager.ts` | URL Parameter Synchronizer | Reflects active video, languages, and settings into query parameters for deep linking. |
@@ -47,6 +47,20 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/config/constants.ts` | Language Catalogs | Holds supported language definitions, ISO language codes, and default video constants. |
 | `src/config/fixtures.ts` | Test Fixture Data | Supplies mock subtitles and fallback video datasets for offline testing and demo runs. |
 | `src/types.ts` | Core Type Contracts | Exports TypeScript interfaces and types for subtitle cues, tracks, speech progress, and settings. |
+
+## Architectural Specifications & Design Contracts (`docs/`)
+
+| File Path | Role | Feature & Responsibilities |
+|---|---|---|
+| `docs/operations/ACTIONS.md` | CI/CD Pipelines Specification | Details automated GitHub Actions workflows, triggers, build matrix, and release artifacts. |
+| `docs/specifications/LIBRARY.md` | Subtitle Fixture Library Contract | Details JSON3 fixture directory schema, offline test coverage, and validation rules. |
+| `docs/designs/DESIGN_SUBTITLE_VIEWS.md` | Subtitle Views Contract | Defines injectable view contract for subtitle rendering components, cues, and active sync. |
+| `docs/designs/DESIGN_VIEW_LANGS.md` | Language Selection Views Contract | Defines injectable view contract for language selectors, favorite tags, and ordering. |
+| `docs/designs/DESIGN_CONTROLS_VIEW.md` | Playback Controls Contract | Defines injectable view contract for player controls, pause mode, and loop repeat settings. |
+| `docs/designs/DESIGN_PLAYER_PROVIDER.md` | Player Provider Contract | Defines vendor-agnostic media playback provider interface and time synchronization. |
+| `docs/designs/DESIGN_STATE_COORDINATOR.md` | State Coordinator Contract | Specifies finite state machine, lifecycle transitions, active cue resolution, and state flow. |
+| `docs/specifications/SCHEMA_TIMEDTEXT.md` | Timed-Text Schema Contract | Specifies YouTube JSON3 format, segment timing, entity decoding, and BiDi normalization. |
+| `docs/operations/DEBUG.md` | Diagnostics & Logging Contract | Details internal logging ring buffer, network request tracker, and troubleshooting prompt generator. |
 
 ## Testing & Quality Assurance (`e2e/`, `cypress/`, `scripts/`)
 
@@ -67,7 +81,11 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-emulation-gh-pages.ts` | Emulation GitHub Pages Publication Test | Asserts workflow permissions, artifact staging, and keep_files deployment configuration for Android emulator artifacts on GitHub Pages. |
 | `scripts/verify-android-local-assets.ts` | Android Local Assets Verification | Asserts complete removal of remote web-app fallbacks (APP_URL, github.io) and strict local asset execution in MainActivity.kt. |
 | `scripts/verify-favorite-lang-dynamic-fetch.ts` | Dynamic Favorite Languages Fetch Verification | Validates dynamic timedtext subtitle requests via tlang when new favorite languages are selected and merged into tracks. |
-| `scripts/verify-network-inspector.ts` | Network Inspector & 50-char Body Verification | Validates 50-character response body truncation, request recording, and inspector UI modal integration. |
+| `scripts/verify-network-inspector.ts` | Network Inspector & 200-char Body Verification | Validates 200-character response body truncation, request recording, and inspector UI modal integration. |
 | `scripts/verify-workflows-alignment.ts` | GitHub Workflows Alignment Test | Asserts exact workflow parity with Youtubenet6, deployed URL correctness, and error resilience. |
+| `scripts/verify-doc-contracts.ts` | Architectural Contracts Verification | Asserts presence and integrity of all 9 architectural documentation and specification contracts. |
+| `scripts/verify-readme-links.ts` | README Links and Workflow Badges Verification | Asserts validity of all relative cross-references, workflow badges, and release links in README.md. |
+| `scripts/verify-default-timing-base.ts` | Default Timing Base Verification | Validates removal of manual timing selector and automatic alignment using default base subtitle language. |
+| `scripts/verify-default-video-subtitles-e2e.ts` | Default Video Subtitles E2E Verification | Validates default video subtitles integrity, cue parsing, timing monotonicity, and alignment for Android and Web Demo. |
 | `scripts/verify-md-links.ts` | Markdown Links Checker | Validates that all documentation cross-references and links resolve properly. |
 | `scripts/normalize-web-assets.mjs` | Build Asset Normalizer | Adjusts asset paths for GitHub Pages sub-path hosting. |

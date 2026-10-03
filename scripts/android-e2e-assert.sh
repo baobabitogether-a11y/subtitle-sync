@@ -50,7 +50,7 @@ for ((i = 0; i < TIMEOUT_S + SUBTITLE_FETCH_TIMEOUT_S; i++)); do
   if [[ -n "${DEFAULT_LINE}" && -n "${HEBREW_LINE}" && -n "${ITALIAN_LINE}" ]]; then
     if (( DEFAULT_LINE < HEBREW_LINE && HEBREW_LINE < ITALIAN_LINE )); then
       echo "${LOG}" > "${LOGCAT_OUT}"
-      echo "✅ Real default subtitles and Hebrew/Italian favorite subtitles fetched successfully, in order."
+      echo "✅ Default video subtitles verified OK for Android: real default subtitles and Hebrew/Italian favorite subtitles fetched successfully, in order."
       grep -E "SUBTITLE_FETCH" "${LOGCAT_OUT}" | tail -n 20
       exit 0
     fi

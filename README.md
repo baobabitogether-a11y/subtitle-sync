@@ -1,10 +1,10 @@
 # YouTube Subtitle & Speech Flow Viewer
 
 
-[![Build & Release Android APK](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/release-apk.yml)
-[![Web E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/web.yml)
-[![Android Emulator E2E Tests](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml)
-[![Publish Web Demo](https://github.com/mostuf2556/subtitle-sync/actions/workflows/deploy-demo.yml/badge.svg)](https://github.com/mostuf2556/subtitle-sync/actions/workflows/deploy-demo.yml)
+[![Build & Release Android APK](https://github.com/mostuf25561/subtitle-sync/actions/workflows/release-apk.yml/badge.svg)](https://github.com/mostuf25561/subtitle-sync/actions/workflows/release-apk.yml)
+[![Web E2E Tests](https://github.com/mostuf25561/subtitle-sync/actions/workflows/web.yml/badge.svg)](https://github.com/mostuf25561/subtitle-sync/actions/workflows/web.yml)
+[![Android Emulator E2E Tests](https://github.com/mostuf25561/subtitle-sync/actions/workflows/emulation.yml/badge.svg)](https://github.com/mostuf25561/subtitle-sync/actions/workflows/emulation.yml)
+[![Publish Web Demo](https://github.com/mostuf25561/subtitle-sync/actions/workflows/deploy-demo.yml/badge.svg)](https://github.com/mostuf25561/subtitle-sync/actions/workflows/deploy-demo.yml)
 
 A dedicated Android native shell application for YouTube video learning with synchronized multi-language subtitles, native hardware TTS speech flow, and on-the-fly translation switching. Accompanied by a scoped web companion for automated CI/CD test drivers and live interactive demonstration.
 
@@ -15,7 +15,7 @@ A dedicated Android native shell application for YouTube video learning with syn
 To download and install the latest `YouTube-Viewer-debug.apk` directly onto any connected Android device or emulator via ADB without cloning this repository or keeping local build files, run this single command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mostuf2556/subtitle-sync/main/update.apk.sh | bash -s -- "https://github.com/mostuf2556/subtitle-sync/releases/latest/download/YouTube-Viewer-debug.apk"
+curl -fsSL https://raw.githubusercontent.com/mostuf25561/subtitle-sync/main/update.apk.sh | bash -s -- "https://github.com/mostuf25561/subtitle-sync/releases/latest/download/YouTube-Viewer-debug.apk"
 ```
 
 ### What this command does:
@@ -32,8 +32,12 @@ Access the live web application:
 
 | Resource | Direct URL | Description |
 | :--- | :--- | :--- |
-| 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf2556.github.io/subtitle-sync/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
-| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification. |
+| 🚀 **Web-App Demo Landing Page** | [**Open Live Web Demo**](https://mostuf25561.github.io/subtitle-sync/) | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
+| 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf25561.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification. |
+
+> **Note on GitHub Pages Availability:**
+> Artifacts and demo assets are automatically published to the `gh-pages` branch on every push. To access the live web demo and screenshot URLs, ensure GitHub Pages is enabled in repository settings:
+> 👉 **Settings > Pages > Build and deployment > Source: Deploy from a branch (`gh-pages` / `/root`)**.
 
 ---
 
@@ -52,7 +56,7 @@ The project is governed by strict Markdown contracts that decouple visual view i
 | **[`DESIGN_PLAYER_PROVIDER.md`](./docs/designs/DESIGN_PLAYER_PROVIDER.md)** | Vendor-agnostic media player controller and time-synchronization contract. |
 | **[`DESIGN_STATE_COORDINATOR.md`](./docs/designs/DESIGN_STATE_COORDINATOR.md)** | Finite state machine, lifecycle transitions, active cue resolution, and state flow. |
 | **[`SCHEMA_TIMEDTEXT.md`](./docs/specifications/SCHEMA_TIMEDTEXT.md)** | Format definitions, segment timings, entity decoding, and RTL/BiDi normalization. |
-| **[`DEBUG.md`](./docs/operations/DEBUG.md)** | Diagnostic log viewer, network interception, 15-char response preview, and AI troubleshooting prompt generator. |
+| **[`DEBUG.md`](./docs/operations/DEBUG.md)** | Diagnostic log viewer, network interception, 200-char response preview, and AI troubleshooting prompt generator. |
 
 ---
 

@@ -54,3 +54,12 @@ jobs:
 
       - name: Run Client SPA Architecture Verification
         run: npm run test:client-spa
+
+      - name: Run Architectural Documentation Contracts Verification
+        run: npm run test:doc-contracts
+
+      - name: Run Markdown Link Cross-References Verification
+        run: npm run test:md
+
+      - name: Run README Links and Badges Verification
+        run: npm run test:readme-links

@@ -1,10 +1,13 @@
 # Active Sub-task
 
-## Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites
+## Subtask 30.1: Implement Default Video Subtitles E2E Verification for Android and Demo Web App
 
 - **Goal**:
-  1. In `src/routes/index.tsx`, ensure that on the web demo (`!isAndroid`), the Languages table displays all 6 available demo languages from `LANGS` (sorted according to `languageOrder`), satisfying `e2e/web.spec.ts` line 16 (`toHaveCount(6)`).
-  2. On Android (`isAndroid`), keep the behavior focused on the user's selected favorite languages with dynamic `tlang` subtitle loading.
-  3. Rebuild the Android web bundle assets in `android-shell/app/src/main/assets/`.
-  4. Add dedicated assertions in a verification test ensuring web environment presents 6 rows in the Languages panel table while Android presents user-selected favorite languages.
-  5. Run all test suites, compile, and lint.
+  1. Implement `scripts/verify-default-video-subtitles-e2e.ts` validating:
+     - Demo Web App: validates default video (`L2Ryrr6txwA`) JSON3 subtitles across all supported languages (`en`, `he`, `it`, `es`, `ar`, `ru`), verifies valid cue parsing, timing monotonicity, non-empty text, sentence/word alignment with base language, and multi-language row formatting.
+     - Android Shell: validates default video configuration (`DEFAULT_VIDEO_ID` / `DEFAULT_VIDEO_URL`), verifies native caption interceptor parameters for default timedtext and translated `tlang` favorite languages (`he`, `it`), ensures logcat assertions validate `cues >= 1` and `bytes >= 1`, and tests simulated Android environment loading.
+  2. Update `scripts/run-android-e2e.sh` and `scripts/android-e2e-assert.sh` to explicitly test and assert that default video subtitles are OK for Android and the demo web app.
+  3. Register `test:default-subtitles-e2e` in `package.json` and update `docs/files.md`.
+  4. Rebuild Android bundle assets.
+  5. Commit the changes and tests before executing them.
+  6. Test the changes thoroughly with the dedicated test and present the results for user confirmation.

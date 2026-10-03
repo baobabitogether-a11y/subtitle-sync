@@ -223,7 +223,6 @@ function Index() {
   const [observedUrl, setObservedUrl] = useState("");
   const [defaultCaptionsLoaded, setDefaultCaptionsLoaded] = useState(false);
   const [tracks, setTracks] = useState<Record<string, Json3> | null>(null);
-  const [pivot, setPivot] = useState("he");
   const [strategy, setStrategy] = useState<Strategy>("sentence");
   const [shown, setShown] = useState<string[]>(["en", "he", "it"]);
   const [spoken, setSpoken] = useState<string[]>(["en", "it"]);
@@ -234,6 +233,27 @@ function Index() {
     }
     return ["he", "it"];
   });
+
+  const baseLanguage = useMemo(() => {
+    if (isAndroid) {
+      if (observedUrl) {
+        try {
+          const l = new URL(observedUrl).searchParams.get("lang");
+          if (l) return l;
+        } catch {
+          // ignore malformed URL
+        }
+      }
+      if (tracks && Object.keys(tracks).length > 0) {
+        return Object.keys(tracks)[0];
+      }
+      return "en";
+    }
+    if (tracks && Object.keys(tracks).length > 0) {
+      return tracks["he"] ? "he" : Object.keys(tracks)[0];
+    }
+    return "he";
+  }, [isAndroid, observedUrl, tracks]);
 
   const tracksRef = useRef<Record<string, Json3> | null>(tracks);
   tracksRef.current = tracks;
@@ -408,9 +428,7 @@ function Index() {
     const defaultLang = new URL(observedUrl).searchParams.get("lang") || "en";
     const selected = [
       ...new Set(
-        [...targetLanguages, ...shown, ...spoken, pivot].filter(
-          (code) => code && code !== defaultLang,
-        ),
+        [...targetLanguages, ...shown, ...spoken].filter((code) => code && code !== defaultLang),
       ),
     ];
     setCaptionStatus("Fetching live subtitles for favorite languages…");
@@ -422,7 +440,6 @@ function Index() {
     targetLanguages,
     shown,
     spoken,
-    pivot,
     fetchFavoriteLanguageSubtitles,
   ]);
 
@@ -523,8 +540,8 @@ function Index() {
   }, [isAndroid]);
 
   const rows = useMemo<Row[]>(
-    () => (tracks ? align(tracks, pivot, strategy) : []),
-    [tracks, pivot, strategy],
+    () => (tracks ? align(tracks, baseLanguage, strategy) : []),
+    [tracks, baseLanguage, strategy],
   );
 
   const activeCatalog = useMemo(() => {
@@ -533,11 +550,11 @@ function Index() {
       ...targetLanguages,
       ...shown,
       ...spoken,
-      pivot,
+      baseLanguage,
       ...(tracks ? Object.keys(tracks) : []),
     ]);
     return Array.from(activeCodes).map(getLanguageMeta);
-  }, [isAndroid, targetLanguages, shown, spoken, pivot, tracks]);
+  }, [isAndroid, targetLanguages, shown, spoken, baseLanguage, tracks]);
 
   useEffect(() => {
     setLanguageOrder((prev) => {
@@ -957,20 +974,13 @@ function Index() {
                   <p className="mt-1 text-xs text-muted-foreground">
                     ⇄ = uses all parallel subtitles, not just one.
                   </p>
-                  <label className="mt-3 flex items-center gap-2">
-                    Timing from{" "}
-                    <select
-                      value={pivot}
-                      onChange={(e) => setPivot(e.target.value)}
-                      className="rounded-md border border-input bg-background px-2 py-1"
-                    >
-                      {activeCatalog.map((l) => (
-                        <option key={l.code} value={l.code}>
-                          {l.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Timing base:{" "}
+                    <span className="font-medium text-foreground">
+                      {getLanguageMeta(baseLanguage).name}
+                    </span>{" "}
+                    (default subtitles)
+                  </p>
                 </>
               )}
 

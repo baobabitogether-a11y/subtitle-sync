@@ -35,6 +35,14 @@ let totalLinksChecked = 0;
 // Regex to capture markdown links: [text](link)
 const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
 
+function isInsideCodeSpan(line: string, startIdx: number, endIdx: number): boolean {
+  const before = line.slice(0, startIdx);
+  const after = line.slice(endIdx);
+  const beforeTicks = (before.match(/`/g) || []).length;
+  const afterTicks = (after.match(/`/g) || []).length;
+  return beforeTicks % 2 === 1 && afterTicks % 2 === 1;
+}
+
 for (const filePath of mdFiles) {
   const content = fs.readFileSync(filePath, 'utf8');
   const lines = content.split('\n');
@@ -50,22 +58,26 @@ for (const filePath of mdFiles) {
       return;
     }
 
-    // Strip inline code spans to avoid regex character classes like `[,.](\d{3})` matching as links
-    const strippedLine = line.replace(/`[^`]*`/g, '');
-
     let match: RegExpExecArray | null;
     linkRegex.lastIndex = 0;
 
-    while ((match = linkRegex.exec(strippedLine)) !== null) {
+    while ((match = linkRegex.exec(line)) !== null) {
+      // Skip matches that are wholly enclosed inside an inline code span like `const re = /[,.](\d{3})/g;`
+      if (isInsideCodeSpan(line, match.index, linkRegex.lastIndex)) {
+        continue;
+      }
+
       const target = match[2].trim();
 
-      // Skip web links, anchors, and email links
+      // Skip web links, anchors, email links, and placeholder examples
       if (
         target.startsWith('http://') ||
         target.startsWith('https://') ||
         target.startsWith('mailto:') ||
         target.startsWith('#') ||
-        target.includes('*') // Skip wildcard / example links
+        target.includes('*') ||
+        target === '...' ||
+        target.startsWith('...')
       ) {
         continue;
       }

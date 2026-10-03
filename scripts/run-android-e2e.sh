@@ -27,6 +27,13 @@ echo " Target Video: ${TARGET_VIDEO_URL} (NO FIXTURES)"
 echo " Target Lang : ${TARGET_LANG} (Testing tlang replacement)"
 echo "=================================================================="
 
+# 0. Validate default video subtitles for both Web Demo App and Android
+echo "--> [Step 0] Validating default video subtitles for Web Demo App and Android..."
+npx tsx "${ROOT_DIR}/scripts/verify-default-video-subtitles-e2e.ts" || {
+  echo "❌ Default video subtitles verification failed!"
+  exit 1
+}
+
 # 1. Check ADB availability
 if command -v adb &> /dev/null; then
   echo "✓ Found ADB client at: $(command -v adb)"

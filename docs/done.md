@@ -1,5 +1,49 @@
 # Done tasks
 
+## Task 29: Streamline subtitle timing to default base language & ensure GitHub Pages screenshot availability
+
+### Subtask 29.1: Remove "Timing from" selector and lock subtitle alignment timing to the default base language
+- Removed manual "Timing from" `<select>` and associated `[pivot, setPivot]` state from `src/routes/index.tsx`.
+- Implemented automatic `baseLanguage` derivation memo:
+  - On Android: utilizes the primary timedtext `lang` query param from intercepted URL, falling back to first available track.
+  - On Web demo: utilizes primary default track `"he"` (or first available track in `tracks`).
+- Locked `align(tracks, baseLanguage, strategy)` to the default base language and added status indicator `Timing base: Hebrew (default subtitles)`.
+- Added dedicated test `scripts/verify-default-timing-base.ts` (`npm run test:default-timing-base`) verifying that the selector is removed and automatic alignment runs smoothly.
+- Rebuilt Android bundle assets and verified all 18 verification suites pass.
+
+### Subtask 29.2: Bundle authentic emulator screenshot into static assets, document GitHub Pages activation, and extend response body size to 200 characters
+- Bundled authentic Android emulator screenshot into `public/screenshots/android-emulator-screenshot.png` and `public/assets/android-emulator-screenshot.png`.
+- Documented GitHub Pages manual activation requirement in `README.md` and `docs/operations/ACTIONS.md` (`Settings > Pages > Source: Deploy from a branch gh-pages / root`).
+- Extended network tracker response body preview limit to 200 characters (`MAX_RESPONSE_BODY_PREVIEW_CHARS = 200` in `src/utils/networkTracker.ts`).
+- Updated `src/components/NetworkRequestsInspector.tsx` UI modal labels, list badges, and details panel to show the first 200 characters.
+- Updated `scripts/verify-network-inspector.ts` and `scripts/verify-readme-links.ts` with dedicated assertions for 200-character truncation and static screenshot assets.
+- Updated `docs/operations/DEBUG.md`, `README.md`, and `docs/files.md` documentation inventories.
+- Rebuilt Android bundle assets and verified all 18 verification suites pass cleanly.
+
+## Task 28: Fix README broken links and GitHub Actions workflow resilience
+
+### Subtask 28.1: Import architectural specification and design contracts from `mostuf2556/Youtubenet6` and fix Markdown link checker
+- Imported all 9 architectural documentation and design contracts from `mostuf2556/Youtubenet6` into `docs/operations/`, `docs/specifications/`, and `docs/designs/`:
+  - `docs/operations/ACTIONS.md`
+  - `docs/specifications/LIBRARY.md`
+  - `docs/designs/DESIGN_SUBTITLE_VIEWS.md`
+  - `docs/designs/DESIGN_VIEW_LANGS.md`
+  - `docs/designs/DESIGN_CONTROLS_VIEW.md`
+  - `docs/designs/DESIGN_PLAYER_PROVIDER.md`
+  - `docs/designs/DESIGN_STATE_COORDINATOR.md`
+  - `docs/specifications/SCHEMA_TIMEDTEXT.md`
+  - `docs/operations/DEBUG.md`
+- Enhanced markdown link detection in `scripts/verify-md-links.ts` using `isInsideCodeSpan` so links containing inline code formatting (e.g. `[`**`ACTIONS.md`**`](path)`) are properly resolved and verified.
+- Added dedicated test `scripts/verify-doc-contracts.ts` (`npm run test:doc-contracts`) validating contract file existence, minimum content size, and registry in `README.md` and `docs/files.md`.
+- Updated file registry in `docs/files.md` and verified `npm run test:md` passes with 0 broken links.
+
+### Subtask 28.2: Ensure GitHub Actions workflow resilience and add dedicated README links verification suite
+- Added verification steps to `.github/workflows/integrity.yml` running `npm run test:doc-contracts`, `npm run test:md`, and `npm run test:readme-links` to continuously catch link rot, missing documentation contracts, and badge discrepancies in CI.
+- Updated `README.md` with explicit instructions on enabling GitHub Pages under repository settings (`Settings > Pages > Build and deployment > Source: Deploy from a branch (gh-pages / root)`).
+- Updated `docs/operations/ACTIONS.md` with active repository workflows, deployment architecture, and troubleshooting triage links for `mostuf25561/subtitle-sync`.
+- Added dedicated test `scripts/verify-readme-links.ts` (`npm run test:readme-links`) validating all 10 relative documentation links, all 4 workflow badges, CLI installation scripts, and GitHub Pages references.
+- Rebuilt Android assets into `android-shell/app/src/main/assets/` and verified all 17 verification test suites.
+
 ## Task 27: Fix GitHub Actions workflows and E2E test alignment with Youtubenet6
 
 ### Subtask 27.1: Align `.github/workflows/` with `mostuf2556/Youtubenet6` and resolve workflow step failures
@@ -9,6 +53,12 @@
 - Added `continue-on-error: true` to the `android-emulator-e2e` job in `emulation.yml` matching `mostuf2556/Youtubenet6`.
 - Updated `deploy-demo.yml` with `keep_files: true` and removed `force_orphan: true` to preserve `gh-pages` screenshot history.
 - Added dedicated test `scripts/verify-workflows-alignment.ts` and `npm run test:workflows`.
+
+### Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites
+- Ensured in `src/routes/index.tsx` that `orderedLangs` on web demo (`!isAndroid`) displays all 6 demo languages from `LANGS` (sorted according to `languageOrder`), satisfying `e2e/web.spec.ts` (`toHaveCount(6)`).
+- Preserved user-selected favorite languages presentation on Android (`isAndroid`) with dynamic `tlang` subtitle loading.
+- Rebuilt Android web bundle assets in `android-shell/app/src/main/assets/`.
+- Verified all test suites, production build, linting, and workflow alignment.
 
 ## Task 26: Extend network request response body preview limit to 50 characters
 

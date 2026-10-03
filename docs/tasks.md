@@ -1,9 +1,28 @@
 # Tasks
 
+## Task 30: Validate default video subtitles for Android and the Demo Web App in E2E testing
+
+- [ ] **Subtask 30.1: Implement Default Video Subtitles E2E Verification for Android and Demo Web App**:
+  - Implement comprehensive E2E validation script `scripts/verify-default-video-subtitles-e2e.ts` verifying:
+    1. Demo Web App default video (`L2Ryrr6txwA`) JSON3 subtitles across all supported languages (`en`, `he`, `it`, `es`, `ar`, `ru`), checking event validity, millisecond timing monotonicity, non-empty cue text, alignment across favorite languages (`he`, `it`, `en`), and UI rendering readiness.
+    2. Android default video configuration (`DEFAULT_VIDEO_ID` / `DEFAULT_VIDEO_URL`), checking native timedtext URL interception, `tlang` target language translation derivation, and logcat assertion patterns.
+  - Update `scripts/android-e2e-assert.sh` and `scripts/run-android-e2e.sh` to explicitly verify and report that default video subtitles are OK for both Android and the demo web app.
+  - Register `npm run test:default-subtitles-e2e` in `package.json`, update `docs/files.md`, rebuild Android bundle assets, commit changes and tests, and run verification.
+
+## Task 29: Streamline subtitle timing to default base language & ensure GitHub Pages screenshot availability
+
+- [x] **Subtask 29.1: Remove "Timing from" selector and lock subtitle alignment timing to the default base language**: Remove the manual "Timing from" `<select>` from the grouping/parser UI in `src/routes/index.tsx`. Automatically derive timing base language (`baseLanguage`) from the default subtitle track (on Android from intercepted primary timedtext `lang`, and on Web demo from the primary track `"he"` / first track in `tracks`). Add dedicated test `scripts/verify-default-timing-base.ts`.
+- [x] **Subtask 29.2: Bundle authentic emulator screenshot into static assets, document GitHub Pages activation, and extend response body size to 200 characters**: Bundle authentic emulator screenshot into `public/screenshots/android-emulator-screenshot.png` and `public/assets/android-emulator-screenshot.png`. Extend response body preview limit to 200 characters in `networkTracker.ts`, `NetworkRequestsInspector.tsx`, and `verify-network-inspector.ts`. Document GitHub Pages activation instructions in `README.md` and `docs/operations/ACTIONS.md`. Update `verify-readme-links.ts`, rebuild Android assets, and verify all test suites.
+
+## Task 28: Fix README broken links and GitHub Actions workflow resilience
+
+- [x] **Subtask 28.1: Import architectural specification and design contracts from `mostuf2556/Youtubenet6` and fix Markdown link checker**: Import the 9 missing architectural specification and design contract documents into `docs/operations/`, `docs/specifications/`, and `docs/designs/` matching `mostuf2556/Youtubenet6`. Fix the markdown link regex parser in `scripts/verify-md-links.ts` so inline code spans in link text are properly validated. Update `docs/files.md` inventory. Verify with `npm run test:md` ensuring 0 broken relative links.
+- [x] **Subtask 28.2: Ensure GitHub Actions workflow resilience and add dedicated README links verification suite**: Add `npm run test:md` and `npm run test:readme-links` to `.github/workflows/integrity.yml` to prevent link rot in CI. Create dedicated test `scripts/verify-readme-links.ts` validating all links, badges, and documentation cross-references in `README.md`. Document GitHub Pages configuration in `ACTIONS.md` and `README.md`. Rebuild android bundle assets, execute all test suites, compile, and lint.
+
 ## Task 27: Fix GitHub Actions workflows and E2E test alignment with Youtubenet6
 
 - [x] **Subtask 27.1: Align `.github/workflows/` with `mostuf2556/Youtubenet6` and resolve workflow step failures**: Remove redundant `.github/workflows/ci.yml`, fix deployed URL check and remove missing `prepare-report.mjs` step failure in `web.yml`, add `continue-on-error: true` to `emulation.yml` matching Youtubenet6, and ensure `deploy-demo.yml` preserves emulator screenshots on `gh-pages` via `keep_files: true`.
-- [ ] **Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites**: In `src/routes/index.tsx`, ensure on web (`!isAndroid`) the Languages table lists all 6 demo languages so `e2e/web.spec.ts` (`toHaveCount(6)`) passes reliably. Rebuild android assets, verify all test suites, compile, and lint.
+- [x] **Subtask 27.2: Ensure web demo Languages panel displays all 6 demo languages and verify all test suites**: In `src/routes/index.tsx`, ensure on web (`!isAndroid`) the Languages table lists all 6 demo languages so `e2e/web.spec.ts` (`toHaveCount(6)`) passes reliably. Rebuild android assets, verify all test suites, compile, and lint.
 
 ## Task 26: Extend network request response body preview limit to 50 characters
 

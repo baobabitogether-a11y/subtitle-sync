@@ -8,15 +8,15 @@ export interface NetworkRequestRecord {
   startTime: number;
   duration?: number;
   status: number;
-  responseBodyPreview?: string; // Strictly first X=50 characters
+  responseBodyPreview?: string; // Strictly first X=200 characters
   error?: string;
   isPending?: boolean;
 }
 
-export const MAX_RESPONSE_BODY_PREVIEW_CHARS = 50;
+export const MAX_RESPONSE_BODY_PREVIEW_CHARS = 200;
 
 /**
- * Truncate response body strictly to the first X=50 characters
+ * Truncate response body strictly to the first X=200 characters
  */
 export function truncateResponseBody(
   body: unknown,
@@ -30,6 +30,7 @@ export function truncateResponseBody(
 // Backward compatibility aliases
 export const truncateToFirst15Chars = truncateResponseBody;
 export const truncateToFirst50Chars = truncateResponseBody;
+export const truncateToFirst200Chars = truncateResponseBody;
 
 let requests: NetworkRequestRecord[] = [];
 const listeners = new Set<() => void>();

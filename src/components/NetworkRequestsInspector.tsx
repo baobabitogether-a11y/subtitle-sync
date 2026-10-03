@@ -205,10 +205,10 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                       {req.url}
                     </div>
 
-                    {/* Prominent first 50 chars preview */}
+                    {/* Prominent first 200 chars preview */}
                     <div className="flex items-center gap-1 text-[11px] text-neutral-400 font-mono bg-neutral-900/80 px-2 py-1 rounded border border-neutral-800/80">
                       <ArrowDownLeft className="w-3 h-3 text-blue-400 shrink-0" />
-                      <span className="text-neutral-500">First 50 chars:</span>
+                      <span className="text-neutral-500">First 200 chars:</span>
                       <span className="text-emerald-400 font-semibold truncate">
                         {req.responseBodyPreview ? `"${req.responseBodyPreview}"` : req.isPending ? "loading…" : "[empty]"}
                       </span>
@@ -271,7 +271,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="text-neutral-500 font-semibold uppercase text-[10px] tracking-wider">
-                      Response Body Preview (First X=50 Characters)
+                      Response Body Preview (First X=200 Characters)
                     </div>
                     {selectedRequest.responseBodyPreview && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 font-mono">
