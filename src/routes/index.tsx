@@ -1672,10 +1672,7 @@ function Index() {
                 ))}
 
               {panelId === "library" && (
-                <VideoLibraryPanel
-                  currentVideoId={videoId}
-                  onSelectVideo={handleSwitchVideo}
-                />
+                <VideoLibraryPanel currentVideoId={videoId} onSelectVideo={handleSwitchVideo} />
               )}
             </AccordionSection>
           );
