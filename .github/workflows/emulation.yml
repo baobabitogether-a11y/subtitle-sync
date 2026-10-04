@@ -151,6 +151,7 @@ jobs:
             adb shell screenrecord --time-limit 120 --bit-rate 4000000 /sdcard/e2e-recording.mp4 &
             RECORD_PID=$!
             capture_outputs() {
+              adb logcat -d -v time > ./android-emulator-logcat.txt 2>&1 || true
               adb shell screencap -p /sdcard/screen.png || true
               adb pull /sdcard/screen.png ./android-emulator-screenshot.png || true
               if [ -n "${RECORD_PID:-}" ]; then
@@ -227,33 +228,70 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Stage Android Emulator Artifacts for GitHub Pages
+      - name: Stage Android Emulator Report and Artifacts for GitHub Pages
         if: always()
+        env:
+          E2E_OUTCOME: ${{ steps.android_e2e.outcome }}
+          SOURCE_BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           mkdir -p gh-pages-staging/screenshots
+          case "${E2E_OUTCOME:-skipped}" in
+            success) result="PASSED" ;;
+            failure) result="FAILED" ;;
+            cancelled) result="CANCELLED" ;;
+            *) result="NOT RUN (${E2E_OUTCOME:-unknown})" ;;
+          esac
+          {
+            echo "# Latest Android Emulator E2E Report"
+            echo
+            echo "**Result: ${result}**"
+            echo
+            echo "- Branch: \`${SOURCE_BRANCH}\`"
+            echo "- Commit: \`${SOURCE_SHA}\`"
+            echo "- Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            echo "- [Open the full GitHub Actions run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+            echo
+            echo "## Captured artifacts"
+          } > gh-pages-staging/android-emulator-report.md
+
           staged_count=0
-          if [ -f "./android-emulator-screenshot.png" ]; then
+          if [ -s "./android-emulator-screenshot.png" ]; then
             cp ./android-emulator-screenshot.png gh-pages-staging/screenshots/android-emulator-screenshot.png
             echo "Staged android-emulator-screenshot.png to gh-pages-staging/screenshots/"
+            echo "- [Screenshot](screenshots/android-emulator-screenshot.png)" >> gh-pages-staging/android-emulator-report.md
             staged_count=$((staged_count + 1))
           else
-            echo "::warning::No emulator screenshot was produced; the README screenshot URL will remain unavailable."
+            echo "- Screenshot was not captured for this run." >> gh-pages-staging/android-emulator-report.md
           fi
-          if [ -f "./android-emulator-e2e.mp4" ]; then
+          if [ -s "./android-emulator-e2e.mp4" ]; then
             cp ./android-emulator-e2e.mp4 gh-pages-staging/screenshots/android-emulator-e2e.mp4
             echo "Staged android-emulator-e2e.mp4 to gh-pages-staging/screenshots/"
+            echo "- [Screen recording](screenshots/android-emulator-e2e.mp4)" >> gh-pages-staging/android-emulator-report.md
             staged_count=$((staged_count + 1))
           else
-            echo "::warning::No emulator screen recording was produced; the README video URL will remain unavailable."
+            echo "- Screen recording was not captured for this run." >> gh-pages-staging/android-emulator-report.md
           fi
-          if [ -f "./android-emulator-logcat.txt" ]; then
+          if [ -s "./android-emulator-logcat.txt" ]; then
             cp ./android-emulator-logcat.txt gh-pages-staging/screenshots/android-emulator-logcat.txt
             echo "Staged android-emulator-logcat.txt to gh-pages-staging/screenshots/"
+            echo "- [Logcat](screenshots/android-emulator-logcat.txt)" >> gh-pages-staging/android-emulator-report.md
             staged_count=$((staged_count + 1))
+          else
+            echo "- Logcat was not captured for this run." >> gh-pages-staging/android-emulator-report.md
           fi
           if [ "$staged_count" -eq 0 ]; then
-            echo "::warning::No emulator report files were staged for GitHub Pages."
+            echo "::warning::The report was staged, but no emulator media artifacts were captured."
           fi
+
+      - name: Upload Android Emulator Result Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emulator-e2e-report
+          path: gh-pages-staging/android-emulator-report.md
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Deploy Android Emulator Artifacts to GitHub Pages (gh-pages branch)
         if: always() && !cancelled() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master')))

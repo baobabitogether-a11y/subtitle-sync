@@ -54,8 +54,8 @@
 - For every issue, bug, or configuration discrepancy encountered, inspect and compare against the corresponding solution implemented in `https://github.com/mostuf2556/Youtubenet6`.
 - Preserve the existing application stack and repository structure.
 - Keep GitHub Actions, GitHub Pages reports, the web demo, and Android emulator coverage working together.
-- E2E on Android emulator: end-to-end testing on the Android emulator runs exclusively within GitHub Actions workflow operations (not in local environment test runs). Generated screenshots, logs, and recordings must never be committed to the main branch; the current workflow uploads them as the `android-emulator-artifacts` run artifact and stages public copies on GitHub Pages (`gh-pages`).
-- GitHub Pages report: should produce a video of the e2e test running on android emulator and present it on github pages along the e2e reports for web and emulator/device and the demo web app (the video and other build outputs should not exist on the main branch).
+- E2E on Android emulator: end-to-end testing on the Android emulator runs exclusively within GitHub Actions workflow operations (not in local environment test runs). Generated screenshots, logs, and recordings must never be committed to the main branch; the current workflow uploads them as the `android-emulator-artifacts` run artifact and stages captured public copies on GitHub Pages (`gh-pages`).
+- GitHub Pages report: every eligible `main`/`master` or manually dispatched emulator workflow run must stage and publish a Markdown report containing the actual test outcome and run link, even when the test fails or no media is captured. Pull request reports must be uploaded to that run's artifacts without publishing untrusted changes to `gh-pages`. Include video, screenshots, and logs only when genuinely captured; never fabricate media or test results.
 - Do not add credentials or invent external service values; document and request anything required.
 
 ## Android app versioning

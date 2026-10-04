@@ -12,7 +12,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
 | :-------------------- | :------------------------------- | :-------------------------------------------------------------------- | :---------------------------------------------- |
 | **`release-apk.yml`** | Tag push (`v*`), Manual dispatch | Compiles Android native debug APK and packages web bundle.            | `YouTube-Viewer-debug.apk`, `web-dist.zip`      |
 | **`web.yml`**         | Push to `main`, PRs              | Runs web companion end-to-end tests across Playwright and Cypress.    | Playwright trace, Mochawesome HTML reports      |
-| **`emulation.yml`**   | Push to `main`, PRs              | Runs Android emulator instrumentation and WebView interception tests. | `android-emulator-report.html`, logcat captures |
+| **`emulation.yml`**   | Release workflow completion, PRs, manual dispatch | Runs Android emulator instrumentation and WebView interception tests; publishes a Markdown result report for eligible main-branch/manual runs. | `android-emulator-report.md`, captured screenshot/video/logcat |
 | **`deploy-demo.yml`** | Push to `main` (auto)            | Builds production web demo and deploys to GitHub Pages (`gh-pages`).  | GitHub Pages web app and test dashboards        |
 
 ---
@@ -53,7 +53,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
      - `shouldInterceptRequest` captures live YouTube timedtext API requests.
      - Dynamic `tlang` modification fetches translated cues without timing drift.
      - Native TTS audio coordination completes with zero playback overlap.
-  5. Generates `android-emulator-report.html` and captures logcat streams.
+  5. Writes the real emulator-step outcome and run details to `android-emulator-report.md` for publication even when the Android test fails. Screenshot, video, and logcat links are added only when those files were captured.
 
 ### 2.4 GitHub Pages Deployment (`deploy-demo.yml`)
 
@@ -63,7 +63,7 @@ The repository maintains four dedicated GitHub Actions workflows to guarantee te
 - **Key Steps**:
   1. Compiles production web bundle (`npm run build`).
   2. Deploys `./dist` to `gh-pages` branch via `peaceiris/actions-gh-pages@v4` with `keep_files: true`.
-  3. Stages and retains authentic emulator screenshots in `screenshots/android-emulator-screenshot.png`.
+  3. The emulator workflow deploys `android-emulator-report.md` on eligible `main`/`master` and manual runs, regardless of the test outcome, and retains captured media under `screenshots/`. Pull request reports stay attached to their individual Actions runs.
 
 ---
 

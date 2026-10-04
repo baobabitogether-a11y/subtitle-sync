@@ -92,9 +92,9 @@ assert(
 );
 assert(
   readmeContent.includes(
-    "[**Open Latest Emulator E2E Report**](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml)",
+    "[**Open Latest Emulator E2E Report**](https://github.com/mostuf2556/subtitle-sync/blob/gh-pages/android-emulator-report.md)",
   ),
-  "README.md must link to the actual per-run emulator report",
+  "README.md must link to the published latest emulator report",
 );
 console.log("✅ PASS: README.md links to the Android Emulator E2E Video on GitHub Pages");
 

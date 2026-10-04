@@ -2,6 +2,12 @@
 
 This document maintains the registry of codebase files, their specific roles, architectural responsibilities, and feature domain boundaries.
 
+## Project Instructions
+
+| File Path  | Role                       | Feature & Responsibilities                                                                 |
+| ---------- | -------------------------- | ------------------------------------------------------------------------------------------ |
+| `replit.md` | Replit Agent Project Guide | Requires the Agent to read and follow the repository's `AGENTS.md` before starting work. |
+
 ## Application Architecture & Routing
 
 | File Path               | Role                         | Feature & Responsibilities                                                                                    |
@@ -83,7 +89,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-repo-hygiene.ts`                | Repository Hygiene Verification                  | Asserts absence of synthetic report generators, fake HTML report dashboards, and unignored test artifacts.                              |
 | `scripts/verify-native-captions.ts`             | Native Captions & lang Verification              | Asserts alternate-language URL generation, signed query preservation, base64 payload decoding, and Kotlin bridge logic.                 |
 | `scripts/verify-android-favorite-subtitles.ts`  | Android Dynamic Subtitles & 10-Line Presentation | Asserts dynamic multi-favorite language track loading, default 10-line presentation per column, and pagination on Android.              |
-| `scripts/verify-emulation-gh-pages.ts`          | Emulation GitHub Pages Publication Test          | Asserts workflow permissions, artifact staging, and keep_files deployment configuration for Android emulator artifacts on GitHub Pages. |
+| `scripts/verify-emulation-gh-pages.ts`          | Emulation GitHub Pages Publication Test          | Asserts always-generated pass/fail report publication, per-run report artifacts, media staging, and gh-pages deployment configuration. |
 | `scripts/verify-android-local-assets.ts`        | Android Local Assets Verification                | Asserts complete removal of remote web-app fallbacks (APP_URL, github.io) and strict local asset execution in MainActivity.kt.          |
 | `scripts/verify-favorite-lang-dynamic-fetch.ts` | Dynamic Favorite Languages Fetch Verification    | Validates dynamically selected language requests replace `lang`, preserve signed fields, and merge fetched tracks.                         |
 | `scripts/verify-network-inspector.ts`           | Network Inspector & 200-char Body Verification   | Validates 200-character response body truncation, request recording, and inspector UI modal integration.                                |
@@ -106,7 +112,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-player-viewport-placement.ts`  | Player Viewport Placement & Options Verification | Validates video container positioning, testids, enablejsapi: 1, origin, and onReady Android autoplay integration.                      |
 | `scripts/verify-video-library-panel.ts`        | Video Library Panel & Watch History Test         | Validates Video Library panel in PANELS, localStorage watch history persistence, item adding/removing, and UI controls.                |
 | `scripts/verify-no-subtitle-caching.ts`        | No Subtitle Caching Verification                 | Validates elimination of subtitle caching, disabled localStorage writes, fresh track retrieval, and legacy cache purging.               |
-| `scripts/verify-android-e2e-video-report.ts`   | Android E2E Video Recording & Report Verification | Validates screenrecord execution, GitHub Actions exclusivity, gh-pages artifact staging, and README video linking.                      |
+| `scripts/verify-android-e2e-video-report.ts`   | Android E2E Video Recording & Report Verification | Validates screenrecord execution, GitHub Actions exclusivity, gh-pages artifact staging, and README report/video links.                  |
 | `scripts/verify-e2e-tools.ts`                  | Multi-Tool E2E Testing Verification              | Validates Playwright a11y, fault injection, Cypress expanded suites, and runner configurations.                                         |
 | `scripts/verify-presented-video-subtitles.ts`  | Presented Video Subtitles Verification           | Validates that subtitles strictly correspond to the presented video without defaulting or cross-video bleeding.                        |
 | `e2e/accessibility.spec.ts`                    | Automated WCAG Accessibility E2E Test Suite      | Performs automated WCAG 2.1 AA accessibility scans using @axe-core/playwright across player, subtitles, and panels.                       |
