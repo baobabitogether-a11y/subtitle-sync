@@ -58,6 +58,12 @@
 - GitHub Pages report: should produce a video of the e2e test running on android emulator and present it on github pages along the e2e reports for web and emulator/device and the demo web app (the video and other build outputs should not exist on the main branch).
 - Do not add credentials or invent external service values; document and request anything required.
 
+## Android app versioning
+
+- For every user prompt that results in executable code changes (application code, tests, or scripts), advance the Android app's minor version exactly once for that response, regardless of how many files changed. For example, change `1.0` to `1.1`, or `1.2.3` to `1.3.0` (reset the patch component to `0` when present).
+- Increment Android `versionCode` at the same time so the APK is recognized as a newer install. Keep `package.json`'s version synchronized when it is used for the app release.
+- Keep the version in the source Gradle configuration so GitHub Actions packages that version into the APK. Do not rely on a user to bump it. Documentation-only changes do not require an app version bump.
+
 ## Android test procedure
 
 - Distinguish browser emulation from a real Android test:
