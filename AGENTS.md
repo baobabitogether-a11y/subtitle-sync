@@ -60,9 +60,10 @@
 
 ## Android app versioning
 
-- For every user prompt that results in executable code changes (application code, tests, or scripts), advance the Android app's minor version exactly once for that response, regardless of how many files changed. For example, change `1.0` to `1.1`, or `1.2.3` to `1.3.0` (reset the patch component to `0` when present).
-- Increment Android `versionCode` at the same time so the APK is recognized as a newer install. Keep `package.json`'s version synchronized when it is used for the app release.
-- Keep the version in the source Gradle configuration so GitHub Actions packages that version into the APK. Do not rely on a user to bump it. Documentation-only changes do not require an app version bump.
+- For every user prompt that results in executable code changes (application code, tests, or scripts), advance the Android app's minor version exactly once for that response, regardless of how many files changed.
+- After making the code changes, run `npm run version:bump -- minor` exactly once. This advances `versionName` to the next minor release (for example, `1.0` to `1.1.0`, or `1.2.3` to `1.3.0`), increments Android `versionCode`, and synchronizes `package.json`.
+- Run the version bump before final validation, and confirm it succeeded so GitHub Actions packages the updated Gradle version into the APK. Do not manually edit the version fields or rely on the user to bump them.
+- Documentation-only changes do not require an app version bump.
 
 ## Android test procedure
 
