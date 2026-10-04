@@ -57,6 +57,12 @@ assert(
   "emulation.yml must stage android-emulator-e2e.mp4 for gh-pages deployment",
 );
 assert(
+  emulationContent.includes("trap capture_outputs EXIT") &&
+    emulationContent.includes("bash scripts/android-e2e-assert.sh || TEST_STATUS=$?") &&
+    emulationContent.includes("adb logcat -d -v time > ./android-emulator-logcat.txt"),
+  "emulation.yml must collect screenshot, recording, and logcat outputs even when the E2E assertion fails",
+);
+assert(
   emulationContent.includes("peaceiris/actions-gh-pages@v4"),
   "emulation.yml must deploy artifacts to gh-pages branch",
 );
@@ -83,6 +89,12 @@ const readmeContent = fs.readFileSync(readmePath, "utf8");
 assert(
   readmeContent.includes("screenshots/android-emulator-e2e.mp4"),
   "README.md must link to the Android Emulator E2E Video",
+);
+assert(
+  readmeContent.includes(
+    "[**Open Latest Emulator E2E Report**](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml)",
+  ),
+  "README.md must link to the actual per-run emulator report",
 );
 console.log("✅ PASS: README.md links to the Android Emulator E2E Video on GitHub Pages");
 

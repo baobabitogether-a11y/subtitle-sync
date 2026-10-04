@@ -114,6 +114,14 @@ assert(
   workflowContent.includes("publish_dir: ./gh-pages-staging"),
   "emulation.yml deployment must deploy from ./gh-pages-staging",
 );
+assert(
+  workflowContent.includes("if: always() && !cancelled() &&"),
+  "GitHub Pages deployment must still run after a failed emulator test",
+);
+assert(
+  workflowContent.includes("workflow.event.workflow_run.head_branch == 'master'"),
+  "GitHub Pages deployment must support workflow runs originating from master",
+);
 console.log("✅ PASS: emulation.yml configures gh-pages deployment with keep_files: true");
 
 // 2. Verify .gitignore ignores ephemeral emulator artifacts
@@ -140,6 +148,12 @@ const readmeContent = fs.readFileSync(readmePath, "utf8");
 assert(
   readmeContent.includes("screenshots/android-emulator-screenshot.png"),
   "README.md must document the direct screenshot URL under screenshots/",
+);
+assert(
+  readmeContent.includes(
+    "[**Open Latest Emulator E2E Report**](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml)",
+  ),
+  "README.md must link directly to the latest emulator workflow report",
 );
 console.log("✅ PASS: README.md documents direct link to Android Emulator Screenshot");
 

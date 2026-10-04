@@ -33,11 +33,12 @@ Access the live web application:
 | Resource                           | Direct URL                                                                                                                    | Description                                                                                                                                                  |
 | :--------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🚀 **Web-App Demo Landing Page**   | [**Open Live Web Demo**](https://mostuf2556.github.io/subtitle-sync/)                                                         | Standalone browser build with responsive playback controls, dual-language subtitles (`top`/`above`/`under`/`bottom`), and instant target language switching. |
+| 🧪 **Latest Android Emulator E2E Report** | [**Open Latest Emulator E2E Report**](https://github.com/mostuf2556/subtitle-sync/actions/workflows/emulation.yml) | Opens the emulator workflow and its per-run result summary and downloadable artifacts. |
 | 🎬 **Android Emulator E2E Video**  | [**Watch Android Emulator E2E Test Recording**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-e2e.mp4) | High-fidelity screen recording of the automated end-to-end test executing inside the Android emulator during CI verification. |
 | 📸 **Android Emulator Screenshot** | [**View Latest Emulator Screenshot**](https://mostuf2556.github.io/subtitle-sync/screenshots/android-emulator-screenshot.png) | Latest authentic screenshot captured directly from the Android Emulator during CI verification.                                                              |
 
 > **Note on GitHub Pages Availability:**
-> Artifacts and demo assets are automatically published to the `gh-pages` branch on every push. To access the live web demo and screenshot URLs, ensure GitHub Pages is enabled in repository settings:
+> The web demo is published from pushes to `main` or `master`; emulator media is published only when the emulator workflow captures it on those branches or is manually dispatched. To serve the `gh-pages` branch, enable GitHub Pages in repository settings:
 > 👉 **Settings > Pages > Build and deployment > Source: Deploy from a branch (`gh-pages` / `/root`)**.
 
 ---
