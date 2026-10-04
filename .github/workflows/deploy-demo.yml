@@ -2,7 +2,7 @@ name: Publish Web Demo to GitHub Pages
 
 on:
   workflow_run:
-    workflows: ["Build & Release Android APK"]
+    workflows: ["Build & Release Android APK", "Android Emulator E2E Tests"]
     types:
       - completed
   push:
@@ -56,8 +56,32 @@ jobs:
           echo "⚙️ Compiling latest web application..."
           npm run build
 
+      - name: Checkout Latest Emulator Report from gh-pages
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages-emulator-report
+
+      - name: Include Emulator Report and Captured Media in Pages Site
+        run: |
+          report_file="gh-pages-emulator-report/android-emulator-report.md"
+          if [ -s "$report_file" ]; then
+            cp "$report_file" dist/android-emulator-report.md
+            echo "Included the latest emulator report in the Pages site."
+          else
+            echo "::warning::No published emulator report was found on gh-pages yet."
+          fi
+
+          media_dir="gh-pages-emulator-report/screenshots"
+          if [ -d "$media_dir" ]; then
+            mkdir -p dist/screenshots
+            cp -a "$media_dir/." dist/screenshots/
+            echo "Included captured emulator media in the Pages site."
+          fi
+
       - name: Deploy Web Demo to GitHub Pages (gh-pages branch)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master' || github.event.workflow_run.event == 'workflow_dispatch'))) && !cancelled()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -66,12 +90,12 @@ jobs:
           keep_files: true
 
       - name: Setup GitHub Pages (Native Actions Mode)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master' || github.event.workflow_run.event == 'workflow_dispatch'))) && !cancelled()
         uses: actions/configure-pages@v5
         continue-on-error: true
 
       - name: Upload GitHub Pages Artifact (Native Actions Mode)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master' || github.event.workflow_run.event == 'workflow_dispatch'))) && !cancelled()
         uses: actions/upload-pages-artifact@v3
         continue-on-error: true
         with:
@@ -79,6 +103,6 @@ jobs:
 
       - name: Deploy to GitHub Pages (Native Actions Mode)
         id: deployment
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master' || github.event.workflow_run.event == 'workflow_dispatch'))) && !cancelled()
         uses: actions/deploy-pages@v4
         continue-on-error: true
