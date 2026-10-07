@@ -16,7 +16,6 @@ TARGET_VIDEO_URL="https://www.youtube.com/watch?v=n9qwEOsqsoo"
 TARGET_LANG="es"
 APK_PATH="${ROOT_DIR}/android-shell/app/build/outputs/apk/debug/app-debug.apk"
 SCREENSHOT_OUT="${ROOT_DIR}/android-emulator-screenshot.png"
-VIDEO_OUT="${ROOT_DIR}/android-emulator-e2e.mp4"
 LOGCAT_OUT="${ROOT_DIR}/android-emulator-logcat.txt"
 
 echo "=================================================================="
@@ -61,10 +60,6 @@ if command -v adb &> /dev/null; then
     # Clear logcat buffer
     adb logcat -c 2>/dev/null || true
 
-    echo "--> Starting E2E screen recording on emulator (/sdcard/e2e-recording.mp4)..."
-    adb shell screenrecord --time-limit 120 --bit-rate 4000000 /sdcard/e2e-recording.mp4 &
-    RECORD_PID=$!
-
     echo "--> Launching MainActivity with Target URL: ${TARGET_VIDEO_URL}..."
     adb shell am start -n "${MAIN_ACTIVITY}" -d "${TARGET_VIDEO_URL}" || true
 
@@ -93,37 +88,16 @@ if command -v adb &> /dev/null; then
     adb logcat -d -s "YT_CAPTION_INTERCEPTOR" "TTS_ENGINE" "ActivityTaskManager" | tail -n 60 > "${LOGCAT_OUT}" || true
     echo "✓ Logcat telemetry saved to: ${LOGCAT_OUT}"
 
-    echo "--> Stopping screen recording..."
-    kill -2 "${RECORD_PID}" 2>/dev/null || true
-    sleep 3
-    adb pull /sdcard/e2e-recording.mp4 "${VIDEO_OUT}" 2>/dev/null || true
-    adb shell rm -f /sdcard/e2e-recording.mp4 2>/dev/null || true
-    if [[ -f "${VIDEO_OUT}" ]]; then
-      echo "✓ Screen recording pulled to: ${VIDEO_OUT}"
-    fi
-
     LOGCAT_OUT="${LOGCAT_OUT}" bash "${ROOT_DIR}/scripts/android-e2e-assert.sh" || exit 1
     echo "=================================================================="
     echo "✓ Android device/emulator E2E run complete!"
     echo "=================================================================="
   else
-    echo "ℹ️ No active Android device/emulator detected via adb."
-    if [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
-      echo "❌ Error: Expected an active emulator in GitHub Actions environment!"
-      exit 1
-    else
-      echo "ℹ️ Skipping live device execution locally per AGENTS.md rule (Android emulator runs exclusively on GitHub Actions)."
-      exit 0
-    fi
+    echo "❌ No active Android device/emulator detected via adb."
+    exit 1
   fi
 else
-  echo "ℹ️ ADB client not installed in current environment."
-  if [[ "${CI:-}" == "true" || "${GITHUB_ACTIONS:-}" == "true" ]]; then
-    echo "❌ Error: ADB required in GitHub Actions emulator workflow!"
-    exit 1
-  else
-    echo "ℹ️ Skipping live device execution locally per AGENTS.md rule (Android emulator runs exclusively on GitHub Actions)."
-    exit 0
-  fi
+  echo "❌ ADB client not installed in current environment."
+  exit 1
 fi
 

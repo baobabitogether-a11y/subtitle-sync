@@ -75,8 +75,7 @@ console.log("✅ PASS: update.apk.sh exists and is referenced in README.md");
 
 // 4. Verify GitHub Pages links in README table and static assets
 assert(
-  readmeContent.includes("https://baobabitogether1-hash.github.io/subtitle-sync/") ||
-    readmeContent.includes("https://mostuf2556.github.io/subtitle-sync/") ||
+  readmeContent.includes("https://mostuf2556.github.io/subtitle-sync/") ||
     readmeContent.includes("https://mostuf25561.github.io/subtitle-sync/"),
   "README.md must contain valid GitHub Pages demo URL for subtitle-sync",
 );
@@ -85,15 +84,27 @@ assert(
   "README.md must contain emulator screenshot reference",
 );
 
-const gitignorePath = path.resolve(rootDir, ".gitignore");
-assert(fs.existsSync(gitignorePath), ".gitignore must exist");
-const gitignoreContent = fs.readFileSync(gitignorePath, "utf8");
-assert(
-  gitignoreContent.includes("android-emulator-screenshot.png") ||
-    gitignoreContent.includes("screenshots/"),
-  "screenshots must be ignored in .gitignore to keep main branch clean of build outputs",
+const screenshotAsset = path.resolve(
+  rootDir,
+  "public",
+  "screenshots",
+  "android-emulator-screenshot.png",
 );
-console.log("✅ PASS: Emulator screenshot properly configured as ephemeral CI artifact for gh-pages");
+assert(
+  fs.existsSync(screenshotAsset),
+  "public/screenshots/android-emulator-screenshot.png asset must exist",
+);
+const assetScreenshot = path.resolve(
+  rootDir,
+  "public",
+  "assets",
+  "android-emulator-screenshot.png",
+);
+assert(
+  fs.existsSync(assetScreenshot),
+  "public/assets/android-emulator-screenshot.png asset must exist",
+);
+console.log("✅ PASS: Authentic emulator screenshot static assets present in public/");
 console.log("✅ PASS: GitHub Pages demo and screenshot URLs present in README.md");
 
 console.log("====================================================");

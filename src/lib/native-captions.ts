@@ -127,33 +127,37 @@ export function parseVideoId(value: string): string | null {
 export function buildTranslatedCaptionUrl(
   baseUrl: string,
   targetLanguage: string,
-  _format = "json3",
+  format = "json3",
 ): string {
   try {
-    new URL(baseUrl);
-    if (!targetLanguage) return baseUrl;
+    const url = new URL(baseUrl);
+    const originalLang = url.searchParams.get("lang");
+    if (originalLang && originalLang.toLowerCase() === targetLanguage.toLowerCase()) {
+      url.searchParams.delete("tlang");
+    } else {
+      url.searchParams.set("tlang", targetLanguage);
+    }
+    if (format) {
+      url.searchParams.set("fmt", format);
+    }
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}
 
-    const fragmentIndex = baseUrl.indexOf("#");
-    const requestUrl = fragmentIndex < 0 ? baseUrl : baseUrl.slice(0, fragmentIndex);
-    const fragment = fragmentIndex < 0 ? "" : baseUrl.slice(fragmentIndex);
-    const queryIndex = requestUrl.indexOf("?");
-    if (queryIndex < 0) return baseUrl;
-
-    let foundLanguage = false;
-    const query = requestUrl
-      .slice(queryIndex + 1)
-      .split("&")
-      .map((part) => {
-        const separator = part.indexOf("=");
-        const rawKey = separator < 0 ? part : part.slice(0, separator);
-        const decodedKey = decodeURIComponent(rawKey.replace(/\+/g, " "));
-        if (decodedKey.toLowerCase() !== "lang") return part;
-        foundLanguage = true;
-        return `${rawKey}=${encodeURIComponent(targetLanguage)}`;
-      });
-
-    if (!foundLanguage) return baseUrl;
-    return `${requestUrl.slice(0, queryIndex)}?${query.join("&")}${fragment}`;
+/** Request type "lang": replace the lang query with the desired language (no tlang). */
+export function buildLangReplacedCaptionUrl(
+  baseUrl: string,
+  language: string,
+  format = "json3",
+): string {
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set("lang", language);
+    url.searchParams.delete("tlang");
+    if (format) url.searchParams.set("fmt", format);
+    return url.toString();
   } catch {
     return baseUrl;
   }

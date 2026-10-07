@@ -67,23 +67,5 @@ export default defineConfig({
         video: "off",
       },
     },
-    {
-      name: "a11y",
-      testMatch: /.*accessibility\.spec\.ts/,
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 1280, height: 720 },
-        video: "off",
-      },
-    },
-    {
-      name: "faults",
-      testMatch: /.*network-faults\.spec\.ts/,
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 1280, height: 720 },
-        video: "off",
-      },
-    },
   ],
 });

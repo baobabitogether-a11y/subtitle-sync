@@ -1,7 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const observedUrl =
-  "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&hl=iw&lang=en&fmt=json3&sparams=ip%2Cexpire&signature=xyz%2F123&key=yt8";
+const observedUrl = "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3";
 type NativeCaptionRequest = { url: string; language: string; format: string };
 
 async function getNativeCaptionRequests(page: Page): Promise<NativeCaptionRequest[]> {
@@ -63,7 +62,7 @@ test.describe("Android native subtitle emulation", () => {
     await expect(page.locator("header")).toBeVisible();
   });
 
-  test("replays the observed timedtext URL with only lang changed for favorite languages", async ({
+  test("replays the observed timedtext URL with original lang preserved and favorite langs applied via tlang", async ({
     page,
   }) => {
     expect(await getNativeCaptionRequests(page)).toEqual([]);
@@ -78,18 +77,14 @@ test.describe("Android native subtitle emulation", () => {
 
     const itRequest = requests.find((request) => request.language === "it");
     expect(itRequest).toBeTruthy();
-    const parsedIt = new URL(itRequest!.url);
-    expect(parsedIt.searchParams.get("lang")).toBe("it");
-    expect(parsedIt.searchParams.get("hl")).toBe("iw");
-    expect(parsedIt.searchParams.get("tlang")).toBeNull();
-    expect(parsedIt.searchParams.get("fmt")).toBe("json3");
-    expect(parsedIt.searchParams.get("signature")).toBe("xyz/123");
+    expect(itRequest?.url).toContain("lang=en");
+    expect(itRequest?.url).toContain("tlang=it");
+    expect(itRequest?.url).toContain("fmt=json3");
 
     const heRequest = requests.find((request) => request.language === "he");
     expect(heRequest).toBeTruthy();
-    const parsedHe = new URL(heRequest!.url);
-    expect(parsedHe.searchParams.get("lang")).toBe("he");
-    expect(parsedHe.searchParams.get("tlang")).toBeNull();
+    expect(heRequest?.url).toContain("lang=en");
+    expect(heRequest?.url).toContain("tlang=he");
   });
 
   test("fetches every selected target language through the native bridge", async ({ page }) => {
@@ -116,13 +111,11 @@ test.describe("Android native subtitle emulation", () => {
     const requests = await getNativeCaptionRequests(page);
     const esRequest = requests.find((request) => request.language === "es");
     expect(esRequest).toBeTruthy();
-    const parsedEs = new URL(esRequest!.url);
-    expect(parsedEs.searchParams.get("lang")).toBe("es");
-    expect(parsedEs.searchParams.get("tlang")).toBeNull();
-    expect(parsedEs.searchParams.get("fmt")).toBe("json3");
-    expect(parsedEs.searchParams.get("signature")).toBe("xyz/123");
+    expect(esRequest?.url).toContain("lang=en");
+    expect(esRequest?.url).toContain("tlang=es");
+    expect(esRequest?.url).toContain("fmt=json3");
     const frRequest = requests.find((request) => request.language === "fr");
-    expect(new URL(frRequest!.url).searchParams.get("lang")).toBe("fr");
+    expect(frRequest?.url).toContain("tlang=fr");
     await expect(page.getByRole("status")).toContainText("live language tracks loaded");
   });
 

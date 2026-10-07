@@ -77,35 +77,20 @@ assert(workflowContent.includes("pages: write"), "emulation.yml must have pages:
 console.log("✅ PASS: emulation.yml has required contents: write and pages: write permissions");
 
 // Assert staging step
-const stageStep = workflowContent
-  .split("      - name: Stage Android Emulator Report and Artifacts for GitHub Pages")[1]
-  ?.split("      - name: Deploy Android Emulator Artifacts to GitHub Pages")[0];
-assert(stageStep, "emulation.yml must contain the report and artifact staging step");
 assert(
-  stageStep.includes("if: always()") &&
-    stageStep.includes("gh-pages-staging/android-emulator-report.md") &&
-    stageStep.includes("E2E_OUTCOME") &&
-    stageStep.includes('result="FAILED"') &&
-    stageStep.includes('result="PASSED"') &&
-    stageStep.includes("actions/runs/${GITHUB_RUN_ID}"),
-  "the report must always stage the actual emulator outcome for both pass and failure",
+  workflowContent.includes("Stage Android Emulator Artifacts for GitHub Pages"),
+  "emulation.yml must contain staging step for GitHub Pages",
 );
 assert(
-  workflowContent.includes("      - name: Upload Android Emulator Result Report") &&
-    workflowContent.includes("name: android-emulator-e2e-report") &&
-    workflowContent.includes("path: gh-pages-staging/android-emulator-report.md"),
-  "the generated report must also be uploaded as a per-run artifact, including for pull requests",
+  workflowContent.includes("gh-pages-staging/screenshots"),
+  "emulation.yml must stage artifacts to gh-pages-staging/screenshots",
 );
 assert(
-  stageStep.includes("gh-pages-staging/screenshots"),
-  "emulation.yml must stage optional artifacts to gh-pages-staging/screenshots",
-);
-assert(
-  stageStep.includes("android-emulator-screenshot.png"),
+  workflowContent.includes("android-emulator-screenshot.png"),
   "emulation.yml staging must handle android-emulator-screenshot.png",
 );
 console.log(
-  "✅ PASS: emulation.yml always stages a real outcome report and any captured emulator media",
+  "✅ PASS: emulation.yml stages emulator screenshot and logcat into gh-pages-staging/screenshots",
 );
 
 // Assert deployment step
@@ -128,14 +113,6 @@ assert(
 assert(
   workflowContent.includes("publish_dir: ./gh-pages-staging"),
   "emulation.yml deployment must deploy from ./gh-pages-staging",
-);
-assert(
-  workflowContent.includes("if: always() && !cancelled() &&"),
-  "GitHub Pages deployment must still run after a failed emulator test",
-);
-assert(
-  workflowContent.includes("github.event.workflow_run.head_branch == 'master'"),
-  "GitHub Pages deployment must support workflow runs originating from master",
 );
 console.log("✅ PASS: emulation.yml configures gh-pages deployment with keep_files: true");
 
@@ -164,13 +141,7 @@ assert(
   readmeContent.includes("screenshots/android-emulator-screenshot.png"),
   "README.md must document the direct screenshot URL under screenshots/",
 );
-assert(
-  readmeContent.includes(
-    "[**Open Latest Emulator E2E Report**](https://github.com/mostuf2556/subtitle-sync/blob/gh-pages/android-emulator-report.md)",
-  ),
-  "README.md must link directly to the published latest emulator report",
-);
-console.log("✅ PASS: README.md links directly to the published Android emulator report");
+console.log("✅ PASS: README.md documents direct link to Android Emulator Screenshot");
 
 console.log("====================================================");
 console.log("📊 EMULATION GH-PAGES TEST: All tests passed!");

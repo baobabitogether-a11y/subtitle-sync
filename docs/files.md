@@ -2,12 +2,6 @@
 
 This document maintains the registry of codebase files, their specific roles, architectural responsibilities, and feature domain boundaries.
 
-## Project Instructions
-
-| File Path  | Role                       | Feature & Responsibilities                                                                 |
-| ---------- | -------------------------- | ------------------------------------------------------------------------------------------ |
-| `replit.md` | Replit Agent Project Guide | Requires the Agent to read and follow the repository's `AGENTS.md` before starting work. |
-
 ## Application Architecture & Routing
 
 | File Path               | Role                         | Feature & Responsibilities                                                                                    |
@@ -29,7 +23,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/components/NetworkRequestsInspector.tsx` | Network Traffic Inspector UI  | Displays live captured network requests with URL, method, status, duration, and first 200 characters response body preview.       |
 | `src/components/ApkReleaseModal.tsx`          | Latest APK Release Modal      | Displays direct APK downloads, GitHub release links, web artifacts, and CLI install commands for both mostuf2556 and mostuf25561. |
 | `src/components/SubtitleFetchToast.tsx`       | Subtitle Fetch Notification   | Popup indicator notifying when subtitle fetching begins and finishes, with quick link to table and mute option.                   |
-| `src/components/VideoLibraryPanel.tsx`        | Video Watch Library Panel     | Displays persistent watch history in localStorage, search/filter, quick load/play actions, and library management controls.        |
 
 ## Feature Utilities (`src/utils/`)
 
@@ -43,12 +36,11 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/utils/networkInterceptor.ts` | Network Traffic Interceptor        | Monitors browser requests to capture YouTube timedtext subtitle URLs.                                                  |
 | `src/utils/networkTracker.ts`     | Live Network Request Tracker       | Records timedtext, bridge, and fetch requests, keeping response bodies strictly truncated to the first 200 characters. |
 | `src/utils/rtlUtils.ts`           | Text Direction Manager             | Detects RTL languages (Hebrew, Arabic, etc.) and formats directional rendering.                                        |
-| `src/utils/subtitleCache.ts`      | Subtitle Cache Service (Neutralized) | Caching removed to guarantee fresh subtitle retrieval and eliminate stale tracks; purges legacy cache keys.            |
+| `src/utils/subtitleCache.ts`      | Subtitle Cache Service             | Stores fetched subtitles in local browser storage to support offline replay.                                           |
 | `src/utils/urlStateManager.ts`    | URL Parameter Synchronizer         | Reflects active video, languages, and settings into query parameters for deep linking.                                 |
 | `src/utils/videoSettings.ts`      | Per-Video Preferences Store        | Persists language choices and playback configurations specific to individual video IDs.                                |
 | `src/utils/logBuffer.ts`          | Diagnostic Log Buffer              | Captures and retains rolling logs for network, bridge, and playback diagnostic inspection.                             |
 | `src/utils/subtitleNotificationManager.ts` | Subtitle Notification State | Manages subtitle fetch notifications, auto-dismiss timers, broadcast events, and notification mute state. |
-| `src/utils/videoFixturesRegistry.ts` | Video Subtitles Fixtures Registry | Scopes and retrieves authentic multilingual JSON3 subtitles strictly per video ID, preventing default video bleeding. |
 
 ## Configuration & Data Fixtures (`src/config/`)
 
@@ -79,7 +71,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | ----------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `e2e/web.spec.ts`                               | Playwright Web Test                              | Tests web demo fixture loading, theme toggling, favorite language controls, and SSR hydration consistency.                              |
 | `e2e/app.spec.ts`                               | Playwright App Smoke Test                        | Verifies core UI rendering and table layout integrity.                                                                                  |
-| `e2e/emulation.spec.ts`                         | Android Native Shell Emulation Test              | Simulates Android bridge timedtext interception and alternate-language retrieval by replacing only the `lang` query value.             |
+| `e2e/emulation.spec.ts`                         | Android Native Shell Emulation Test              | Simulates Android bridge timedtext interception and `tlang` subtitle track retrieval.                                                   |
 | `scripts/verify-client-spa.ts`                  | Pure Client SPA Architecture Verification        | Validates zero server dependencies, removal of SSR files, and valid client build.                                                       |
 | `scripts/verify-caption-formats.ts`             | Caption Format Verification                      | Asserts valid JSON3 structure across all repository subtitle fixtures.                                                                  |
 | `scripts/verify-ota-updater.ts`                 | OTA Updater Test Suite                           | Tests version comparison, GitHub release artifact resolution, and bundle application.                                                   |
@@ -87,11 +79,11 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-auto-scroll.ts`                 | Auto-Scroll Setting Test Suite                   | Validates default OFF state, storage persistence, and safe fallback handling.                                                           |
 | `scripts/verify-hydration.ts`                   | SSR Hydration Determinism Test                   | Validates deterministic default language state consistency.                                                                             |
 | `scripts/verify-repo-hygiene.ts`                | Repository Hygiene Verification                  | Asserts absence of synthetic report generators, fake HTML report dashboards, and unignored test artifacts.                              |
-| `scripts/verify-native-captions.ts`             | Native Captions & lang Verification              | Asserts alternate-language URL generation, signed query preservation, base64 payload decoding, and Kotlin bridge logic.                 |
+| `scripts/verify-native-captions.ts`             | Native Captions & tlang Verification             | Asserts valid tlang handling, base language preservation, base64 payload decoding, and Kotlin bridge logic.                             |
 | `scripts/verify-android-favorite-subtitles.ts`  | Android Dynamic Subtitles & 10-Line Presentation | Asserts dynamic multi-favorite language track loading, default 10-line presentation per column, and pagination on Android.              |
-| `scripts/verify-emulation-gh-pages.ts`          | Emulation GitHub Pages Publication Test          | Asserts always-generated pass/fail report publication, per-run report artifacts, media staging, and gh-pages deployment configuration. |
+| `scripts/verify-emulation-gh-pages.ts`          | Emulation GitHub Pages Publication Test          | Asserts workflow permissions, artifact staging, and keep_files deployment configuration for Android emulator artifacts on GitHub Pages. |
 | `scripts/verify-android-local-assets.ts`        | Android Local Assets Verification                | Asserts complete removal of remote web-app fallbacks (APP_URL, github.io) and strict local asset execution in MainActivity.kt.          |
-| `scripts/verify-favorite-lang-dynamic-fetch.ts` | Dynamic Favorite Languages Fetch Verification    | Validates dynamically selected language requests replace `lang`, preserve signed fields, and merge fetched tracks.                         |
+| `scripts/verify-favorite-lang-dynamic-fetch.ts` | Dynamic Favorite Languages Fetch Verification    | Validates dynamic timedtext subtitle requests via tlang when new favorite languages are selected and merged into tracks.                |
 | `scripts/verify-network-inspector.ts`           | Network Inspector & 200-char Body Verification   | Validates 200-character response body truncation, request recording, and inspector UI modal integration.                                |
 | `scripts/verify-workflows-alignment.ts`         | GitHub Workflows Alignment Test                  | Asserts exact workflow parity with Youtubenet6, deployed URL correctness, and error resilience.                                         |
 | `scripts/verify-doc-contracts.ts`               | Architectural Contracts Verification             | Asserts presence and integrity of all 9 architectural documentation and specification contracts.                                        |
@@ -108,14 +100,5 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-network-accordion-tags.ts`     | Network Accordion, tlang Tags & Performance Test | Validates SubtitleRow React.memo performance optimization, per-record accordion toggle, and dynamic tlang status colors (pending/done/failed/retried). |
 | `scripts/verify-network-inspector-close.ts`    | Network Inspector Close & Collapse Verification  | Validates close button with testid/aria-label, backdrop click dismiss with stopPropagation, Escape key listener, and minimize/collapse dock. |
 | `scripts/verify-android-back-navigation.ts`    | Android Back Navigation & History Verification   | Validates OnBackPressedCallback in MainActivity, window.__handleAndroidBack modal consumption, history.pushState, and popstate navigation. |
-| `scripts/verify-tlang-repetition.ts`           | Android Shell Timedtext Language Verification    | Validates raw query and token preservation, fallback headers, and alternate-language URL generation for Android.                        |
-| `scripts/verify-player-viewport-placement.ts`  | Player Viewport Placement & Options Verification | Validates video container positioning, testids, enablejsapi: 1, origin, and onReady Android autoplay integration.                      |
-| `scripts/verify-video-library-panel.ts`        | Video Library Panel & Watch History Test         | Validates Video Library panel in PANELS, localStorage watch history persistence, item adding/removing, and UI controls.                |
-| `scripts/verify-no-subtitle-caching.ts`        | No Subtitle Caching Verification                 | Validates elimination of subtitle caching, disabled localStorage writes, fresh track retrieval, and legacy cache purging.               |
-| `scripts/verify-android-e2e-video-report.ts`   | Android E2E Video Recording & Report Verification | Validates screenrecord execution, GitHub Actions exclusivity, gh-pages artifact staging, and README report/video links.                  |
-| `scripts/verify-e2e-tools.ts`                  | Multi-Tool E2E Testing Verification              | Validates Playwright a11y, fault injection, Cypress expanded suites, and runner configurations.                                         |
-| `scripts/verify-presented-video-subtitles.ts`  | Presented Video Subtitles Verification           | Validates that subtitles strictly correspond to the presented video without defaulting or cross-video bleeding.                        |
-| `e2e/accessibility.spec.ts`                    | Automated WCAG Accessibility E2E Test Suite      | Performs automated WCAG 2.1 AA accessibility scans using @axe-core/playwright across player, subtitles, and panels.                       |
-| `e2e/network-faults.spec.ts`                   | Network Fault Injection E2E Test Suite           | Tests simulated latency, HTTP 429 rate limiting, offline mode, and malformed payload resilience using Playwright route interception.    |
 | `scripts/verify-md-links.ts`                    | Markdown Links Checker                           | Validates that all documentation cross-references and links resolve properly.                                                           |
 | `scripts/normalize-web-assets.mjs`              | Build Asset Normalizer                           | Adjusts asset paths for GitHub Pages sub-path hosting.                                                                                  |

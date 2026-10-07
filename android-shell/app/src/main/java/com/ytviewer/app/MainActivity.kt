@@ -10,7 +10,6 @@ import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import android.webkit.ConsoleMessage
-import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -49,7 +48,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var textToSpeech: TextToSpeech? = null
     private var isTtsReady: Boolean = false
     @Volatile
-    private var observedTimedTextRequest: TimedTextReplay? = null
+    private var lastObservedTimedTextUrl: String? = null
+    private val lastObservedHeaders = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     companion object {
         private const val TAG = "YT_CAPTION_INTERCEPTOR"
@@ -116,38 +116,30 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 val path = request?.url?.path ?: ""
 
                 // 1. Intercept YouTube caption endpoint
-                if (TimedTextReplay.isCaptionUrl(url) && request?.method == "GET") {
+                if (url.contains("youtube.com/api/timedtext") || url.contains("/timedtext?")) {
                     Log.i(TAG, "=== INTERCEPTED YOUTUBE CAPTION REQUEST ===")
                     Log.i(TAG, "URL: $url")
                     Log.i(TAG, "Method: ${request?.method}")
 
                     // Retain observed timedtext request URL and headers for native translation repetition
-                    val headers = request.requestHeaders.toMutableMap()
-                    if (headers.keys.none { it.equals("cookie", true) }) {
-                        CookieManager.getInstance().getCookie(url)?.takeIf { it.isNotBlank() }
-                            ?.let { headers["Cookie"] = it }
+                    lastObservedTimedTextUrl = url
+                    request?.requestHeaders?.let { h ->
+                        lastObservedHeaders.clear()
+                        lastObservedHeaders.putAll(h)
                     }
-                    if (headers.keys.none { it.equals("user-agent", true) }) {
-                        headers["User-Agent"] = view?.settings?.userAgentString ?: webView.settings.userAgentString
-                    }
-                    val capturedRequest = TimedTextReplay(url, headers)
-                    // A translated player request must not replace the source request.
-                    val isDefaultRequest =
-                        TimedTextReplay.isDefault(url, observedTimedTextRequest?.url)
-                    if (isDefaultRequest) observedTimedTextRequest = capturedRequest
 
                     try {
                         // Replicate the request with original headers
                         val requestBuilder = Request.Builder().url(url)
-                        capturedRequest.decodedRequestHeaders().forEach { (key, value) ->
+                        request?.requestHeaders?.forEach { (key, value) ->
                             requestBuilder.addHeader(key, value)
                         }
 
-                        okHttpClient.newCall(requestBuilder.build()).execute().use { response ->
+                        val response = okHttpClient.newCall(requestBuilder.build()).execute()
                         val rawBodyBytes = response.body?.bytes() ?: ByteArray(0)
                         val rawBodyString = String(rawBodyBytes, StandardCharsets.UTF_8)
                         val contentType = response.header("Content-Type", "text/xml; charset=utf-8") ?: "text/xml"
-                        val requestKind = if (isDefaultRequest) "default" else "translated"
+                        val requestKind = if (android.net.Uri.parse(url).getQueryParameter("tlang").isNullOrBlank()) "default" else "translated"
 
                         Log.i(TAG, "Received ${rawBodyBytes.size} bytes of raw caption data.")
                         Log.i(TAG, "SUBTITLE_FETCH kind=$requestKind http=${response.code} bytes=${rawBodyBytes.size} cues=${countCaptionCues(rawBodyString)}")
@@ -162,14 +154,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         return WebResourceResponse(
                             contentType.split(";")[0].trim(),
                             "UTF-8",
-                            response.code,
-                            response.message.ifBlank { "Caption response" },
-                            response.headers.toMultimap().filterKeys {
-                                !it.equals("content-encoding", true) && !it.equals("content-length", true)
-                            }.mapValues { it.value.joinToString(", ") },
                             ByteArrayInputStream(rawBodyBytes)
                         )
-                        }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to intercept/fetch caption request: ${e.message}", e)
                     }
@@ -657,47 +643,62 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         @JavascriptInterface
         fun getLastObservedTimedTextUrl(): String {
-            return observedTimedTextRequest?.url ?: ""
+            return lastObservedTimedTextUrl ?: ""
         }
 
         @JavascriptInterface
         fun setLastObservedTimedTextUrl(url: String) {
-            // A JS-provided URL has no associated browser headers/cookies. Only
-            // interception may replace the request snapshot.
-            if (url != observedTimedTextRequest?.url) Log.w(TAG, "Ignoring uncaptured caption URL")
+            if (url.isNotEmpty()) {
+                lastObservedTimedTextUrl = url
+            }
         }
 
         @JavascriptInterface
         fun fetchTranslatedCaptions(targetLang: String, format: String): String {
-            val base = observedTimedTextRequest?.url ?: return ""
+            val base = lastObservedTimedTextUrl ?: return ""
             return executeTimedTextRepetition(base, targetLang, format)
         }
 
         @JavascriptInterface
         fun fetchTranslatedCaptionsWithUrl(customUrl: String, targetLang: String, format: String): String {
-            val base = if (customUrl.isNotEmpty()) customUrl else (observedTimedTextRequest?.url ?: "")
+            val base = if (customUrl.isNotEmpty()) customUrl else (lastObservedTimedTextUrl ?: "")
             if (base.isEmpty()) return ""
             return executeTimedTextRepetition(base, targetLang, format)
         }
 
         private fun executeTimedTextRepetition(base: String, targetLang: String, format: String): String {
             return try {
-                val captured = observedTimedTextRequest ?: return ""
-                if (!captured.matchesVideo(base)) {
-                    Log.w(TAG, "No matching captured request for translated captions")
-                    return ""
+                val uri = android.net.Uri.parse(base)
+                val queryParamNames = uri.queryParameterNames
+                val builder = uri.buildUpon().clearQuery()
+                for (name in queryParamNames) {
+                    val isLang = name.equals("lang", ignoreCase = true)
+                    val isTlang = name.equals("tlang", ignoreCase = true)
+                    val isFmt = name.equals("fmt", ignoreCase = true) && format.isNotEmpty()
+                    if (!isLang && !isTlang && !isFmt) {
+                        for (value in uri.getQueryParameters(name)) {
+                            builder.appendQueryParameter(name, value)
+                        }
+                    }
                 }
-                // Keep fmt and every signed/player parameter unchanged. The web parser
-                // supports JSON3 and XML, so changing fmt is unnecessary.
-                val targetUrl = captured.translatedUrl(targetLang)
+                val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"
+                builder.appendQueryParameter("lang", originalLang)
+                if (!originalLang.equals(targetLang, ignoreCase = true)) {
+                    builder.appendQueryParameter("tlang", targetLang)
+                }
+                if (format.isNotEmpty()) {
+                    builder.appendQueryParameter("fmt", format)
+                }
+                val targetUrl = builder.build().toString()
                 Log.i(TAG, "Native Shell repeating observed timedtext request for targetLang=$targetLang, fmt=$format: $targetUrl")
                 val reqBuilder = Request.Builder().url(targetUrl)
-
-                captured.decodedRequestHeaders().forEach { (k, v) ->
-                    reqBuilder.addHeader(k, v)
+                lastObservedHeaders.forEach { (k, v) ->
+                    // Exclude Accept-Encoding so OkHttp handles transparent decompression
+                    if (!k.equals("accept-encoding", ignoreCase = true)) {
+                        reqBuilder.addHeader(k, v)
+                    }
                 }
-
-                okHttpClient.newCall(reqBuilder.build()).execute().use { resp ->
+                val resp = okHttpClient.newCall(reqBuilder.build()).execute()
                 if (resp.isSuccessful) {
                     val bodyString = resp.body?.string() ?: ""
                     Log.i(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang http=${resp.code} bytes=${bodyString.toByteArray(StandardCharsets.UTF_8).size} cues=${countCaptionCues(bodyString)}")
@@ -705,7 +706,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 } else {
                     Log.w(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang http=${resp.code} bytes=0 cues=0")
                     ""
-                }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching native translated captions: ${e.message}", e)

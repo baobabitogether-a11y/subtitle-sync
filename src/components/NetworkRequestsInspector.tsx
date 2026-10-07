@@ -44,6 +44,8 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
   const [showFullBody, setShowFullBody] = useState(false);
   const [expandedListItems, setExpandedListItems] = useState<Record<string, boolean>>({});
   const [isMinimized, setIsMinimized] = useState(false);
+  // Small screens (Android): show either the list or one request detail at a time
+  const [mobileView, setMobileView] = useState<"list" | "detail">("list");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -251,23 +253,23 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
     <div
       id="network-inspector-modal"
       data-testid="network-inspector-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-5 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl h-[85vh] bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-neutral-200"
+        className="relative w-full max-w-5xl h-[100dvh] sm:h-[85vh] bg-neutral-900 border-0 sm:border border-neutral-800 rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden text-neutral-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 bg-neutral-950/80 border-b border-neutral-800">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-2 sm:py-3.5 pt-[max(0.5rem,env(safe-area-inset-top))] bg-neutral-950/80 border-b border-neutral-800">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
               <Activity className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-bold text-neutral-100">
-                  Live Network Traffic Inspector
+                <h2 className="text-sm sm:text-base font-bold text-neutral-100">
+                  Network
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700">
                   {requests.length} captured
@@ -284,7 +286,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                   </span>
                 )}
               </div>
-              <p className="text-xs text-neutral-400">
+              <p className="hidden sm:block text-xs text-neutral-400">
                 Live captures timedtext, native bridge requests, highlights tlang language tags,
                 and word-wraps request details
               </p>
@@ -383,7 +385,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
             </button>
           </div>
 
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+          <div className="relative w-full min-w-0 flex-1 sm:min-w-[200px] sm:max-w-xs">
             <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -396,9 +398,9 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
         </div>
 
         {/* Body content: Split list & detail */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-neutral-800 overflow-hidden">
+        <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 md:divide-x divide-neutral-800 overflow-hidden">
           {/* Requests List */}
-          <div className="overflow-y-auto p-2 space-y-1.5">
+          <div className={`${mobileView === "detail" ? "hidden md:block" : "block"} min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1.5`}>
             {filtered.length === 0 ? (
               <div className="p-8 text-center text-neutral-500 text-xs space-y-2">
                 <p>No network requests match the current filters.</p>
@@ -429,7 +431,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                 return (
                   <div
                     key={req.id}
-                    onClick={() => setSelectedId(req.id)}
+                    onClick={() => (setSelectedId(req.id), setMobileView("detail"))}
                     className={`p-2.5 rounded-lg border cursor-pointer transition text-xs space-y-2 ${
                       isSelected
                         ? "bg-blue-950/40 border-blue-700/60"
@@ -582,7 +584,15 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
           </div>
 
           {/* Request Detail Panel */}
-          <div className="overflow-y-auto p-4 space-y-4 text-xs">
+          <div className={`${mobileView === "list" ? "hidden md:block" : "block"} min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4 text-xs break-words`}>
+            <button
+              type="button"
+              data-testid="network-back-to-list"
+              onClick={() => setMobileView("list")}
+              className="md:hidden mb-2 inline-flex items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-xs font-medium text-neutral-200"
+            >
+              ← Back to requests
+            </button>
             {selectedRequest ? (
               <>
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3 flex-wrap gap-2">
