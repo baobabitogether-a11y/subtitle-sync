@@ -80,9 +80,22 @@ assert(
   "README.md must contain valid GitHub Pages demo URL for subtitle-sync",
 );
 assert(
+  readmeContent.includes("mochawesome.html"),
+  "README.md must contain Mochawesome E2E test report link",
+);
+assert(
+  readmeContent.includes("playwright"),
+  "README.md must contain Playwright E2E test report link",
+);
+assert(
+  readmeContent.includes("android-emulator-report.html"),
+  "README.md must contain Android Emulator E2E test report link",
+);
+assert(
   readmeContent.includes("android-emulator-screenshot.png"),
   "README.md must contain emulator screenshot reference",
 );
+console.log("✅ PASS: All E2E test report links (Mochawesome, Playwright, Android Emulator) verified in README.md");
 
 const screenshotAsset = path.resolve(
   rootDir,

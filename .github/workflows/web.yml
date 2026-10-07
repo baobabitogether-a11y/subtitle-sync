@@ -127,6 +127,15 @@ jobs:
             echo "No synthetic report script present; preserving authentic test artifacts."
           fi
 
+      - name: Stage Playwright Report for GitHub Pages
+        if: always()
+        run: |
+          if [ -d "playwright-report" ]; then
+            mkdir -p cypress/reports/playwright
+            cp -r playwright-report/* cypress/reports/playwright/
+            echo "Staged playwright-report to cypress/reports/playwright/"
+          fi
+
       - name: Deploy Web Test Outputs to GitHub Pages (gh-pages)
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
         uses: peaceiris/actions-gh-pages@v4

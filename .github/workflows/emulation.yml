@@ -201,6 +201,8 @@ jobs:
 
       - name: Stage Android Emulator Artifacts for GitHub Pages
         if: always()
+        env:
+          E2E_OUTCOME: ${{ steps.android_e2e.outcome }}
         run: |
           mkdir -p gh-pages-staging/screenshots
           if [ -f "./android-emulator-screenshot.png" ]; then
@@ -211,6 +213,56 @@ jobs:
             cp ./android-emulator-logcat.txt gh-pages-staging/screenshots/android-emulator-logcat.txt
             echo "Staged android-emulator-logcat.txt to gh-pages-staging/screenshots/"
           fi
+          STATUS_CLASS="status-success"
+          if [ "$E2E_OUTCOME" != "success" ]; then
+            STATUS_CLASS="status-failure"
+          fi
+          RECENT_LOGS=""
+          if [ -f "./android-emulator-logcat.txt" ]; then
+            RECENT_LOGS=$(grep "SUBTITLE_FETCH" ./android-emulator-logcat.txt | tail -n 25 || true)
+          fi
+          cat << EOF > gh-pages-staging/android-emulator-report.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Android Emulator E2E Test Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090d16; color: #f3f4f6; padding: 2rem; max-width: 1000px; margin: 0 auto; line-height: 1.5; }
+    h1 { color: #38bdf8; margin-bottom: 0.5rem; }
+    .status { display: inline-block; padding: 0.35rem 0.85rem; border-radius: 9999px; font-weight: bold; margin-bottom: 1rem; }
+    .status-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .status-failure { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    pre { background: #030712; padding: 1rem; border-radius: 6px; overflow-x: auto; color: #a5f3fc; font-size: 0.875rem; max-height: 400px; }
+    img { max-width: 100%; max-height: 600px; border-radius: 8px; border: 1px solid #374151; display: block; margin-top: 1rem; }
+    a { color: #38bdf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Android Emulator E2E Test Report</h1>
+  <p>Authentic runtime execution and WebView interception test report on Android 14 (API 34) Google APIs emulator.</p>
+  <div class="card">
+    <h2>Execution Outcome</h2>
+    <span class="status ${STATUS_CLASS}">Outcome: ${E2E_OUTCOME}</span>
+    <p>Target test package: <code>com.ytviewer.app</code> running native timedtext interception and TTS hardware coordination.</p>
+  </div>
+  <div class="card">
+    <h2>Captured Emulator Screenshot</h2>
+    <p><a href="./screenshots/android-emulator-screenshot.png" target="_blank">Open Full Resolution Screenshot</a></p>
+    <img src="./screenshots/android-emulator-screenshot.png" alt="Android Emulator Screenshot" onerror="this.style.display='none'" />
+  </div>
+  <div class="card">
+    <h2>Logcat Telemetry (Recent Subtitle Fetches)</h2>
+    <pre>${RECENT_LOGS}</pre>
+    <p style="margin-top: 0.5rem;"><a href="./screenshots/android-emulator-logcat.txt" target="_blank">Download Full Logcat File</a></p>
+  </div>
+</body>
+</html>
+EOF
+          echo "Generated gh-pages-staging/android-emulator-report.html"
 
       - name: Deploy Android Emulator Artifacts to GitHub Pages (gh-pages branch)
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()

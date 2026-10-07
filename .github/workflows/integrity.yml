@@ -63,3 +63,6 @@ jobs:
 
       - name: Run README Links and Badges Verification
         run: npm run test:readme-links
+
+      - name: Run Dedicated E2E Report Links Verification
+        run: npm run test:e2e-report-links
