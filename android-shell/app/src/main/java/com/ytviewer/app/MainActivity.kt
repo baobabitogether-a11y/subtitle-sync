@@ -144,8 +144,12 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                         Log.i(TAG, "Received ${rawBodyBytes.size} bytes of raw caption data.")
                         Log.i(TAG, "SUBTITLE_FETCH kind=$requestKind http=${response.code} bytes=${rawBodyBytes.size} cues=${countCaptionCues(rawBodyString)}")
 
-                        // 1. Save raw caption to device storage
-                        saveCaptionToFile(url, rawBodyBytes)
+                        // 1. Save raw caption to device storage ONLY if it is valid JSON
+                        if (isValidJsonSubtitle(rawBodyString)) {
+                            saveCaptionToFile(url, rawBodyBytes)
+                        } else {
+                            Log.w(TAG, "Skipping cache for caption request because response is not valid JSON ($url)")
+                        }
 
                         // 2. Dispatch captured data back into the WebView JavaScript runtime
                         dispatchToJavaScript(url, rawBodyString, contentType, response.code)
@@ -429,14 +433,43 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }, 300)
     }
 
+    private fun isValidJsonSubtitle(body: String): Boolean {
+        if (body.isBlank()) return false
+        val trimmed = body.trim()
+        if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return false
+        return try {
+            val obj = JSONObject(trimmed)
+            val events = obj.optJSONArray("events") ?: return false
+            if (events.length() == 0) return false
+            (0 until events.length()).any { i ->
+                val event = events.optJSONObject(i) ?: return@any false
+                val segs = event.optJSONArray("segs")
+                if (segs != null && segs.length() > 0) {
+                    (0 until segs.length()).any { s ->
+                        !segs.optJSONObject(s)?.optString("utf8").isNullOrBlank()
+                    }
+                } else {
+                    false
+                }
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun saveCaptionToFile(url: String, data: ByteArray) {
+        val bodyString = String(data, StandardCharsets.UTF_8)
+        if (!isValidJsonSubtitle(bodyString)) {
+            Log.w(TAG, "Not caching caption because response is not valid JSON with subtitle cues: $url")
+            return
+        }
         try {
             val dir = File(getExternalFilesDir(null), "youtube_captions")
             if (!dir.exists()) dir.mkdirs()
-            val filename = "caption_${System.currentTimeMillis()}.xml"
+            val filename = "caption_${System.currentTimeMillis()}.json"
             val file = File(dir, filename)
             FileOutputStream(file).use { it.write(data) }
-            Log.i(TAG, "Saved raw caption to: ${file.absolutePath}")
+            Log.i(TAG, "Saved valid JSON caption to: ${file.absolutePath}")
         } catch (e: Exception) {
             Log.e(TAG, "Error saving file: ${e.message}")
         }
@@ -669,44 +702,73 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         private fun executeTimedTextRepetition(base: String, targetLang: String, format: String): String {
             return try {
                 val uri = android.net.Uri.parse(base)
-                val queryParamNames = uri.queryParameterNames
-                val builder = uri.buildUpon().clearQuery()
-                for (name in queryParamNames) {
-                    val isLang = name.equals("lang", ignoreCase = true)
-                    val isTlang = name.equals("tlang", ignoreCase = true)
-                    val isFmt = name.equals("fmt", ignoreCase = true) && format.isNotEmpty()
-                    if (!isLang && !isTlang && !isFmt) {
-                        for (value in uri.getQueryParameters(name)) {
-                            builder.appendQueryParameter(name, value)
+                val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"
+                val baseHasTlang = uri.getQueryParameter("tlang")?.isNotBlank() == true
+                val baseHasReplacedLang = !baseHasTlang && uri.getQueryParameter("lang")?.equals(targetLang, ignoreCase = true) == true
+
+                fun buildRepetitionUrl(mode: String): String {
+                    val queryParamNames = uri.queryParameterNames
+                    val builder = uri.buildUpon().clearQuery()
+                    for (name in queryParamNames) {
+                        val isLang = name.equals("lang", ignoreCase = true)
+                        val isTlang = name.equals("tlang", ignoreCase = true)
+                        val isFmt = name.equals("fmt", ignoreCase = true) && format.isNotEmpty()
+                        if (!isLang && !isTlang && !isFmt) {
+                            for (value in uri.getQueryParameters(name)) {
+                                builder.appendQueryParameter(name, value)
+                            }
                         }
                     }
+                    if (mode == "lang") {
+                        builder.appendQueryParameter("lang", targetLang)
+                    } else {
+                        builder.appendQueryParameter("lang", originalLang)
+                        if (!originalLang.equals(targetLang, ignoreCase = true)) {
+                            builder.appendQueryParameter("tlang", targetLang)
+                        }
+                    }
+                    if (format.isNotEmpty()) {
+                        builder.appendQueryParameter("fmt", format)
+                    }
+                    return builder.build().toString()
                 }
-                val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"
-                builder.appendQueryParameter("lang", originalLang)
-                if (!originalLang.equals(targetLang, ignoreCase = true)) {
-                    builder.appendQueryParameter("tlang", targetLang)
+
+                // Determine primary mode: if incoming URL replaced lang without tlang, try lang first, else tlang first
+                val modes = if (baseHasReplacedLang) {
+                    listOf("lang", "tlang")
+                } else {
+                    listOf("tlang", "lang")
                 }
-                if (format.isNotEmpty()) {
-                    builder.appendQueryParameter("fmt", format)
-                }
-                val targetUrl = builder.build().toString()
-                Log.i(TAG, "Native Shell repeating observed timedtext request for targetLang=$targetLang, fmt=$format: $targetUrl")
-                val reqBuilder = Request.Builder().url(targetUrl)
-                lastObservedHeaders.forEach { (k, v) ->
-                    // Exclude Accept-Encoding so OkHttp handles transparent decompression
-                    if (!k.equals("accept-encoding", ignoreCase = true)) {
-                        reqBuilder.addHeader(k, v)
+
+                for (mode in modes) {
+                    val targetUrl = buildRepetitionUrl(mode)
+                    Log.i(TAG, "Native Shell timedtext request ($mode) for targetLang=$targetLang, fmt=$format: $targetUrl")
+                    val reqBuilder = Request.Builder().url(targetUrl)
+                    lastObservedHeaders.forEach { (k, v) ->
+                        // Exclude Accept-Encoding so OkHttp handles transparent decompression
+                        if (!k.equals("accept-encoding", ignoreCase = true)) {
+                            reqBuilder.addHeader(k, v)
+                        }
+                    }
+                    try {
+                        val resp = okHttpClient.newCall(reqBuilder.build()).execute()
+                        if (resp.isSuccessful) {
+                            val bodyString = resp.body?.string() ?: ""
+                            if (isValidJsonSubtitle(bodyString)) {
+                                Log.i(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang mode=$mode http=${resp.code} bytes=${bodyString.toByteArray(StandardCharsets.UTF_8).size} cues=${countCaptionCues(bodyString)}")
+                                return bodyString
+                            } else {
+                                Log.w(TAG, "Timedtext response for mode=$mode was invalid JSON (bytes=${bodyString.length}). Falling back to alternative option...")
+                            }
+                        } else {
+                            Log.w(TAG, "Timedtext request for mode=$mode failed with http=${resp.code}. Falling back to alternative option...")
+                        }
+                    } catch (netErr: Exception) {
+                        Log.w(TAG, "Timedtext request error for mode=$mode: ${netErr.message}. Falling back...")
                     }
                 }
-                val resp = okHttpClient.newCall(reqBuilder.build()).execute()
-                if (resp.isSuccessful) {
-                    val bodyString = resp.body?.string() ?: ""
-                    Log.i(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang http=${resp.code} bytes=${bodyString.toByteArray(StandardCharsets.UTF_8).size} cues=${countCaptionCues(bodyString)}")
-                    bodyString
-                } else {
-                    Log.w(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang http=${resp.code} bytes=0 cues=0")
-                    ""
-                }
+                Log.w(TAG, "SUBTITLE_FETCH kind=translated lang=$targetLang all options (tlang & lang) failed or returned invalid JSON.")
+                ""
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching native translated captions: ${e.message}", e)
                 ""

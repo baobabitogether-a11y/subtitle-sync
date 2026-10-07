@@ -54,6 +54,8 @@
     "test:accordion-tags": "tsx scripts/verify-network-accordion-tags.ts",
     "test:network-close": "tsx scripts/verify-network-inspector-close.ts",
     "test:back-navigation": "tsx scripts/verify-android-back-navigation.ts",
+    "test:valid-json-cache": "tsx scripts/verify-valid-json-cache-guard.ts",
+    "test:subtitle-api-fallback": "tsx scripts/verify-subtitle-api-fallback.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

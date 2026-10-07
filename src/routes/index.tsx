@@ -66,6 +66,7 @@ import { ApkReleaseModal } from "@/components/ApkReleaseModal";
 import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
 import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
 import { getApkReleaseLinks } from "@/utils/apkUpdater";
+import { isValidJsonSubtitleResponse } from "@/utils/subtitleCache";
 import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
@@ -361,9 +362,15 @@ function Index() {
                 : buildTranslatedCaptionUrl(activeUrl, code, "json3");
             tracker = trackNetworkRequest(requestUrl, "GET", "native_bridge");
             raw = shell.fetchTranslatedCaptionsWithUrl(requestUrl, code, "json3");
-            json = parseJson3(raw);
-            if (json) break;
-            tracker.fail(raw ? `${mode}: invalid caption response` : `${mode}: empty caption response`);
+            if (raw && isValidJsonSubtitleResponse(raw)) {
+              json = parseJson3(raw);
+              if (json) break;
+            }
+            tracker.fail(
+              raw
+                ? `${mode}: invalid caption response (not valid JSON)`
+                : `${mode}: empty caption response`,
+            );
           }
           if (json) {
             tracker?.complete(200, raw);
@@ -383,7 +390,11 @@ function Index() {
       }
       if (failed.length > 0) {
         setFailedLangs((prev) => Array.from(new Set([...prev, ...failed])));
-        notifySubtitleFetch("error", `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`, failed[0]);
+        notifySubtitleFetch(
+          "error",
+          `Subtitles fetch failed for ${failed.join(", ")}. Tap "Fetch again".`,
+          failed[0],
+        );
       }
       if (Object.keys(next).length > 0) {
         startSubtitlesTransition(() => {
@@ -414,6 +425,7 @@ function Index() {
       setCaptionStatus(
         `Fetching live subtitles for added favorite language: ${newlyAdded.join(", ")}…`,
       );
+      void fetchFavoriteLanguageSubtitles(newlyAdded);
     }
   };
   const [languageOrder, setLanguageOrder] = useState(() => LANGS.map((lang) => lang.code));
@@ -646,11 +658,7 @@ function Index() {
       // ignore malformed URL
     }
     const selected = [
-      ...new Set(
-        targetLanguages.filter(
-          (code) => code && (!defaultLang || code !== defaultLang),
-        ),
-      ),
+      ...new Set(targetLanguages.filter((code) => code && (!defaultLang || code !== defaultLang))),
     ];
     if (selected.length > 0) {
       setCaptionStatus("Fetching live subtitles for favorite languages…");

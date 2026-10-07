@@ -1,5 +1,25 @@
 # Done tasks
 
+## Task 43: Validate JSON before caching subtitles and implement auto-fallback between YouTube API options (`tlang` vs `lang`)
+
+### Subtask 43.1: Prevent caching of invalid subtitle responses (ensure answer is valid JSON)
+
+- Added `isValidJsonSubtitle(body: String): Boolean` in `MainActivity.kt` checking that the body is non-blank, parses as valid `JSONObject`, and contains an `events` array with non-empty segment text (`utf8`).
+- Guarded `saveCaptionToFile` and the interception handler in `MainActivity.kt`: strictly prevents saving raw caption files to disk (`youtube_captions/`) unless the response is confirmed to be valid JSON with subtitle cues. Updated file extension to `.json`.
+- Implemented and exported `isValidJsonSubtitleResponse(data: unknown): boolean` in `src/utils/subtitleCache.ts`, validating YouTube JSON3 `{ events: [...] }` schemas, `CaptionCue[]` arrays, and envelope objects.
+- Guarded `saveCachedSubtitles` and `saveCachedTargetSubtitles` to reject invalid cue sets.
+- Added `saveCachedRawJson3(videoId, lang, rawJson3)` strictly enforcing that raw cached strings are valid JSON before storing in `localStorage`.
+- Created dedicated verification test `scripts/verify-valid-json-cache-guard.ts` (`npm run test:valid-json-cache`), registered in `package.json`, and documented in `docs/files.md`.
+- Rebuilt Android web assets with `npm run build:android-assets` and verified all regression suites pass cleanly with 0 lint warnings.
+
+### Subtask 43.2: Implement auto-fallback on invalid response between YouTube API options (`tlang` vs `lang`)
+
+- Updated `executeTimedTextRepetition` in `MainActivity.kt` to dynamically build and test both `tlang` addition and `lang` replacement options, verifying `isValidJsonSubtitle` on each attempt.
+- Added automatic fallback in `MainActivity.kt`: if the primary option fails or returns invalid non-JSON data, immediately and automatically attempts the alternative option. If both options fail, returns an empty string without caching corrupt data.
+- Enforced `isValidJsonSubtitleResponse(raw)` verification inside the `subtitleRequestModeOrder` mode loop in `fetchFavoriteLanguageSubtitles` in `src/routes/index.tsx`, automatically progressing to the next mode if the first mode yields an invalid response.
+- Created dedicated verification test `scripts/verify-subtitle-api-fallback.ts` (`npm run test:subtitle-api-fallback`), registered in `package.json`, and documented in `docs/files.md`.
+- Rebuilt Android web assets with `npm run build:android-assets` and verified all 17 regression test suites pass with 0 lint warnings.
+
 ## Task 39: Allow closing the Network Panel
 
 ### Subtask 39.1: Provide explicit close / collapse control on Network Panel

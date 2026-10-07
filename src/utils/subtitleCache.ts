@@ -28,6 +28,82 @@ export interface CachedSubtitleData {
 }
 
 /**
+ * Validate that an input is a valid JSON string or object containing subtitle cues.
+ * Strictly ensures that invalid, empty, or error responses are never cached.
+ */
+export function isValidJsonSubtitleResponse(data: unknown): boolean {
+  if (!data) return false;
+  let parsed: unknown = data;
+  if (typeof data === "string") {
+    const trimmed = data.trim();
+    if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+      return false;
+    }
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      return false;
+    }
+  }
+
+  if (!parsed || typeof parsed !== "object") return false;
+
+  // Case 1: YouTube JSON3 schema: { events: [ { segs: [ { utf8: "..." } ] } ] }
+  if ("events" in (parsed as Record<string, unknown>)) {
+    const events = (parsed as { events?: unknown[] }).events;
+    if (Array.isArray(events) && events.length > 0) {
+      return events.some((ev) => {
+        if (!ev || typeof ev !== "object") return false;
+        const segs = (ev as { segs?: unknown[] }).segs;
+        if (Array.isArray(segs) && segs.length > 0) {
+          return segs.some(
+            (s) =>
+              s &&
+              typeof s === "object" &&
+              typeof (s as { utf8?: string }).utf8 === "string" &&
+              (s as { utf8: string }).utf8.trim().length > 0,
+          );
+        }
+        return false;
+      });
+    }
+    return false;
+  }
+
+  // Case 2: Array of CaptionCue objects
+  if (Array.isArray(parsed)) {
+    return (
+      parsed.length > 0 &&
+      parsed.some(
+        (c) =>
+          c &&
+          typeof c === "object" &&
+          typeof (c as CaptionCue).text === "string" &&
+          (c as CaptionCue).text.trim().length > 0,
+      )
+    );
+  }
+
+  // Case 3: CachedSubtitleData envelope: { videoId, cues: CaptionCue[] }
+  if ("cues" in (parsed as Record<string, unknown>)) {
+    const cues = (parsed as { cues?: unknown[] }).cues;
+    return (
+      Array.isArray(cues) &&
+      cues.length > 0 &&
+      cues.some(
+        (c) =>
+          c &&
+          typeof c === "object" &&
+          typeof (c as CaptionCue).text === "string" &&
+          (c as CaptionCue).text.trim().length > 0,
+      )
+    );
+  }
+
+  return false;
+}
+
+/**
  * Validate and clean cues array to ensure proper text encoding
  */
 export function sanitizeCues(cues: CaptionCue[]): CaptionCue[] {
@@ -136,6 +212,10 @@ export function saveCachedSubtitles(
   meta?: { title?: string; originalUrl?: string },
 ): void {
   if (!videoId || !Array.isArray(cues) || cues.length === 0) return;
+  if (!isValidJsonSubtitleResponse(cues)) {
+    console.warn(`[SubtitleCache] Refusing to cache invalid subtitle cues for video ${videoId}`);
+    return;
+  }
 
   const sanitized = sanitizeCues(cues);
   if (sanitized.length === 0) return;
@@ -345,6 +425,12 @@ export function saveCachedTargetSubtitles(
   cues: CaptionCue[],
 ): void {
   if (!videoId || !targetLang || !cues || cues.length === 0) return;
+  if (!isValidJsonSubtitleResponse(cues)) {
+    console.warn(
+      `[SubtitleCache] Refusing to cache invalid target subtitle cues for ${videoId} (${targetLang})`,
+    );
+    return;
+  }
   const cleanLang = targetLang.toLowerCase().split("-")[0];
   const targetKey = `${SUBTITLE_CACHE_PREFIX}${videoId}_${cleanLang}`;
   const sanitized = sanitizeCues(cues);
@@ -361,6 +447,33 @@ export function saveCachedTargetSubtitles(
       }),
     );
   } catch {}
+}
+
+/**
+ * Saves raw JSON3 timedtext string to cache strictly if it is valid JSON.
+ * Returns true if saved, false if rejected due to invalid JSON.
+ */
+export function saveCachedRawJson3(
+  videoId: string,
+  targetLang: string,
+  rawJson3: string,
+): boolean {
+  if (!videoId || !targetLang || !rawJson3) return false;
+  if (!isValidJsonSubtitleResponse(rawJson3)) {
+    console.warn(
+      `[SubtitleCache] Refusing to cache invalid raw JSON3 response for ${videoId} (${targetLang})`,
+    );
+    return false;
+  }
+  if (!isStorageAvailable()) return false;
+  try {
+    const cleanLang = targetLang.toLowerCase().split("-")[0];
+    const targetKey = `${SUBTITLE_CACHE_PREFIX}raw_${videoId}_${cleanLang}`;
+    localStorage.setItem(targetKey, typeof rawJson3 === "string" ? rawJson3 : JSON.stringify(rawJson3));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

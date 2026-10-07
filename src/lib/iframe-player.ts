@@ -72,7 +72,9 @@ export function createIframePlayer(
     },
     // Interpolate between infoDelivery updates while playing for smooth section detection
     getCurrentTime: () =>
-      state === 1 && lastTimeAt ? currentTime + (performance.now() - lastTimeAt) / 1000 : currentTime,
+      state === 1 && lastTimeAt
+        ? currentTime + (performance.now() - lastTimeAt) / 1000
+        : currentTime,
     getPlayerState: () => state,
     destroy: () => {
       window.removeEventListener("message", onMessage);

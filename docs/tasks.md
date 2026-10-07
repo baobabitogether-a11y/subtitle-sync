@@ -1,5 +1,17 @@
 # Tasks
 
+## Task 43: Validate JSON before caching subtitles and implement auto-fallback between YouTube API options (`tlang` vs `lang`)
+
+- [x] **Subtask 43.1: Prevent caching of invalid subtitle responses (ensure answer is valid JSON)**:
+  - Add JSON validation (`isValidJsonSubtitle(body: String): Boolean`) in `MainActivity.kt` ensuring responses are valid JSON containing subtitle events before saving to disk.
+  - Guard `saveCaptionToFile` and interception storage: do not cache raw caption bytes to disk if the response is not valid JSON.
+  - Implement `isValidJsonSubtitleResponse(data: unknown): boolean` in `src/utils/subtitleCache.ts`, ensuring invalid/empty/malformed subtitle payloads are rejected and never cached in memory or `localStorage`.
+  - Add dedicated test `scripts/verify-valid-json-cache-guard.ts` verifying that invalid responses are strictly blocked from caching.
+- [x] **Subtask 43.2: Implement auto-fallback on invalid response between YouTube API options (`tlang` vs `lang`)**:
+  - In `MainActivity.kt` (`executeTimedTextRepetition`), try the primary option (`tlang` or `lang`), and if the response is not HTTP 200 or not valid JSON, automatically fallback to the other option, returning valid JSON.
+  - In `src/routes/index.tsx` (`fetchFavoriteLanguageSubtitles`), verify each request mode produces valid JSON, auto-falling back across `subtitleRequestModeOrder`.
+  - Add dedicated test `scripts/verify-subtitle-api-fallback.ts`, register in `package.json`, update `docs/files.md`, rebuild Android bundle assets, commit, and verify all test suites.
+
 ## Task 31: Update AGENTS.md — after git commit, try using git push
 
 - [x] **Subtask 31.1: Update AGENTS.md with git push instruction and verify git push attempt handling**: Update AGENTS.md under Work tracking to specify that after performing a git commit, attempt `git push` (handling failure gracefully if no remote or credentials configured). Add dedicated test to verify this rule and workflow integrity.
