@@ -1,5 +1,13 @@
 # Tasks
 
+## Task 47: Fix README.md Broken Links for Validated Reports
+
+- [ ] **Subtask 47.1: Synchronize README.md links and badges with validated live reports (`mostuf2556/Youtubenet6`)**:
+  - Update `README.md` report and demo links to point to the validated live reports (`https://mostuf2556.github.io/Youtubenet6/` and associated Mochawesome, Playwright, and Android emulator endpoints).
+  - Update `scripts/update-readme.mjs` default target repository to `Youtubenet6`.
+  - Update `scripts/verify-readme-links.ts` and `scripts/verify-e2e-report-links.ts` to validate the live `Youtubenet6` report URLs.
+  - Run all link and documentation verification tests.
+
 ## Task 46: Fix E2E Report Generation, CI Workflows & GitHub Pages Staging
 
 - [x] **Subtask 46.1: Fix Playwright E2E Locator Ambiguity**:
