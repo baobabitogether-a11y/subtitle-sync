@@ -6,7 +6,7 @@
   - Update `e2e/web.spec.ts` and `e2e/app.spec.ts` to disambiguate the Languages panel locators (e.g., `details > summary:has-text('Languages')` or matching header `summary h2:has-text('Languages')`).
   - Add dedicated verification test `scripts/verify-playwright-locators.ts`.
   - Verify all 5 tests in `e2e/web.spec.ts` and `e2e/app.spec.ts` pass with Playwright locally.
-- [ ] **Subtask 46.2: Fix `emulation.yml` Syntax and Report Generation**:
+- [x] **Subtask 46.2: Fix `emulation.yml` Syntax and Report Generation**:
   - Fix YAML syntax and multi-line escaping in `.github/workflows/emulation.yml` verified by `js-yaml`.
   - Ensure `android-emulator-report.html` and screenshots are reliably staged for `gh-pages`.
 - [ ] **Subtask 46.3: Ensure Guaranteed E2E Report Staging on GitHub Pages**:
