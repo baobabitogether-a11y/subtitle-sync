@@ -18,6 +18,13 @@
 - Updated `scripts/verify-emulation-gh-pages.ts` to validate workflow YAML syntax via `js-yaml` and verify resilient report deployment.
 - Verified all 6 workflow files in `.github/workflows/` pass `js-yaml` parsing with 0 errors.
 
+### Subtask 46.3: Ensure Guaranteed E2E Report Staging on GitHub Pages
+
+- Added `if: always() && ...` to `Deploy Web Test Outputs to GitHub Pages (gh-pages)` in `.github/workflows/web.yml`, ensuring Mochawesome (`mochawesome.html`) and Playwright (`playwright/index.html`) reports publish to `gh-pages` even during test failures or triages.
+- Added `Stage E2E Reports into Web Distribution` step to `.github/workflows/deploy-demo.yml`, preserving and staging `mochawesome.html`, `playwright/`, `android-emulator-report.html`, and `screenshots/` into `./dist` prior to web demo deployment.
+- Updated and passed dedicated verification test `scripts/verify-e2e-report-links.ts` (`npm run test:e2e-report-links`).
+- Unignored `!public/screenshots/` in `.gitignore` to preserve authentic emulator screenshots in static bundles.
+
 ## Task 45: Accumulative Criteria Subtitles Parser & Inner Group Settings
 
 ### Subtask 45.1: E2E Test Report Links in README.md & Verification

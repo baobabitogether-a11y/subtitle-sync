@@ -9,7 +9,7 @@
 - [x] **Subtask 46.2: Fix `emulation.yml` Syntax and Report Generation**:
   - Fix YAML syntax and multi-line escaping in `.github/workflows/emulation.yml` verified by `js-yaml`.
   - Ensure `android-emulator-report.html` and screenshots are reliably staged for `gh-pages`.
-- [ ] **Subtask 46.3: Ensure Guaranteed E2E Report Staging on GitHub Pages**:
+- [x] **Subtask 46.3: Ensure Guaranteed E2E Report Staging on GitHub Pages**:
   - Update `web.yml` and `deploy-demo.yml` to stage Mochawesome, Playwright, and Android reports with resilient deployment steps.
   - Add dedicated verification tests in `scripts/verify-e2e-report-links.ts` and verify build, lint, and workflow integrity.
 
