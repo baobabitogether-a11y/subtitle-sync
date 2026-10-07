@@ -71,10 +71,7 @@ assert(
 console.log("✅ PASS: Live CI workflows for Web E2E and Emulation E2E linked in README.md");
 
 // 7. Verify workflows stage these report artifacts
-const webWorkflow = fs.readFileSync(
-  path.resolve(rootDir, ".github/workflows/web.yml"),
-  "utf8",
-);
+const webWorkflow = fs.readFileSync(path.resolve(rootDir, ".github/workflows/web.yml"), "utf8");
 assert(
   webWorkflow.includes("Stage Playwright Report for GitHub Pages") ||
     webWorkflow.includes("playwright"),

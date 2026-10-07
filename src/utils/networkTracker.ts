@@ -167,7 +167,8 @@ export function formatRequestForClipboard(req: NetworkRequestRecord): string {
     req.error ? `Error: ${req.error}` : null,
     `Response Body Length: ${req.fullResponseBody ? req.fullResponseBody.length : 0} characters`,
     `Response:`,
-    req.fullResponseBody || (req.status === 200 ? "[Empty response body — 0 chars]" : "[No response body]"),
+    req.fullResponseBody ||
+      (req.status === 200 ? "[Empty response body — 0 chars]" : "[No response body]"),
   ];
   return lines.filter((l): l is string => Boolean(l)).join("\n");
 }

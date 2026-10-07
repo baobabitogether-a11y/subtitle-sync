@@ -95,7 +95,9 @@ assert(
   readmeContent.includes("android-emulator-screenshot.png"),
   "README.md must contain emulator screenshot reference",
 );
-console.log("✅ PASS: All E2E test report links (Mochawesome, Playwright, Android Emulator) verified in README.md");
+console.log(
+  "✅ PASS: All E2E test report links (Mochawesome, Playwright, Android Emulator) verified in README.md",
+);
 
 const screenshotAsset = path.resolve(
   rootDir,

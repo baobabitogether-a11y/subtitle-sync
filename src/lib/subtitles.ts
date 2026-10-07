@@ -68,6 +68,195 @@ export type Strategy =
   | "pause"
   | "anchors";
 
+export type CriteriaId =
+  "sentence" | "pause" | "consensus" | "punctVote" | "anchors" | "cue" | "window";
+
+export interface ParserCriteriaOption {
+  id: CriteriaId;
+  name: string;
+  label: string;
+  desc: string;
+  category: "syntax" | "timing" | "alignment";
+  badge: string;
+}
+
+export const PARSER_CRITERIA: ParserCriteriaOption[] = [
+  {
+    id: "sentence",
+    name: "Sentence Endings",
+    label: "Sentence Punctuation",
+    desc: "Cuts at grammatical sentence endings (periods, question marks, exclamation marks) in base language.",
+    category: "syntax",
+    badge: "Syntax",
+  },
+  {
+    id: "pause",
+    name: "Speech Pauses",
+    label: "Spoken Silence Pauses",
+    desc: "Cuts at natural silences (>500ms) in speech, snapped to subtitle boundaries.",
+    category: "timing",
+    badge: "Audio",
+  },
+  {
+    id: "punctVote",
+    name: "Punctuation Consensus",
+    label: "Multi-Track Punctuation Vote",
+    desc: "Cuts where 2 or more language tracks share a sentence-ending punctuation mark.",
+    category: "syntax",
+    badge: "Multi-track",
+  },
+  {
+    id: "consensus",
+    name: "Timing Consensus",
+    label: "Cue Start Alignment",
+    desc: "Cuts where majority of parallel languages start a subtitle cue simultaneously (±400ms).",
+    category: "alignment",
+    badge: "Multi-track",
+  },
+  {
+    id: "cue",
+    name: "Authored Cues",
+    label: "Individual Cue Starts",
+    desc: "Cuts at original individual subtitle cue starts from the base track.",
+    category: "timing",
+    badge: "Granular",
+  },
+  {
+    id: "anchors",
+    name: "Entity Anchors",
+    label: "Numbers & Named Entities",
+    desc: "Cuts at shared numbers, proper nouns, and key context terms across translations.",
+    category: "alignment",
+    badge: "Context",
+  },
+  {
+    id: "window",
+    name: "Context Window",
+    label: "Context Length Clamp",
+    desc: "Restricts sections to ~7s–15s context windows, preventing unwieldy monologues.",
+    category: "timing",
+    badge: "Window",
+  },
+];
+
+export interface SentenceInnerSettings {
+  includeCommas: boolean;
+  minWords: number;
+}
+
+export interface PauseInnerSettings {
+  minPauseMs: number;
+  snapToleranceMs: number;
+}
+
+export interface PunctVoteInnerSettings {
+  minTrackVotes: number;
+  clusterToleranceMs: number;
+}
+
+export interface ConsensusInnerSettings {
+  majorityRatio: number;
+  clusterToleranceMs: number;
+}
+
+export interface CueInnerSettings {
+  minDurationMs: number;
+  splitAllTracks: boolean;
+}
+
+export interface AnchorsInnerSettings {
+  matchNumbers: boolean;
+  matchProperNouns: boolean;
+  requireStrictMultiTrack: boolean;
+}
+
+export interface WindowInnerSettings {
+  minSectionMs: number;
+  maxSectionMs: number;
+}
+
+export interface CriteriaGroupSettings {
+  sentence: SentenceInnerSettings;
+  pause: PauseInnerSettings;
+  punctVote: PunctVoteInnerSettings;
+  consensus: ConsensusInnerSettings;
+  cue: CueInnerSettings;
+  anchors: AnchorsInnerSettings;
+  window: WindowInnerSettings;
+}
+
+export const DEFAULT_CRITERIA_SETTINGS: CriteriaGroupSettings = {
+  sentence: {
+    includeCommas: false,
+    minWords: 1,
+  },
+  pause: {
+    minPauseMs: 500,
+    snapToleranceMs: 1200,
+  },
+  punctVote: {
+    minTrackVotes: 2,
+    clusterToleranceMs: 500,
+  },
+  consensus: {
+    majorityRatio: 0.5,
+    clusterToleranceMs: 400,
+  },
+  cue: {
+    minDurationMs: 1200,
+    splitAllTracks: false,
+  },
+  anchors: {
+    matchNumbers: true,
+    matchProperNouns: true,
+    requireStrictMultiTrack: false,
+  },
+  window: {
+    minSectionMs: 1500,
+    maxSectionMs: 12000,
+  },
+};
+
+export interface ParserPreset {
+  id: string;
+  name: string;
+  desc: string;
+  criteria: CriteriaId[];
+}
+
+export const PARSER_PRESETS: ParserPreset[] = [
+  {
+    id: "balanced",
+    name: "Context & Sentences",
+    desc: "Sentence punctuation + natural speech pauses (balanced translatable units)",
+    criteria: ["sentence", "pause"],
+  },
+  {
+    id: "multilingual",
+    name: "Multi-Language Consensus",
+    desc: "Punctuation vote + timing consensus + sentence ends (best for parallel alignment)",
+    criteria: ["sentence", "consensus", "punctVote"],
+  },
+  {
+    id: "sentencesOnly",
+    name: "Pure Sentences",
+    desc: "Sentence ends only (. ? !)",
+    criteria: ["sentence"],
+  },
+  {
+    id: "fineGrained",
+    name: "Fine Cue Chunks",
+    desc: "Authored cue boundaries + speech pauses",
+    criteria: ["cue", "pause"],
+  },
+  {
+    id: "fullContext",
+    name: "All Criteria",
+    desc: "Combines sentence ends, pauses, consensus, anchors, and context window limits",
+    criteria: ["sentence", "pause", "consensus", "punctVote", "anchors", "window"],
+  },
+];
+
 type Sec = { start: number; end: number };
 
 export const STRATEGIES: { id: Strategy; name: string; desc: string; parallel?: boolean }[] = [
@@ -257,6 +446,135 @@ export function parallelSections(
   return fromCuts(cuts, start, end);
 }
 
+/** Build time sections from one or more parallel tracks using accumulative criteria and inner group settings. */
+export function criteriaSections(
+  tracks: Record<string, Json3>,
+  pivot: string,
+  criteria: CriteriaId[],
+  groupSettings?: Partial<CriteriaGroupSettings>,
+): Sec[] {
+  const activeCriteria = criteria.length > 0 ? criteria : (["sentence", "pause"] as CriteriaId[]);
+  const cfg: CriteriaGroupSettings = {
+    sentence: { ...DEFAULT_CRITERIA_SETTINGS.sentence, ...(groupSettings?.sentence ?? {}) },
+    pause: { ...DEFAULT_CRITERIA_SETTINGS.pause, ...(groupSettings?.pause ?? {}) },
+    punctVote: { ...DEFAULT_CRITERIA_SETTINGS.punctVote, ...(groupSettings?.punctVote ?? {}) },
+    consensus: { ...DEFAULT_CRITERIA_SETTINGS.consensus, ...(groupSettings?.consensus ?? {}) },
+    cue: { ...DEFAULT_CRITERIA_SETTINGS.cue, ...(groupSettings?.cue ?? {}) },
+    anchors: { ...DEFAULT_CRITERIA_SETTINGS.anchors, ...(groupSettings?.anchors ?? {}) },
+    window: { ...DEFAULT_CRITERIA_SETTINGS.window, ...(groupSettings?.window ?? {}) },
+  };
+
+  const all = Object.entries(tracks).map(([lang, j]) => ({ lang, cues: parseCues(j) }));
+  const pv = all.find((t) => t.lang === pivot)?.cues ?? all[0]?.cues ?? [];
+  if (!pv.length) return [];
+
+  const n = all.length;
+  const start = Math.min(...all.map((t) => t.cues[0]?.start ?? 0));
+  const end = Math.max(...all.map((t) => t.cues[t.cues.length - 1]?.end ?? 0));
+  const starts = all.flatMap((t) => t.cues.map((c) => ({ t: c.start, lang: t.lang })));
+
+  const candidateCuts: number[] = [];
+
+  // 1. Sentence ending punctuation in timing base track
+  if (activeCriteria.includes("sentence")) {
+    const punctRegex = cfg.sentence.includeCommas ? /[.?!…。،;:,]["'»)”]*$/ : SENT_END;
+    const sentenceCuts = pv.flatMap((c, i) => {
+      const words = c.text.trim().split(/\s+/).length;
+      if (words < cfg.sentence.minWords) return [];
+      return punctRegex.test(c.text) && pv[i + 1] ? [pv[i + 1]!.start] : [];
+    });
+    candidateCuts.push(...sentenceCuts);
+  }
+
+  // 2. Natural speech pauses in word-timed audio
+  if (activeCriteria.includes("pause")) {
+    const gaps = Object.values(tracks).flatMap((j) => pauseTimes(j, cfg.pause.minPauseMs));
+    const snaps = cluster(starts, 1).map((c) => c.t);
+    const pauseCuts = gaps.flatMap((g) => {
+      let best = -1;
+      let d = cfg.pause.snapToleranceMs;
+      for (const s of snaps) {
+        if (Math.abs(s - g) < d) {
+          d = Math.abs(s - g);
+          best = s;
+        }
+      }
+      return best >= 0 ? [best] : [];
+    });
+    candidateCuts.push(...pauseCuts);
+  }
+
+  // 3. Multi-track punctuation agreement (punctVote)
+  if (activeCriteria.includes("punctVote")) {
+    const ends = all.flatMap((t) =>
+      t.cues.flatMap((c, i) =>
+        SENT_END.test(c.text) && t.cues[i + 1] ? [{ t: t.cues[i + 1]!.start, lang: t.lang }] : [],
+      ),
+    );
+    const punctVoteCuts = cluster(ends, cfg.punctVote.clusterToleranceMs)
+      .filter((c) => c.langs.size >= Math.min(cfg.punctVote.minTrackVotes, n))
+      .map((c) => c.t);
+    candidateCuts.push(...punctVoteCuts);
+  }
+
+  // 4. Timing consensus across majority of tracks
+  if (activeCriteria.includes("consensus")) {
+    const minLangsNeeded = Math.max(1, Math.ceil(n * cfg.consensus.majorityRatio));
+    const consensusCuts = cluster(starts, cfg.consensus.clusterToleranceMs)
+      .filter((c) => c.langs.size >= minLangsNeeded)
+      .map((c) => c.t);
+    candidateCuts.push(...consensusCuts);
+  }
+
+  // 5. Authored cue boundaries
+  if (activeCriteria.includes("cue")) {
+    const cueCuts = cfg.cue.splitAllTracks ? starts.map((p) => p.t) : pv.map((c) => c.start);
+    candidateCuts.push(...cueCuts);
+  }
+
+  // 6. Named entity & numeric anchors
+  if (activeCriteria.includes("anchors")) {
+    const regexParts: string[] = [];
+    if (cfg.anchors.matchNumbers) regexParts.push("\\d+");
+    if (cfg.anchors.matchProperNouns) regexParts.push("[A-Z][a-z]{2,}");
+    const anchorRe = new RegExp(
+      `\\b(${regexParts.length ? regexParts.join("|") : "\\d+|[A-Z][a-z]{2,}"})\\b`,
+      "g",
+    );
+    const sets = all.map(
+      (t) =>
+        new Set(
+          t.cues.flatMap((c) => [...c.text.matchAll(anchorRe)].map((m) => m[1]!.toLowerCase())),
+        ),
+    );
+    const eng = all.find((t) => t.lang === "en")?.cues ?? [];
+    const shared = [...(sets[0] ?? [])].filter((w) =>
+      cfg.anchors.requireStrictMultiTrack
+        ? sets.every((s) => s.has(w))
+        : sets.every((s) => s.has(w)) ||
+          (eng.length && sets.filter((s) => s.has(w)).length >= n - 1),
+    );
+    const anchorCuts = pv.flatMap((c) =>
+      shared.some((w) => c.text.toLowerCase().includes(w)) ? [c.start] : [],
+    );
+    candidateCuts.push(...anchorCuts);
+  }
+
+  // If no cut candidate was produced, fallback to sentence or cue boundaries
+  if (candidateCuts.length === 0) {
+    candidateCuts.push(
+      ...pv.flatMap((c, i) =>
+        SENT_END.test(c.text) && pv[i + 1] ? [pv[i + 1]!.start] : [c.start],
+      ),
+    );
+  }
+
+  const minMs = cfg.window.minSectionMs;
+  const maxMs = activeCriteria.includes("window") ? cfg.window.maxSectionMs : 25000;
+
+  return fromCuts(candidateCuts, start, end, minMs, maxMs);
+}
+
 /** Build time sections from the pivot track using a strategy. */
 export function sections(pivot: Cue[], strategy: Strategy): Sec[] {
   if (strategy === "cue") return pivot.map(({ start, end }) => ({ start, end }));
@@ -279,8 +597,24 @@ export function sections(pivot: Cue[], strategy: Strategy): Sec[] {
 }
 
 /** Align every track into time sections; tokens are bucketed by timestamp. */
-export function align(tracks: Record<string, Json3>, pivot: string, strategy: Strategy): Row[] {
-  const secs = parallelSections(tracks, pivot, strategy);
+export function align(
+  tracks: Record<string, Json3>,
+  pivot: string,
+  strategyOrCriteria: Strategy | CriteriaId[] = ["sentence", "pause"],
+  groupSettings?: Partial<CriteriaGroupSettings>,
+): Row[] {
+  let secs: Sec[];
+  if (Array.isArray(strategyOrCriteria)) {
+    secs = criteriaSections(tracks, pivot, strategyOrCriteria, groupSettings);
+  } else if (
+    typeof strategyOrCriteria === "string" &&
+    STRATEGIES.some((s) => s.id === strategyOrCriteria)
+  ) {
+    secs = parallelSections(tracks, pivot, strategyOrCriteria as Strategy);
+  } else {
+    secs = criteriaSections(tracks, pivot, ["sentence", "pause"], groupSettings);
+  }
+
   const rows: Row[] = secs.map((s) => ({ ...s, texts: {} }));
   if (!rows.length) return rows;
   // Make sections contiguous so no token falls between rows.

@@ -19,8 +19,7 @@ const indexContent = fs.readFileSync(indexTsxPath, "utf8");
 
 // 1. Verify performance memoization in index.tsx
 assert(
-  indexContent.includes("const SubtitleRow = memo(") &&
-    indexContent.includes("<SubtitleRow"),
+  indexContent.includes("const SubtitleRow = memo(") && indexContent.includes("<SubtitleRow"),
   "src/routes/index.tsx must define and render memoized SubtitleRow to optimize table performance",
 );
 console.log("✅ PASS: SubtitleRow memoization verified for UI acceleration");

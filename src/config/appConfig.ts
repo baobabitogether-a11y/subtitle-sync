@@ -32,6 +32,8 @@ export const STORAGE_KEYS = {
   TIMEDTEXT_URL_PREFIX: "yt_observed_timedtext_",
   SETTINGS_STORAGE_KEY: "yt_app_settings_v4",
   VIDEO_SETTINGS_PREFIX: "yt_vsettings_",
+  PARSER_CRITERIA_STORAGE_KEY: "yt_parser_criteria_v1",
+  PARSER_SETTINGS_STORAGE_KEY: "yt_parser_settings_v1",
 } as const;
 
 // Default Library Items (with Authentic Multilingual Tracks)

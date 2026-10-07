@@ -26,7 +26,9 @@ assert(
     indexContent.includes("setTracks((prev) => ({ ...prev, [code]: json! }));"),
   "fetchFavoriteLanguageSubtitles must stream each fetched track into state progressively",
 );
-console.log("✅ PASS: Progressive per-track streaming verified (streaming languages as they arrive)");
+console.log(
+  "✅ PASS: Progressive per-track streaming verified (streaming languages as they arrive)",
+);
 
 // 3. Verify event loop yielding to prevent thread starvation
 assert(
@@ -71,7 +73,9 @@ for (const lang of languages) {
 }
 const elapsed = Date.now() - startTime;
 assert(elapsed < 200, `Progressive tracking took too long: ${elapsed}ms`);
-console.log(`✅ PASS: Progressive simulation across ${languages.length} languages completed in ${elapsed}ms`);
+console.log(
+  `✅ PASS: Progressive simulation across ${languages.length} languages completed in ${elapsed}ms`,
+);
 
 console.log("====================================================");
 console.log("🎉 All Progressive Subtitles Loading tests PASSED successfully!");

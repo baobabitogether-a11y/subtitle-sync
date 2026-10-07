@@ -10,16 +10,24 @@ import {
   Loader2,
   Moon,
   RefreshCw,
+  RotateCcw,
+  SlidersHorizontal,
   Smartphone,
   Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   align,
   fmt,
   LANGS,
   RTL,
   STRATEGIES,
+  PARSER_CRITERIA,
+  PARSER_PRESETS,
+  DEFAULT_CRITERIA_SETTINGS,
+  type CriteriaGroupSettings,
+  type CriteriaId,
   type Json3,
   type Row,
   type Strategy,
@@ -67,6 +75,7 @@ import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
 import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
 import { getApkReleaseLinks } from "@/utils/apkUpdater";
 import { isValidJsonSubtitleResponse } from "@/utils/subtitleCache";
+import { STORAGE_KEYS } from "@/config/appConfig";
 import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
@@ -273,6 +282,110 @@ function Index() {
   const [tracks, setTracks] = useState<Record<string, Json3> | null>(null);
   const [isSubtitlesPending, startSubtitlesTransition] = useTransition();
   const [strategy, setStrategy] = useState<Strategy>("sentence");
+  const [selectedCriteria, setSelectedCriteria] = useState<CriteriaId[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.PARSER_CRITERIA_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {
+        // ignore storage error
+      }
+    }
+    return ["sentence", "pause"];
+  });
+
+  const handleToggleCriterion = (id: CriteriaId) => {
+    setSelectedCriteria((prev) => {
+      let updated: CriteriaId[];
+      if (prev.includes(id)) {
+        if (prev.length <= 1) return prev;
+        updated = prev.filter((c) => c !== id);
+      } else {
+        updated = [...prev, id];
+      }
+      try {
+        localStorage.setItem(STORAGE_KEYS.PARSER_CRITERIA_STORAGE_KEY, JSON.stringify(updated));
+      } catch {
+        // ignore storage error
+      }
+      return updated;
+    });
+  };
+
+  const handleApplyPreset = (presetCriteria: CriteriaId[]) => {
+    setSelectedCriteria(presetCriteria);
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.PARSER_CRITERIA_STORAGE_KEY,
+        JSON.stringify(presetCriteria),
+      );
+    } catch {
+      // ignore storage error
+    }
+  };
+
+  const [criteriaSettings, setCriteriaSettings] = useState<CriteriaGroupSettings>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.PARSER_SETTINGS_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === "object") {
+            return {
+              sentence: { ...DEFAULT_CRITERIA_SETTINGS.sentence, ...(parsed.sentence || {}) },
+              pause: { ...DEFAULT_CRITERIA_SETTINGS.pause, ...(parsed.pause || {}) },
+              punctVote: { ...DEFAULT_CRITERIA_SETTINGS.punctVote, ...(parsed.punctVote || {}) },
+              consensus: { ...DEFAULT_CRITERIA_SETTINGS.consensus, ...(parsed.consensus || {}) },
+              cue: { ...DEFAULT_CRITERIA_SETTINGS.cue, ...(parsed.cue || {}) },
+              anchors: { ...DEFAULT_CRITERIA_SETTINGS.anchors, ...(parsed.anchors || {}) },
+              window: { ...DEFAULT_CRITERIA_SETTINGS.window, ...(parsed.window || {}) },
+            };
+          }
+        }
+      } catch {
+        // ignore storage error
+      }
+    }
+    return DEFAULT_CRITERIA_SETTINGS;
+  });
+
+  const [expandedSettingsGroup, setExpandedSettingsGroup] = useState<CriteriaId | null>(null);
+
+  const handleUpdateGroupSettings = <K extends keyof CriteriaGroupSettings>(
+    group: K,
+    patch: Partial<CriteriaGroupSettings[K]>,
+  ) => {
+    setCriteriaSettings((prev) => {
+      const updated = {
+        ...prev,
+        [group]: {
+          ...prev[group],
+          ...patch,
+        },
+      };
+      try {
+        localStorage.setItem(STORAGE_KEYS.PARSER_SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+      } catch {
+        // ignore storage error
+      }
+      return updated;
+    });
+  };
+
+  const handleResetGroupSettings = () => {
+    setCriteriaSettings(DEFAULT_CRITERIA_SETTINGS);
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.PARSER_SETTINGS_STORAGE_KEY,
+        JSON.stringify(DEFAULT_CRITERIA_SETTINGS),
+      );
+    } catch {
+      // ignore storage error
+    }
+  };
   const [shown, setShown] = useState<string[]>([]);
   const [spoken, setSpoken] = useState<string[]>([]);
   const [targetLanguages, setTargetLanguages] = useState<string[]>(() => {
@@ -814,8 +927,9 @@ function Index() {
   }, [isAndroid]);
 
   const rows = useMemo<Row[]>(
-    () => (tracks && baseLanguage ? align(tracks, baseLanguage, strategy) : []),
-    [tracks, baseLanguage, strategy],
+    () =>
+      tracks && baseLanguage ? align(tracks, baseLanguage, selectedCriteria, criteriaSettings) : [],
+    [tracks, baseLanguage, selectedCriteria, criteriaSettings],
   );
 
   const activeCatalog = useMemo(() => {
@@ -1383,38 +1497,484 @@ function Index() {
               )}
 
               {panelId === "parser" && (
-                <>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {STRATEGIES.map((s) => (
-                      <Button
-                        key={s.id}
-                        type="button"
-                        size="sm"
-                        variant={strategy === s.id ? "default" : "outline"}
-                        onClick={() => setStrategy(s.id)}
-                        title={s.desc}
-                      >
-                        {s.name}
-                        {s.parallel ? " ⇄" : ""}
-                      </Button>
-                    ))}
+                <div className="space-y-4">
+                  {/* Presets Header */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Alignment Presets
+                      </span>
+                      <span className="text-xs text-muted-foreground">Quick combinations</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PARSER_PRESETS.map((preset) => {
+                        const isPresetActive =
+                          preset.criteria.length === selectedCriteria.length &&
+                          preset.criteria.every((c) => selectedCriteria.includes(c));
+                        return (
+                          <Button
+                            key={preset.id}
+                            type="button"
+                            size="sm"
+                            variant={isPresetActive ? "default" : "outline"}
+                            className="h-7 text-xs px-2.5"
+                            onClick={() => handleApplyPreset(preset.criteria)}
+                            title={preset.desc}
+                          >
+                            {preset.name}
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {STRATEGIES.find((s) => s.id === strategy)?.desc} · {rows.length} rows
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    ⇄ = uses all parallel subtitles, not just one.
-                  </p>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Timing base:{" "}
-                    <span className="font-medium text-foreground">
-                      {baseLanguage
-                        ? getLanguageMeta(baseLanguage).name
-                        : "None (waiting for captions)"}
-                    </span>{" "}
-                    {baseLanguage ? "(video subtitles)" : ""}
-                  </p>
-                </>
+
+                  {/* Accumulative Criteria Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                        Accumulative Division Criteria (Multi-Select)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-primary">
+                          {selectedCriteria.length} criteria active
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                          onClick={handleResetGroupSettings}
+                          title="Reset all criteria inner settings to default"
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Reset settings
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Select multiple criteria accumulatively to divide subtitles into separated,
+                      translatable sections of related sentences and cohesive context. Click
+                      settings to tune inner parameters for each group.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {PARSER_CRITERIA.map((crit) => {
+                        const isChecked = selectedCriteria.includes(crit.id);
+                        const isExpanded = expandedSettingsGroup === crit.id;
+                        return (
+                          <div
+                            key={crit.id}
+                            className={`rounded-lg border transition-all ${
+                              isChecked
+                                ? "border-primary/60 bg-primary/5 text-foreground shadow-xs"
+                                : "border-border/70 hover:border-border hover:bg-muted/40 text-muted-foreground"
+                            }`}
+                          >
+                            <div
+                              onClick={() => handleToggleCriterion(crit.id)}
+                              className="p-2.5 cursor-pointer flex items-start gap-2.5"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleCriterion(crit.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-0.5 rounded border-muted-foreground/40 text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1 flex-wrap">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span
+                                      className={`text-xs font-semibold ${isChecked ? "text-foreground" : "text-foreground/80"}`}
+                                    >
+                                      {crit.name}
+                                    </span>
+                                    <Badge
+                                      variant={isChecked ? "default" : "outline"}
+                                      className="text-[10px] h-4 px-1.5 py-0 font-normal"
+                                    >
+                                      {crit.badge}
+                                    </Badge>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setExpandedSettingsGroup(isExpanded ? null : crit.id);
+                                    }}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] transition-colors ${
+                                      isExpanded
+                                        ? "bg-primary text-primary-foreground font-medium"
+                                        : "bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground"
+                                    }`}
+                                    title="Toggle inner settings for this criteria group"
+                                  >
+                                    <SlidersHorizontal className="h-3 w-3" />
+                                    <span>Settings</span>
+                                    {isExpanded ? (
+                                      <ChevronUp className="h-3 w-3" />
+                                    ) : (
+                                      <ChevronDown className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                </div>
+                                <p className="text-[11px] leading-tight text-muted-foreground mt-1">
+                                  {crit.desc}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Inner Settings Panel for this Group */}
+                            {isExpanded && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="px-3 pb-3 pt-2 border-t border-border/60 bg-background/90 rounded-b-lg space-y-2.5 text-xs text-foreground"
+                              >
+                                <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
+                                  <span className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">
+                                    {crit.name} Inner Settings
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleUpdateGroupSettings(
+                                        crit.id,
+                                        DEFAULT_CRITERIA_SETTINGS[crit.id] as never,
+                                      )
+                                    }
+                                    className="text-[10px] text-muted-foreground hover:text-foreground underline"
+                                  >
+                                    Reset this group
+                                  </button>
+                                </div>
+
+                                {crit.id === "sentence" && (
+                                  <div className="space-y-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={criteriaSettings.sentence.includeCommas}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("sentence", {
+                                            includeCommas: e.target.checked,
+                                          })
+                                        }
+                                        className="rounded border-border text-primary h-3.5 w-3.5"
+                                      />
+                                      <span className="text-[11px]">
+                                        Split on secondary clauses (commas, semicolons, colons)
+                                      </span>
+                                    </label>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[11px] text-muted-foreground">
+                                        Minimum words per sentence:
+                                      </span>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        value={criteriaSettings.sentence.minWords}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("sentence", {
+                                            minWords: Math.max(1, parseInt(e.target.value) || 1),
+                                          })
+                                        }
+                                        className="h-6 w-14 rounded border border-input bg-background px-1.5 text-xs text-right"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {crit.id === "pause" && (
+                                  <div className="space-y-2">
+                                    <div>
+                                      <div className="flex justify-between text-[11px] mb-1">
+                                        <span className="text-muted-foreground">
+                                          Silence gap threshold:
+                                        </span>
+                                        <span className="font-semibold text-primary">
+                                          {criteriaSettings.pause.minPauseMs} ms
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={200}
+                                        max={1500}
+                                        step={50}
+                                        value={criteriaSettings.pause.minPauseMs}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("pause", {
+                                            minPauseMs: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="flex justify-between text-[11px] mb-1">
+                                        <span className="text-muted-foreground">
+                                          Cue snap proximity:
+                                        </span>
+                                        <span className="font-semibold text-primary">
+                                          {criteriaSettings.pause.snapToleranceMs} ms
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={400}
+                                        max={2000}
+                                        step={100}
+                                        value={criteriaSettings.pause.snapToleranceMs}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("pause", {
+                                            snapToleranceMs: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {crit.id === "punctVote" && (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[11px] text-muted-foreground">
+                                        Minimum agreeing tracks:
+                                      </span>
+                                      <select
+                                        value={criteriaSettings.punctVote.minTrackVotes}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("punctVote", {
+                                            minTrackVotes: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="h-6 rounded border border-input bg-background px-1.5 text-xs"
+                                      >
+                                        <option value={1}>1 track (any mark)</option>
+                                        <option value={2}>2 tracks (agreement)</option>
+                                        <option value={3}>3 tracks (consensus)</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <div className="flex justify-between text-[11px] mb-1">
+                                        <span className="text-muted-foreground">
+                                          Cluster proximity window:
+                                        </span>
+                                        <span className="font-semibold text-primary">
+                                          {criteriaSettings.punctVote.clusterToleranceMs} ms
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={200}
+                                        max={1200}
+                                        step={50}
+                                        value={criteriaSettings.punctVote.clusterToleranceMs}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("punctVote", {
+                                            clusterToleranceMs: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {crit.id === "consensus" && (
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-[11px] text-muted-foreground">
+                                        Required track alignment:
+                                      </span>
+                                      <select
+                                        value={criteriaSettings.consensus.majorityRatio}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("consensus", {
+                                            majorityRatio: parseFloat(e.target.value),
+                                          })
+                                        }
+                                        className="h-6 rounded border border-input bg-background px-1.5 text-xs"
+                                      >
+                                        <option value={0.33}>33% (any 2+ tracks)</option>
+                                        <option value={0.5}>50% (majority)</option>
+                                        <option value={0.66}>66% (supermajority)</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <div className="flex justify-between text-[11px] mb-1">
+                                        <span className="text-muted-foreground">
+                                          Proximity window:
+                                        </span>
+                                        <span className="font-semibold text-primary">
+                                          {criteriaSettings.consensus.clusterToleranceMs} ms
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={200}
+                                        max={800}
+                                        step={50}
+                                        value={criteriaSettings.consensus.clusterToleranceMs}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("consensus", {
+                                            clusterToleranceMs: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {crit.id === "cue" && (
+                                  <div className="space-y-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={criteriaSettings.cue.splitAllTracks}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("cue", {
+                                            splitAllTracks: e.target.checked,
+                                          })
+                                        }
+                                        className="rounded border-border text-primary h-3.5 w-3.5"
+                                      />
+                                      <span className="text-[11px]">
+                                        Split on cue starts from all parallel tracks
+                                      </span>
+                                    </label>
+                                  </div>
+                                )}
+
+                                {crit.id === "anchors" && (
+                                  <div className="space-y-1.5">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={criteriaSettings.anchors.matchNumbers}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("anchors", {
+                                            matchNumbers: e.target.checked,
+                                          })
+                                        }
+                                        className="rounded border-border text-primary h-3.5 w-3.5"
+                                      />
+                                      <span className="text-[11px]">Match numbers and digits</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={criteriaSettings.anchors.matchProperNouns}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("anchors", {
+                                            matchProperNouns: e.target.checked,
+                                          })
+                                        }
+                                        className="rounded border-border text-primary h-3.5 w-3.5"
+                                      />
+                                      <span className="text-[11px]">
+                                        Match capitalized proper nouns
+                                      </span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={criteriaSettings.anchors.requireStrictMultiTrack}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("anchors", {
+                                            requireStrictMultiTrack: e.target.checked,
+                                          })
+                                        }
+                                        className="rounded border-border text-primary h-3.5 w-3.5"
+                                      />
+                                      <span className="text-[11px]">
+                                        Strict: require anchor in all tracks
+                                      </span>
+                                    </label>
+                                  </div>
+                                )}
+
+                                {crit.id === "window" && (
+                                  <div className="space-y-2">
+                                    <div>
+                                      <div className="flex justify-between text-[11px] mb-1">
+                                        <span className="text-muted-foreground">
+                                          Minimum section length:
+                                        </span>
+                                        <span className="font-semibold text-primary">
+                                          {(criteriaSettings.window.minSectionMs / 1000).toFixed(1)}
+                                          s
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={800}
+                                        max={4000}
+                                        step={200}
+                                        value={criteriaSettings.window.minSectionMs}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("window", {
+                                            minSectionMs: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                      />
+                                    </div>
+                                    <div>
+                                      <div className="flex justify-between text-[11px] mb-1">
+                                        <span className="text-muted-foreground">
+                                          Maximum section length:
+                                        </span>
+                                        <span className="font-semibold text-primary">
+                                          {(criteriaSettings.window.maxSectionMs / 1000).toFixed(0)}
+                                          s
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min={6000}
+                                        max={24000}
+                                        step={1000}
+                                        value={criteriaSettings.window.maxSectionMs}
+                                        onChange={(e) =>
+                                          handleUpdateGroupSettings("window", {
+                                            maxSectionMs: parseInt(e.target.value),
+                                          })
+                                        }
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Status & Summary */}
+                  <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-muted-foreground">
+                    <div>
+                      Sections:{" "}
+                      <span className="font-semibold text-foreground">
+                        {rows.length} translatable sections
+                      </span>{" "}
+                      · Timing base:{" "}
+                      <span className="font-semibold text-foreground">
+                        {baseLanguage
+                          ? getLanguageMeta(baseLanguage).name
+                          : "None (waiting for captions)"}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground/80">
+                      Cuts accumulate at sentence marks, breath pauses & alignment consensus
+                    </div>
+                  </div>
+                </div>
               )}
 
               {panelId === "languages" && (

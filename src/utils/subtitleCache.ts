@@ -453,11 +453,7 @@ export function saveCachedTargetSubtitles(
  * Saves raw JSON3 timedtext string to cache strictly if it is valid JSON.
  * Returns true if saved, false if rejected due to invalid JSON.
  */
-export function saveCachedRawJson3(
-  videoId: string,
-  targetLang: string,
-  rawJson3: string,
-): boolean {
+export function saveCachedRawJson3(videoId: string, targetLang: string, rawJson3: string): boolean {
   if (!videoId || !targetLang || !rawJson3) return false;
   if (!isValidJsonSubtitleResponse(rawJson3)) {
     console.warn(
@@ -469,7 +465,10 @@ export function saveCachedRawJson3(
   try {
     const cleanLang = targetLang.toLowerCase().split("-")[0];
     const targetKey = `${SUBTITLE_CACHE_PREFIX}raw_${videoId}_${cleanLang}`;
-    localStorage.setItem(targetKey, typeof rawJson3 === "string" ? rawJson3 : JSON.stringify(rawJson3));
+    localStorage.setItem(
+      targetKey,
+      typeof rawJson3 === "string" ? rawJson3 : JSON.stringify(rawJson3),
+    );
     return true;
   } catch {
     return false;

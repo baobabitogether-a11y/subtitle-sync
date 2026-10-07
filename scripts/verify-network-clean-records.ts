@@ -25,7 +25,11 @@ const mockPending: NetworkRequestRecord = {
   status: 0,
   isPending: true,
 };
-assert.strictEqual(isSuccessfulFetch(mockPending), false, "Pending request must not be marked successful");
+assert.strictEqual(
+  isSuccessfulFetch(mockPending),
+  false,
+  "Pending request must not be marked successful",
+);
 
 const mockError: NetworkRequestRecord = {
   id: "req-2",
@@ -37,7 +41,11 @@ const mockError: NetworkRequestRecord = {
   error: "Internal Server Error",
   isPending: false,
 };
-assert.strictEqual(isSuccessfulFetch(mockError), false, "Error request must not be marked successful");
+assert.strictEqual(
+  isSuccessfulFetch(mockError),
+  false,
+  "Error request must not be marked successful",
+);
 
 const mockEmpty200: NetworkRequestRecord = {
   id: "req-3",
@@ -92,19 +100,22 @@ assert.strictEqual(
 console.log("✅ PASS: isSuccessfulFetch correctly evaluates success and excludes empty bodies");
 
 // 2. Verify tracking pipeline preserves authentic HTTP status
-const tracker = trackNetworkRequest("https://www.youtube.com/api/timedtext?v=test&lang=en&tlang=de");
+const tracker = trackNetworkRequest(
+  "https://www.youtube.com/api/timedtext?v=test&lang=en&tlang=de",
+);
 tracker.complete(200, "");
 const recorded = getNetworkRequests()[0];
 assert.strictEqual(recorded.status, 200, "HTTP status must accurately reflect 200 response");
 assert.strictEqual(recorded.fullResponseBody, "", "Response body must be empty string");
-assert.strictEqual(isSuccessfulFetch(recorded), false, "Recorded empty response must not be successful");
+assert.strictEqual(
+  isSuccessfulFetch(recorded),
+  false,
+  "Recorded empty response must not be successful",
+);
 console.log("✅ PASS: Authentic HTTP status preserved while excluding empty body from successful");
 
 // 3. Verify NetworkRequestsInspector UI code contracts
-const inspectorPath = path.join(
-  process.cwd(),
-  "src/components/NetworkRequestsInspector.tsx",
-);
+const inspectorPath = path.join(process.cwd(), "src/components/NetworkRequestsInspector.tsx");
 assert(fs.existsSync(inspectorPath), "NetworkRequestsInspector.tsx must exist");
 const inspectorContent = fs.readFileSync(inspectorPath, "utf8");
 

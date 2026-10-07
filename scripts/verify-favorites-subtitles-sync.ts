@@ -13,7 +13,9 @@ const indexContent = fs.readFileSync(indexTsxPath, "utf8");
 
 // 1. Verify cols includes all targetLanguages unconditionally
 assert(
-  indexContent.includes("targetLanguages.includes(l.code) || (tracks ? Boolean(tracks[l.code]) : true)"),
+  indexContent.includes(
+    "targetLanguages.includes(l.code) || (tracks ? Boolean(tracks[l.code]) : true)",
+  ),
   "cols calculation must ensure all favorite languages in targetLanguages are included in subtitles columns",
 );
 console.log("✅ PASS: Subtitles columns unconditionally present all active favorite languages");
@@ -28,7 +30,10 @@ assert(
 console.log("✅ PASS: No automatic fetch retries");
 
 // 3. Manual fetch on failure
-assert(indexContent.includes('data-testid="subtitles-manual-fetch"'), "manual Fetch again button must exist");
+assert(
+  indexContent.includes('data-testid="subtitles-manual-fetch"'),
+  "manual Fetch again button must exist",
+);
 assert(
   indexContent.includes("attemptedRef.current.delete(`${url}|${code}`)"),
   "manual fetch must clear the attempt marker before re-fetching",

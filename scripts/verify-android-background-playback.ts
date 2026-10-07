@@ -23,7 +23,7 @@ assert(
   "AndroidManifest.xml must declare android.permission.WAKE_LOCK for reliable background audio playback",
 );
 assert(
-  manifestContent.includes("android:hardwareAccelerated=\"true\""),
+  manifestContent.includes('android:hardwareAccelerated="true"'),
   "AndroidManifest.xml must enable hardware acceleration",
 );
 console.log("✅ PASS: AndroidManifest.xml contains WAKE_LOCK and hardware acceleration");
@@ -77,8 +77,7 @@ assert(fs.existsSync(indexTsxPath), "src/routes/index.tsx must exist");
 const indexContent = fs.readFileSync(indexTsxPath, "utf8");
 
 assert(
-  indexContent.includes("visibilitychange") &&
-    indexContent.includes("visibilityState"),
+  indexContent.includes("visibilitychange") && indexContent.includes("visibilityState"),
   "src/routes/index.tsx must prevent background pause on visibility changes",
 );
 console.log("✅ PASS: Client-side document visibility protection verified in index.tsx");

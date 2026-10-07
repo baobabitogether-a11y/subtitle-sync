@@ -119,7 +119,10 @@ console.log("✅ PASS: extractTlang utility verified");
 
 const sampleFormatted = formatRequestForClipboard(recorded2!);
 assert.ok(sampleFormatted.includes("URL: " + hebrewUrl), "Formatted request must include URL");
-assert.ok(sampleFormatted.includes("Target Language (tlang): he"), "Formatted request must include tlang");
+assert.ok(
+  sampleFormatted.includes("Target Language (tlang): he"),
+  "Formatted request must include tlang",
+);
 assert.ok(sampleFormatted.includes("Method: GET"), "Formatted request must include Method");
 console.log("✅ PASS: formatRequestForClipboard utility verified");
 
@@ -177,10 +180,13 @@ assert(
   "Network inspector must render language tag based on tlang parameter",
 );
 assert(
-  inspectorContent.includes("empty body — 0 chars") || inspectorContent.includes("0 chars (empty body)"),
+  inspectorContent.includes("empty body — 0 chars") ||
+    inspectorContent.includes("0 chars (empty body)"),
   "Network inspector must explicitly clarify 200 OK empty response body with 0 chars",
 );
-console.log("✅ PASS: Network inspector failed filtering, quick copy, word-wrap, tlang tags, and empty body clarity verified");
+console.log(
+  "✅ PASS: Network inspector failed filtering, quick copy, word-wrap, tlang tags, and empty body clarity verified",
+);
 
 const indexRoutePath = path.join(process.cwd(), "src/routes/index.tsx");
 const indexContent = fs.readFileSync(indexRoutePath, "utf8");

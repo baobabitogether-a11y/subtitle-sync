@@ -52,7 +52,10 @@ const invalidCases: { label: string; data: unknown }[] = [
   { label: "undefined", data: undefined },
   { label: "empty string", data: "" },
   { label: "whitespace string", data: "   \n\t  " },
-  { label: "HTML error document", data: "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>" },
+  {
+    label: "HTML error document",
+    data: "<!DOCTYPE html><html><body><h1>404 Not Found</h1></body></html>",
+  },
   { label: "plain error message", data: "Error: Video has no captions available" },
   { label: "arbitrary XML", data: "<error><code>403</code><msg>Forbidden</msg></error>" },
   { label: "malformed JSON string", data: "{ events: [{ tStartMs: 0 " },
@@ -60,18 +63,17 @@ const invalidCases: { label: string; data: unknown }[] = [
   { label: "JSON with null events", data: '{"events": null}' },
   { label: "JSON object without events or cues", data: '{"status": 200, "message": "ok"}' },
   { label: "JSON with empty segs array", data: '{"events": [{"tStartMs": 0, "segs": []}]}' },
-  { label: "JSON with blank utf8 text", data: '{"events": [{"tStartMs": 0, "segs": [{"utf8": "  "}]}]}' },
+  {
+    label: "JSON with blank utf8 text",
+    data: '{"events": [{"tStartMs": 0, "segs": [{"utf8": "  "}]}]}',
+  },
   { label: "empty array of cues", data: [] },
   { label: "array with invalid cues", data: [{ id: "c1", text: "   " }] },
 ];
 
 for (const tc of invalidCases) {
   const result = isValidJsonSubtitleResponse(tc.data);
-  assert.strictEqual(
-    result,
-    false,
-    `Validator must reject ${tc.label}, but returned true`,
-  );
+  assert.strictEqual(result, false, `Validator must reject ${tc.label}, but returned true`);
   console.log(`✅ PASS: Correctly rejected ${tc.label}`);
 }
 
@@ -187,7 +189,9 @@ assert(
     mainActivityContent.includes("saveCaptionToFile(url, rawBodyBytes)"),
   "MainActivity.kt interception loop must verify isValidJsonSubtitle before calling saveCaptionToFile",
 );
-console.log("✅ PASS: MainActivity.kt interception loop verifies JSON validity before saving to disk");
+console.log(
+  "✅ PASS: MainActivity.kt interception loop verifies JSON validity before saving to disk",
+);
 
 assert(
   mainActivityContent.includes('val filename = "caption_${System.currentTimeMillis()}.json"'),
