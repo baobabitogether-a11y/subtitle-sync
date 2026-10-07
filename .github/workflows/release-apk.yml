@@ -95,11 +95,19 @@ jobs:
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
 
       # Main build target: Debug APK (always builds fast and without keystore/signing requirements)
+      - name: Compute Android App Version
+        id: appversion
+        run: |
+          BASE=$(node -p "require('./package.json').version || '1.0.0'")
+          echo "code=${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "name=${BASE}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "Android version: ${BASE}.${GITHUB_RUN_NUMBER} (code ${GITHUB_RUN_NUMBER})"
+
       - name: Build Android Debug APK
         timeout-minutes: 3
         run: |
           cd android-shell
-          ./gradlew assembleDebug --no-daemon -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
+          ./gradlew assembleDebug -PappVersionCode=${{ steps.appversion.outputs.code }} -PappVersionName=${{ steps.appversion.outputs.name }} --no-daemon -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
 
       - name: Package & Verify APK & OTA Artifacts
         run: |
