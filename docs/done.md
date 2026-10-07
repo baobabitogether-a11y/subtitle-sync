@@ -1,5 +1,16 @@
 # Done tasks
 
+## Task 46: Fix E2E Report Generation, CI Workflows & GitHub Pages Staging
+
+### Subtask 46.1: Fix Playwright E2E Locator Ambiguity
+
+- Updated `src/routes/index.tsx` so all collapsible `<details>` panels emit unambiguous `data-panel="{title}"` attributes (e.g. `data-panel="languages"`).
+- Updated `e2e/web.spec.ts` and `e2e/app.spec.ts` to disambiguate the Languages panel locators using `details.filter({ has: page.locator("summary", { hasText: "Languages" }) })`, preventing strict-mode collisions with subtitle criteria description text in the Parser panel.
+- Created dedicated verification test `scripts/verify-playwright-locators.ts` (`npm run test:playwright-locators`).
+- Registered `test:playwright-locators` in `package.json` and documented in `docs/files.md`.
+- Verified all 5 tests in `e2e/web.spec.ts` and the smoke test in `e2e/app.spec.ts` pass cleanly.
+- Verified app compilation and lint.
+
 ## Task 45: Accumulative Criteria Subtitles Parser & Inner Group Settings
 
 ### Subtask 45.1: E2E Test Report Links in README.md & Verification

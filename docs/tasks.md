@@ -1,5 +1,18 @@
 # Tasks
 
+## Task 46: Fix E2E Report Generation, CI Workflows & GitHub Pages Staging
+
+- [x] **Subtask 46.1: Fix Playwright E2E Locator Ambiguity**:
+  - Update `e2e/web.spec.ts` and `e2e/app.spec.ts` to disambiguate the Languages panel locators (e.g., `details > summary:has-text('Languages')` or matching header `summary h2:has-text('Languages')`).
+  - Add dedicated verification test `scripts/verify-playwright-locators.ts`.
+  - Verify all 5 tests in `e2e/web.spec.ts` and `e2e/app.spec.ts` pass with Playwright locally.
+- [ ] **Subtask 46.2: Fix `emulation.yml` Syntax and Report Generation**:
+  - Fix YAML syntax and multi-line escaping in `.github/workflows/emulation.yml` verified by `js-yaml`.
+  - Ensure `android-emulator-report.html` and screenshots are reliably staged for `gh-pages`.
+- [ ] **Subtask 46.3: Ensure Guaranteed E2E Report Staging on GitHub Pages**:
+  - Update `web.yml` and `deploy-demo.yml` to stage Mochawesome, Playwright, and Android reports with resilient deployment steps.
+  - Add dedicated verification tests in `scripts/verify-e2e-report-links.ts` and verify build, lint, and workflow integrity.
+
 ## Task 45: Accumulative Criteria Subtitles Parser & Inner Group Settings
 
 - [x] **Subtask 45.1: E2E Test Report Links in README.md & Verification**:

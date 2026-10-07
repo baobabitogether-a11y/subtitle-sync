@@ -58,6 +58,7 @@
     "test:back-navigation": "tsx scripts/verify-android-back-navigation.ts",
     "test:valid-json-cache": "tsx scripts/verify-valid-json-cache-guard.ts",
     "test:subtitle-api-fallback": "tsx scripts/verify-subtitle-api-fallback.ts",
+    "test:playwright-locators": "tsx scripts/verify-playwright-locators.ts",
     "test:hotfix": "tsx scripts/verify-hotfix-links-and-actions.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
