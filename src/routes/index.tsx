@@ -843,6 +843,7 @@ function Index() {
     pauseMode,
     orderedLangs,
     audioTrackMode,
+    sectionOrder,
   });
   st.current = {
     rows,
@@ -852,6 +853,7 @@ function Index() {
     pauseMode,
     orderedLangs,
     audioTrackMode,
+    sectionOrder,
   };
 
   const playerEl = useRef<HTMLDivElement>(null);
@@ -861,8 +863,18 @@ function Index() {
 
   useEffect(() => {
     const init = () => {
-      if (!playerEl.current || !window.YT) return;
-      player.current = new window.YT.Player(playerEl.current, {
+      if (!playerEl.current) return;
+      // Fresh host node per init so the YouTube API (which replaces its node) never touches the ref
+      playerEl.current.innerHTML = "";
+      const host = document.createElement("div");
+      host.className = "h-full w-full";
+      playerEl.current.appendChild(host);
+      if (playerKind === "iframe") {
+        player.current = createIframePlayer(host, videoId, { autoplay: isAndroid });
+        return;
+      }
+      if (!window.YT) return;
+      player.current = new window.YT.Player(host, {
         videoId,
         playerVars: {
           rel: 0,
@@ -872,7 +884,7 @@ function Index() {
         },
       });
     };
-    if (window.YT?.Player) init();
+    if (playerKind === "iframe" || window.YT?.Player) init();
     else {
       window.onYouTubeIframeAPIReady = init;
       const s = document.createElement("script");
@@ -896,24 +908,22 @@ function Index() {
       setActive(idx);
       const prev = lastRow.current;
       lastRow.current = idx;
-      // Crossed the end of a section while playing → pause and speak or repeat with native audio track.
-      if (pauseMode && prev >= 0 && idx === prev + 1 && p.getPlayerState() === 1) {
-        busy.current = true;
-        p.pauseVideo();
+      const speakRow = async (rowIdx: number) => {
         const langs = orderedLangs.filter((l) => spoken.includes(l.code));
         for (const l of langs) {
+          if (!busy.current) break;
           setSpeakingLang(l.code);
-          setSpeakingRow(prev);
+          setSpeakingRow(rowIdx);
           if (isAudioTrackMode) {
             await repeatSegmentWithAudioTrack({
               player: p,
-              startMs: rows[prev]?.start ?? 0,
-              endMs: rows[prev]?.end ?? 0,
+              startMs: rows[rowIdx]?.start ?? 0,
+              endMs: rows[rowIdx]?.end ?? 0,
               targetLangCode: l.code,
               checkCancelled: () => !busy.current,
               onProgress: (prog) => {
                 setSpeechProgress({
-                  row: prev,
+                  row: rowIdx,
                   lang: l.code,
                   start: 0,
                   end: Math.round(prog.percent ?? 0),
@@ -922,11 +932,11 @@ function Index() {
             });
           } else {
             await speak(
-              rows[prev]?.texts[l.code] ?? "",
+              rows[rowIdx]?.texts[l.code] ?? "",
               l.tts,
               rates[l.code] ?? 1,
               voiceSelections[l.code] ?? "",
-              prev,
+              rowIdx,
               setSpeechProgress,
             );
           }
@@ -934,6 +944,27 @@ function Index() {
         setSpeakingLang(null);
         setSpeakingRow(-1);
         setSpeechProgress(null);
+      };
+      const isPlaying = p.getPlayerState() === 1;
+      if (pauseMode && st.current.sectionOrder === "tts-first") {
+        // Speech first: on entering a section, pause, speak it, then play that section's video.
+        if (idx >= 0 && idx !== prev && isPlaying) {
+          busy.current = true;
+          p.pauseVideo();
+          await speakRow(idx);
+          const wasCancelled = !busy.current;
+          busy.current = false;
+          if (wasCancelled) return;
+          p.seekTo((rows[idx]?.start ?? 0) / 1000, true);
+          p.playVideo();
+        }
+        return;
+      }
+      // Video first: crossed the end of a section while playing → pause and speak it.
+      if (pauseMode && prev >= 0 && idx === prev + 1 && isPlaying) {
+        busy.current = true;
+        p.pauseVideo();
+        await speakRow(prev);
         busy.current = false;
         p.seekTo(rows[idx]?.start ? rows[idx].start / 1000 : p.getCurrentTime(), true);
         p.playVideo();
@@ -945,7 +976,7 @@ function Index() {
       player.current?.destroy?.();
       player.current = null;
     };
-  }, [videoId, isAndroid]);
+  }, [videoId, isAndroid, playerKind]);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -1241,6 +1272,56 @@ function Index() {
                     />{" "}
                     Pause &amp; speak after each section
                   </label>
+                  <label className="flex flex-wrap items-center gap-2">
+                    <span>For each section, play first:</span>
+                    <select
+                      data-testid="section-order-select"
+                      value={sectionOrder}
+                      onChange={(e) => {
+                        const v = e.target.value as SectionOrder;
+                        setSectionOrderState(v);
+                        saveSectionOrder(v);
+                      }}
+                      className="rounded-md border border-input bg-background px-2 py-1"
+                    >
+                      <option value="video-first">Video, then speech</option>
+                      <option value="tts-first">Speech, then video</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-wrap items-center gap-2">
+                    <span>Player:</span>
+                    <select
+                      data-testid="player-kind-select"
+                      value={playerKind}
+                      onChange={(e) => {
+                        const v = e.target.value as PlayerKind;
+                        setPlayerKindState(v);
+                        savePlayerKind(v);
+                      }}
+                      className="rounded-md border border-input bg-background px-2 py-1"
+                    >
+                      <option value="youtube-api">YouTube player</option>
+                      <option value="iframe">Plain iframe (controlled by messages)</option>
+                    </select>
+                  </label>
+                  {isAndroid && (
+                    <label className="flex flex-wrap items-center gap-2">
+                      <span>Subtitle request (first try, other is fallback):</span>
+                      <select
+                        data-testid="subtitle-request-mode-select"
+                        value={requestMode}
+                        onChange={(e) => {
+                          const v = e.target.value as SubtitleRequestMode;
+                          setRequestModeState(v);
+                          saveSubtitleRequestMode(v);
+                        }}
+                        className="rounded-md border border-input bg-background px-2 py-1"
+                      >
+                        <option value="tlang">Add tlang=&lt;language&gt;</option>
+                        <option value="lang">Replace lang=&lt;language&gt;</option>
+                      </select>
+                    </label>
+                  )}
                   <label className="flex items-center gap-2">
                     <input
                       id="audio-track-mode-toggle"
