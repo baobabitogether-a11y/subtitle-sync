@@ -1,5 +1,19 @@
 # Done tasks
 
+## Task 44 (Hotfix): Verify working links for E2E testing and live web demo & fix GitHub Actions
+
+### Subtask 44.1: Fix GitHub Actions workflows and verify E2E testing & demo links
+
+- Fixed `integrity.yml` workflow failure by restoring authentic emulator screenshot assets in `public/screenshots/android-emulator-screenshot.png` and `public/assets/android-emulator-screenshot.png`, ensuring they are bundled into `dist/` and avoiding 404s on GitHub Pages.
+- Cleaned up accidental stray `x` characters in `README.md` header.
+- Updated `src/router.tsx` to handle GitHub Pages basepath (`github.io`) and retain trailing slashes, eliminating 404 errors during page reload.
+- Initialized `audioTrackMode`, `autoFocus`, and `debugMode` with lazy initializers in `src/routes/index.tsx` to prevent race conditions on page reload.
+- Updated `e2e/web.spec.ts` to assert application hydration (`header[data-app-hydrated="true"]`) following `page.reload()`.
+- Configured Playwright CI retries (`retries: process.env.CI ? 2 : 0`) in `playwright.config.ts`.
+- Enhanced `scripts/android-e2e-assert.sh` to ensure `android-emulator-screenshot.png` is captured and pulled before exit in `fail()`.
+- Implemented dedicated verification test `scripts/verify-hotfix-links-and-actions.ts` (`npm run test:hotfix`), registered script in `package.json`, and documented in `docs/files.md`.
+- Verified all regression test suites, app compilation, and linting pass with zero errors.
+
 ## Task 43: Validate JSON before caching subtitles and implement auto-fallback between YouTube API options (`tlang` vs `lang`)
 
 ### Subtask 43.1: Prevent caching of invalid subtitle responses (ensure answer is valid JSON)

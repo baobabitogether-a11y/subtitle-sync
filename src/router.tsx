@@ -7,9 +7,16 @@ export const getBasepath = (): string | undefined => {
     return undefined;
   }
   const pathname = window.location.pathname;
-  const match = pathname.match(/^(.*\/app)(?:\/|$)/);
-  if (match) {
-    return match[1]; // e.g. '/subtitle-sync/app' or '/app'
+  const matchApp = pathname.match(/^(.*\/app)(?:\/|$)/);
+  if (matchApp) {
+    return matchApp[1]; // e.g. '/subtitle-sync/app' or '/app'
+  }
+  // Support GitHub Pages deployment at repo root e.g. '/subtitle-sync'
+  if (window.location.hostname.endsWith("github.io")) {
+    const parts = pathname.split("/").filter(Boolean);
+    if (parts.length > 0) {
+      return `/${parts[0]}`;
+    }
   }
   return undefined;
 };
@@ -18,13 +25,13 @@ export const getRouter = () => {
   const queryClient = new QueryClient();
 
   if (typeof window !== "undefined") {
-    // If URL ends with index.html, strip it cleanly so route matching works
+    // If URL ends with index.html, strip index.html but keep trailing slash
     if (window.location.pathname.endsWith("/index.html")) {
-      const cleanPath = window.location.pathname.replace(/\/index\.html$/, "") || "/";
+      const cleanPath = window.location.pathname.replace(/index\.html$/, "");
       const newUrl = cleanPath + window.location.search + window.location.hash;
       window.history.replaceState(null, "", newUrl);
     }
-    // If we're at basepath without trailing slash (e.g. /subtitle-sync/app), normalize with trailing slash
+    // If we're at basepath without trailing slash (e.g. /subtitle-sync or /subtitle-sync/app), normalize with trailing slash
     const base = getBasepath();
     if (base && window.location.pathname === base) {
       window.history.replaceState(

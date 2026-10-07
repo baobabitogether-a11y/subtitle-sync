@@ -20,6 +20,8 @@ PLAYER_STARTED=false
 
 fail() {
   echo "❌ ANDROID E2E FAILED: $1"
+  adb shell screencap -p /sdcard/screen.png 2>/dev/null || true
+  adb pull /sdcard/screen.png ./android-emulator-screenshot.png 2>/dev/null || true
   adb logcat -d > "${LOGCAT_OUT}" 2>/dev/null || true
   grep -E "APP_READY|APP_BOOT_ERROR|FATAL EXCEPTION|WebView error|Asset not found|WebViewConsole|YT_CAPTION_INTERCEPTOR|SUBTITLE_FETCH" "${LOGCAT_OUT}" | tail -n 60 || true
   exit 1

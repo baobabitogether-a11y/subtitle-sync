@@ -42,6 +42,7 @@ test.describe("Parallel Subtitles web app", () => {
 
     // Reload page and assert persistence
     await page.reload();
+    await expect(page.locator('header[data-app-hydrated="true"]')).toBeVisible();
     await expect(page.locator("#audio-track-mode-toggle")).toBeChecked();
 
     // Toggle back off
@@ -60,6 +61,7 @@ test.describe("Parallel Subtitles web app", () => {
 
     // Reload page and assert persistence
     await page.reload();
+    await expect(page.locator('header[data-app-hydrated="true"]')).toBeVisible();
     await expect(page.locator("#auto-scroll-toggle")).toBeChecked();
 
     // Toggle back off

@@ -440,17 +440,23 @@ function Index() {
   const [pauseMode, setPauseMode] = useState(true);
   const [sectionOrder, setSectionOrderState] = useState<SectionOrder>("video-first");
   const [playerKind, setPlayerKindState] = useState<PlayerKind>("youtube-api");
-  const [audioTrackMode, setAudioTrackModeState] = useState(false);
+  const [audioTrackMode, setAudioTrackModeState] = useState(() =>
+    typeof window !== "undefined" ? getAudioTrackMode() : false,
+  );
   const onAudioTrackModeChange = (enabled: boolean) => {
     setAudioTrackModeState(enabled);
     setAudioTrackMode(enabled);
   };
-  const [autoFocus, setAutoFocusState] = useState(false);
+  const [autoFocus, setAutoFocusState] = useState(() =>
+    typeof window !== "undefined" ? getAutoScrollSetting() : false,
+  );
   const onAutoFocusChange = (enabled: boolean) => {
     setAutoFocusState(enabled);
     setAutoScrollSetting(enabled);
   };
-  const [debugMode, setDebugModeState] = useState(false);
+  const [debugMode, setDebugModeState] = useState(() =>
+    typeof window !== "undefined" ? getDebugModeSetting() : false,
+  );
   const onDebugModeChange = (enabled: boolean) => {
     setDebugModeState(enabled);
     setDebugModeSetting(enabled);

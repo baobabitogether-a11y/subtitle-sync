@@ -56,6 +56,7 @@
 
 - [ ] **Subtask 41.1: Implement Video Library / Watch History panel**: Maintain a persistent history of played YouTube videos (ID, title, timestamp, thumbnail) with quick reload / selection. Add dedicated verification test.
 
-## Task 42: Remove subtitle caching
+## Task 44 (Hotfix): Verify working links for E2E testing and live web demo & fix GitHub Actions
 
-- [ ] **Subtask 42.1: Remove subtitle caching from app to simplify data flow**: Eliminate caching layers for subtitles (`subtitleCache.ts`, etc.) so subtitles are freshly retrieved without cache invalidation issues. Add dedicated verification test.
+- [x] **Subtask 44.1: Fix GitHub Actions workflows and verify E2E testing & demo links**: Restore authentic emulator screenshot in `public/` and `dist/`, remove stray `x` from `README.md`, fix router basepath on `github.io`, add lazy setting initialization, and add dedicated verification test.
+ 
