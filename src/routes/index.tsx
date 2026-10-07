@@ -304,7 +304,13 @@ function Index() {
   // Single attempt per language per observed URL (no automatic retries, like Youtubenet6)
   const attemptedRef = useRef<Set<string>>(new Set());
   const [failedLangs, setFailedLangs] = useState<string[]>([]);
-  const [requestMode, setRequestModeState] = useState<SubtitleRequestMode>(getSubtitleRequestMode);
+  const [requestMode, setRequestModeState] = useState<SubtitleRequestMode>("tlang");
+  useEffect(() => {
+    // Load device-saved preferences after hydration
+    setRequestModeState(getSubtitleRequestMode());
+    setSectionOrderState(getSectionOrder());
+    setPlayerKindState(getPlayerKind());
+  }, []);
   const requestModeRef = useRef(requestMode);
   requestModeRef.current = requestMode;
 
@@ -420,8 +426,8 @@ function Index() {
   const themeWasSelectedRef = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [pauseMode, setPauseMode] = useState(true);
-  const [sectionOrder, setSectionOrderState] = useState<SectionOrder>(getSectionOrder);
-  const [playerKind, setPlayerKindState] = useState<PlayerKind>(getPlayerKind);
+  const [sectionOrder, setSectionOrderState] = useState<SectionOrder>("video-first");
+  const [playerKind, setPlayerKindState] = useState<PlayerKind>("youtube-api");
   const [audioTrackMode, setAudioTrackModeState] = useState(false);
   const onAudioTrackModeChange = (enabled: boolean) => {
     setAudioTrackModeState(enabled);
