@@ -29,16 +29,32 @@ const baseUrl = "https://www.youtube.com/api/timedtext?v=n9qwEOsqsoo&lang=en&fmt
 // Option A: tlang addition
 const tlangUrl = buildTranslatedCaptionUrl(baseUrl, "he", "json3");
 const parsedTlang = new URL(tlangUrl);
-assert.strictEqual(parsedTlang.searchParams.get("lang"), "en", "tlang URL must retain original lang");
+assert.strictEqual(
+  parsedTlang.searchParams.get("lang"),
+  "en",
+  "tlang URL must retain original lang",
+);
 assert.strictEqual(parsedTlang.searchParams.get("tlang"), "he", "tlang URL must contain tlang");
-assert.strictEqual(parsedTlang.searchParams.get("fmt"), "json3", "tlang URL must specify fmt=json3");
+assert.strictEqual(
+  parsedTlang.searchParams.get("fmt"),
+  "json3",
+  "tlang URL must specify fmt=json3",
+);
 console.log("✅ PASS: buildTranslatedCaptionUrl correctly creates tlang option");
 
 // Option B: lang replacement
 const langUrl = buildLangReplacedCaptionUrl(baseUrl, "he", "json3");
 const parsedLang = new URL(langUrl);
-assert.strictEqual(parsedLang.searchParams.get("lang"), "he", "lang URL must replace lang with target language");
-assert.strictEqual(parsedLang.searchParams.get("tlang"), null, "lang URL must NOT contain tlang parameter");
+assert.strictEqual(
+  parsedLang.searchParams.get("lang"),
+  "he",
+  "lang URL must replace lang with target language",
+);
+assert.strictEqual(
+  parsedLang.searchParams.get("tlang"),
+  null,
+  "lang URL must NOT contain tlang parameter",
+);
 assert.strictEqual(parsedLang.searchParams.get("fmt"), "json3", "lang URL must specify fmt=json3");
 console.log("✅ PASS: buildLangReplacedCaptionUrl correctly creates lang option");
 
@@ -103,9 +119,15 @@ const runA = simulateSubtitleFetchWithFallback("tlang", (mode) => {
   return validPayload;
 });
 assert.strictEqual(runA.success, true, "Scenario A must succeed via fallback");
-assert.deepStrictEqual(runA.attempts, ["tlang", "lang"], "Scenario A must have attempted tlang then lang");
+assert.deepStrictEqual(
+  runA.attempts,
+  ["tlang", "lang"],
+  "Scenario A must have attempted tlang then lang",
+);
 assert(runA.loadedJson !== null, "Scenario A must yield parsed JSON");
-console.log("✅ PASS: Scenario A: tlang returns invalid response -> auto fallback to lang succeeds");
+console.log(
+  "✅ PASS: Scenario A: tlang returns invalid response -> auto fallback to lang succeeds",
+);
 
 // Scenario B: Primary mode "lang" fails with empty response -> auto fallbacks to "tlang" which succeeds
 const runB = simulateSubtitleFetchWithFallback("lang", (mode) => {
@@ -113,7 +135,11 @@ const runB = simulateSubtitleFetchWithFallback("lang", (mode) => {
   return validPayload;
 });
 assert.strictEqual(runB.success, true, "Scenario B must succeed via fallback");
-assert.deepStrictEqual(runB.attempts, ["lang", "tlang"], "Scenario B must have attempted lang then tlang");
+assert.deepStrictEqual(
+  runB.attempts,
+  ["lang", "tlang"],
+  "Scenario B must have attempted lang then tlang",
+);
 assert(runB.loadedJson !== null, "Scenario B must yield parsed JSON");
 console.log("✅ PASS: Scenario B: lang returns empty response -> auto fallback to tlang succeeds");
 
@@ -122,17 +148,31 @@ const runC = simulateSubtitleFetchWithFallback("tlang", (_mode) => {
   return validPayload;
 });
 assert.strictEqual(runC.success, true, "Scenario C must succeed immediately");
-assert.deepStrictEqual(runC.attempts, ["tlang"], "Scenario C must only execute single attempt when successful");
+assert.deepStrictEqual(
+  runC.attempts,
+  ["tlang"],
+  "Scenario C must only execute single attempt when successful",
+);
 console.log("✅ PASS: Scenario C: first option succeeds -> zero unnecessary fallback requests");
 
 // Scenario D: Both options return invalid responses -> fails cleanly without crashing or caching
 const runD = simulateSubtitleFetchWithFallback("tlang", (_mode) => {
   return "Error: no captions";
 });
-assert.strictEqual(runD.success, false, "Scenario D must fail when both options return invalid responses");
-assert.deepStrictEqual(runD.attempts, ["tlang", "lang"], "Scenario D must have exhausted both options");
+assert.strictEqual(
+  runD.success,
+  false,
+  "Scenario D must fail when both options return invalid responses",
+);
+assert.deepStrictEqual(
+  runD.attempts,
+  ["tlang", "lang"],
+  "Scenario D must have exhausted both options",
+);
 assert.strictEqual(runD.loadedJson, null, "Scenario D must yield null json");
-console.log("✅ PASS: Scenario D: both options return invalid responses -> cleanly handled as failure");
+console.log(
+  "✅ PASS: Scenario D: both options return invalid responses -> cleanly handled as failure",
+);
 
 // ============================================================================
 // 3. Verify Android Shell (MainActivity.kt) Native Auto-Fallback Implementation
@@ -153,8 +193,8 @@ assert(
 console.log("✅ PASS: MainActivity.kt defines buildRepetitionUrl helper");
 
 assert(
-  mainActivityContent.includes("listOf(\"lang\", \"tlang\")") &&
-    mainActivityContent.includes("listOf(\"tlang\", \"lang\")"),
+  mainActivityContent.includes('listOf("lang", "tlang")') &&
+    mainActivityContent.includes('listOf("tlang", "lang")'),
   "MainActivity.kt must support reciprocal modes order (lang/tlang and tlang/lang)",
 );
 console.log("✅ PASS: MainActivity.kt defines reciprocal fallback modes");

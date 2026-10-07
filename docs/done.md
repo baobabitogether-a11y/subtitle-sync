@@ -1,5 +1,34 @@
 # Done tasks
 
+## Task 45: Accumulative Criteria Subtitles Parser & Inner Group Settings
+
+### Subtask 45.1: E2E Test Report Links in README.md & Verification
+
+- Verified dedicated links in `README.md` to all E2E reports:
+  - 📋 Mochawesome Test Report (`mochawesome.html`)
+  - 🔍 Playwright E2E Test Report (`playwright/index.html`)
+  - 📱 E2E Tests on Android Emulator (`android-emulator-report.html`)
+  - 📸 Android Emulator Screenshot (`screenshots/android-emulator-screenshot.png`)
+  - 🧪 Web E2E Pipeline CI Runs & Artifacts (`actions/workflows/web.yml`)
+  - 🤖 Android Emulator Pipeline CI Runs & Artifacts (`actions/workflows/emulation.yml`)
+- Created and passed dedicated verification test `scripts/verify-e2e-report-links.ts` (`npm run test:e2e-report-links`).
+
+### Subtask 45.2: Accumulative Multi-Select Criteria with Inner Group Settings & BiDi Direction Fix
+
+- Refactored `src/lib/subtitles.ts` to support multi-select accumulative criteria (`selectedCriteria: CriteriaId[]`) across:
+  - `sentence`: Grammatical sentence endings in base timing language.
+  - `pause`: Natural speech silences (>500ms) snapped to subtitle boundaries.
+  - `punctVote`: Multi-track punctuation agreement (2+ languages sharing punctuation mark).
+  - `consensus`: Cue start alignment across parallel languages (±400ms).
+  - `cue`: Original authored subtitle cue starts.
+  - `anchors`: Shared entity & numeric anchors across translations.
+  - `window`: Minimum and maximum context duration thresholds.
+- Added presets: Context & Sentences, Multi-Language Consensus, Pure Sentences, Fine Cue Chunks, and All Criteria.
+- Resolved BiDi character direction anomalies by avoiding raw unisolated Arabic punctuation in LTR description strings.
+- Added collapsible inner parameter settings for each criteria group in `src/routes/index.tsx` with individual and global resets.
+- Created and passed dedicated verification suite `scripts/verify-accumulative-parser.ts` (`npm run test:parser`).
+- Verified app compilation and 0 lint warnings.
+
 ## Task 44 (Hotfix): Verify working links for E2E testing and live web demo & fix GitHub Actions
 
 ### Subtask 44.1: Fix GitHub Actions workflows and verify E2E testing & demo links

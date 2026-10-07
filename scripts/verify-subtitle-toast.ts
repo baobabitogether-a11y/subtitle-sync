@@ -15,7 +15,11 @@ console.log("🧪 Starting Subtitle Fetch Popup Notification Verification");
 console.log("====================================================");
 
 // 1. Initial State
-assert.strictEqual(isSubtitleNotificationMuted(), false, "Notification should not be muted initially");
+assert.strictEqual(
+  isSubtitleNotificationMuted(),
+  false,
+  "Notification should not be muted initially",
+);
 console.log("✅ PASS: Default unmuted state verified");
 
 // 2. Notification emission and subscription
@@ -60,15 +64,15 @@ assert.ok(fs.existsSync(toastComponentPath), "SubtitleFetchToast.tsx must exist"
 const toastCode = fs.readFileSync(toastComponentPath, "utf-8");
 
 assert.ok(
-  toastCode.includes("data-testid=\"subtitle-fetch-toast\""),
+  toastCode.includes('data-testid="subtitle-fetch-toast"'),
   "Must include data-testid for the toast container",
 );
 assert.ok(
-  toastCode.includes("data-testid=\"toast-view-subtitles-link\""),
+  toastCode.includes('data-testid="toast-view-subtitles-link"'),
   "Must include data-testid for quick link to view subtitles",
 );
 assert.ok(
-  toastCode.includes("data-testid=\"mute-subtitle-notifications-checkbox\""),
+  toastCode.includes('data-testid="mute-subtitle-notifications-checkbox"'),
   "Must include data-testid for muting further notifications",
 );
 console.log("✅ PASS: SubtitleFetchToast component contract elements verified");

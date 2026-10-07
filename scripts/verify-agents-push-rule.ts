@@ -24,9 +24,16 @@ console.log("✅ PASS: AGENTS.md contains explicit instruction to try git push a
 // 2. Test graceful execution of git push helper logic
 function tryGitPush(): { attempted: boolean; success: boolean; message: string } {
   try {
-    const remotes = execSync("git remote", { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }).trim();
+    const remotes = execSync("git remote", {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "ignore"],
+    }).trim();
     if (!remotes) {
-      return { attempted: true, success: false, message: "No git remotes configured; skipped gracefully" };
+      return {
+        attempted: true,
+        success: false,
+        message: "No git remotes configured; skipped gracefully",
+      };
     }
     execSync("git push", { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] });
     return { attempted: true, success: true, message: "git push succeeded" };

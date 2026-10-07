@@ -83,7 +83,12 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
             {requests.length} captured
           </span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-950 text-blue-300 border border-blue-800">
-            {requests.filter((r) => (!hideFailed || !Boolean(r.error) && (r.isPending || isSuccessfulFetch(r)))).length} shown
+            {
+              requests.filter(
+                (r) => !hideFailed || (!Boolean(r.error) && (r.isPending || isSuccessfulFetch(r))),
+              ).length
+            }{" "}
+            shown
           </span>
         </div>
         <div className="h-4 w-px bg-neutral-700" />
@@ -268,9 +273,7 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-sm sm:text-base font-bold text-neutral-100">
-                  Network
-                </h2>
+                <h2 className="text-sm sm:text-base font-bold text-neutral-100">Network</h2>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-neutral-800 text-neutral-300 border border-neutral-700">
                   {requests.length} captured
                 </span>
@@ -287,8 +290,8 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                 )}
               </div>
               <p className="hidden sm:block text-xs text-neutral-400">
-                Live captures timedtext, native bridge requests, highlights tlang language tags,
-                and word-wraps request details
+                Live captures timedtext, native bridge requests, highlights tlang language tags, and
+                word-wraps request details
               </p>
             </div>
           </div>
@@ -400,7 +403,9 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
         {/* Body content: Split list & detail */}
         <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 md:divide-x divide-neutral-800 overflow-hidden">
           {/* Requests List */}
-          <div className={`${mobileView === "detail" ? "hidden md:block" : "block"} min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1.5`}>
+          <div
+            className={`${mobileView === "detail" ? "hidden md:block" : "block"} min-h-0 overflow-y-auto overscroll-contain p-2 space-y-1.5`}
+          >
             {filtered.length === 0 ? (
               <div className="p-8 text-center text-neutral-500 text-xs space-y-2">
                 <p>No network requests match the current filters.</p>
@@ -426,7 +431,8 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
                 const tlangInfo = tlang ? getTlangStatusInfo(req, tlang) : null;
                 const isCopied = copiedId === req.id;
                 const isBodyEmpty =
-                  req.status === 200 && (!req.fullResponseBody || req.fullResponseBody.trim() === "");
+                  req.status === 200 &&
+                  (!req.fullResponseBody || req.fullResponseBody.trim() === "");
 
                 return (
                   <div
@@ -584,7 +590,9 @@ export const NetworkRequestsInspector: React.FC<Props> = ({ isOpen, onClose }) =
           </div>
 
           {/* Request Detail Panel */}
-          <div className={`${mobileView === "list" ? "hidden md:block" : "block"} min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4 text-xs break-words`}>
+          <div
+            className={`${mobileView === "list" ? "hidden md:block" : "block"} min-h-0 overflow-y-auto overscroll-contain p-3 sm:p-4 space-y-4 text-xs break-words`}
+          >
             <button
               type="button"
               data-testid="network-back-to-list"

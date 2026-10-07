@@ -36,7 +36,9 @@ assert.ok(
   mainActivityContent.includes("override fun onBackPressed()"),
   "MainActivity.kt must provide onBackPressed() fallback for compatibility",
 );
-console.log("✅ PASS: MainActivity.kt back press dispatching and webview history navigation verified");
+console.log(
+  "✅ PASS: MainActivity.kt back press dispatching and webview history navigation verified",
+);
 
 // 2. Verify React implementation in src/routes/index.tsx
 const indexFile = path.resolve(process.cwd(), "src/routes/index.tsx");
@@ -49,11 +51,11 @@ assert.ok(
   "index.tsx must expose window.__handleAndroidBack for the Android shell",
 );
 assert.ok(
-  indexContent.includes("window.addEventListener(\"popstate\""),
+  indexContent.includes('window.addEventListener("popstate"'),
   "index.tsx must register popstate event listener",
 );
 assert.ok(
-  indexContent.includes("window.removeEventListener(\"popstate\""),
+  indexContent.includes('window.removeEventListener("popstate"'),
   "index.tsx must clean up popstate event listener",
 );
 assert.ok(
@@ -87,11 +89,7 @@ assert.strictEqual(
   true,
   "Back press must consume modal closing and return true",
 );
-assert.strictEqual(
-  networkInspectorOpen,
-  false,
-  "networkInspectorOpen must be set to false",
-);
+assert.strictEqual(networkInspectorOpen, false, "networkInspectorOpen must be set to false");
 
 // Scenario B: No modal is open -> back press returns false (unhandled), delegating to webView history
 assert.strictEqual(

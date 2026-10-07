@@ -50,8 +50,7 @@ console.log("✅ PASS: Backdrop click closes panel while child clicks stop propa
 // 3. Verify Escape key listener
 console.log("Checking Escape key listener...");
 assert.ok(
-  inspectorContent.includes('if (e.key === "Escape")') &&
-    inspectorContent.includes("onClose()"),
+  inspectorContent.includes('if (e.key === "Escape")') && inspectorContent.includes("onClose()"),
   "Keyboard listener must trigger onClose() when Escape key is pressed",
 );
 assert.ok(

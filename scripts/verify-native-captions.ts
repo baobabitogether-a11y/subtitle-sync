@@ -98,7 +98,9 @@ assert(
   "MainActivity.kt must exclude lang in queryParam iteration to prevent duplicate lang parameters",
 );
 assert(
-  mainActivityContent.includes('val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"'),
+  mainActivityContent.includes(
+    'val originalLang = uri.getQueryParameter("lang")?.takeIf { it.isNotBlank() } ?: "en"',
+  ),
   "MainActivity.kt must provide fallback originalLang ('en') when lang query parameter is missing or blank",
 );
 assert(
@@ -112,7 +114,11 @@ assert(
 console.log("✅ PASS: MainActivity.kt Kotlin bridge and telemetry verified");
 
 // 5b. Simulate executeTimedTextRepetition behavior matching Kotlin implementation
-function simulateExecuteTimedTextRepetition(base: string, targetLang: string, format: string): string {
+function simulateExecuteTimedTextRepetition(
+  base: string,
+  targetLang: string,
+  format: string,
+): string {
   const url = new URL(base);
   const searchParams = new URLSearchParams();
   for (const [key, value] of url.searchParams.entries()) {
@@ -144,7 +150,11 @@ const testA = simulateExecuteTimedTextRepetition(
 const parsedA = new URL(testA);
 assert.strictEqual(parsedA.searchParams.get("lang"), "en", "Test A lang must be 'en'");
 assert.strictEqual(parsedA.searchParams.get("tlang"), "es", "Test A tlang must be 'es'");
-assert.strictEqual(parsedA.searchParams.getAll("lang").length, 1, "Test A lang must not be duplicated");
+assert.strictEqual(
+  parsedA.searchParams.getAll("lang").length,
+  1,
+  "Test A lang must not be duplicated",
+);
 
 // Test case B: Base URL has NO lang parameter, targetLang=es -> should fallback lang=en, tlang=es
 const testB = simulateExecuteTimedTextRepetition(
@@ -165,7 +175,9 @@ const testC = simulateExecuteTimedTextRepetition(
 const parsedC = new URL(testC);
 assert.strictEqual(parsedC.searchParams.get("lang"), "en", "Test C lang must be 'en'");
 assert.strictEqual(parsedC.searchParams.get("tlang"), null, "Test C tlang must not be appended");
-console.log("✅ PASS: executeTimedTextRepetition URL generation simulated and validated across all cases");
+console.log(
+  "✅ PASS: executeTimedTextRepetition URL generation simulated and validated across all cases",
+);
 
 // 6. Verify no hardcoded default subtitle language
 const appSettingsPath = path.join(process.cwd(), "src/utils/appSettings.ts");

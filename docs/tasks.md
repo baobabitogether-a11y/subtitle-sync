@@ -1,5 +1,16 @@
 # Tasks
 
+## Task 45: Accumulative Criteria Subtitles Parser & Inner Group Settings
+
+- [x] **Subtask 45.1: E2E Test Report Links in README.md & Verification**:
+  - Ensure links to Mochawesome, Playwright, and Android Emulator reports in README.md.
+  - Implement and pass dedicated test `scripts/verify-e2e-report-links.ts`.
+- [x] **Subtask 45.2: Accumulative Multi-Select Criteria with Inner Group Settings & BiDi Direction Fix**:
+  - Implement accumulative multi-select criteria in `src/lib/subtitles.ts`.
+  - Add collapsible inner parameter settings for each criteria group in `src/routes/index.tsx`.
+  - Resolve BiDi character direction anomalies in criteria descriptions.
+  - Implement and pass dedicated verification suite `scripts/verify-accumulative-parser.ts`.
+
 ## Task 43: Validate JSON before caching subtitles and implement auto-fallback between YouTube API options (`tlang` vs `lang`)
 
 - [x] **Subtask 43.1: Prevent caching of invalid subtitle responses (ensure answer is valid JSON)**:

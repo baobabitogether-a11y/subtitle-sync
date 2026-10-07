@@ -48,13 +48,21 @@ console.log("✅ PASS: getDebugModeSetting() defaults to false (OFF)");
 // Toggle ON
 setDebugModeSetting(true);
 assert.strictEqual(mockStorage[DEBUG_MODE_STORAGE_KEY], "true");
-assert.strictEqual(getDebugModeSetting(), true, "getDebugModeSetting() must return true when enabled");
+assert.strictEqual(
+  getDebugModeSetting(),
+  true,
+  "getDebugModeSetting() must return true when enabled",
+);
 console.log("✅ PASS: setDebugModeSetting(true) persisted and read correctly");
 
 // Toggle OFF
 setDebugModeSetting(false);
 assert.strictEqual(mockStorage[DEBUG_MODE_STORAGE_KEY], "false");
-assert.strictEqual(getDebugModeSetting(), false, "getDebugModeSetting() must return false when disabled");
+assert.strictEqual(
+  getDebugModeSetting(),
+  false,
+  "getDebugModeSetting() must return false when disabled",
+);
 console.log("✅ PASS: setDebugModeSetting(false) persisted and read correctly");
 
 // 3. Verify src/utils/appSettings.ts exports
@@ -62,7 +70,7 @@ const appSettingsPath = path.join(process.cwd(), "src/utils/appSettings.ts");
 assert(fs.existsSync(appSettingsPath), "appSettings.ts must exist");
 const appSettingsContent = fs.readFileSync(appSettingsPath, "utf8");
 assert(
-  appSettingsContent.includes("export const DEBUG_MODE_STORAGE_KEY = \"yt_debug_mode\""),
+  appSettingsContent.includes('export const DEBUG_MODE_STORAGE_KEY = "yt_debug_mode"'),
   "appSettings.ts must export DEBUG_MODE_STORAGE_KEY",
 );
 assert(
@@ -86,20 +94,18 @@ assert(
 );
 
 assert(
-  indexContent.includes("id=\"debug-mode-toggle\"") ||
-    indexContent.includes("data-testid=\"debug-mode-toggle\""),
+  indexContent.includes('id="debug-mode-toggle"') ||
+    indexContent.includes('data-testid="debug-mode-toggle"'),
   "index.tsx must render debug-mode-toggle checkbox input",
 );
 
 assert(
-  indexContent.includes("debugMode &&") &&
-    indexContent.includes("open-network-inspector-button"),
+  indexContent.includes("debugMode &&") && indexContent.includes("open-network-inspector-button"),
   "index.tsx must conditionally hide open-network-inspector-button when debugMode is false",
 );
 
 assert(
-  indexContent.includes("debugMode &&") &&
-    indexContent.includes("<NetworkRequestsInspector"),
+  indexContent.includes("debugMode &&") && indexContent.includes("<NetworkRequestsInspector"),
   "index.tsx must conditionally suppress NetworkRequestsInspector modal rendering when debugMode is false",
 );
 
