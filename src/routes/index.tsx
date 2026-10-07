@@ -345,7 +345,7 @@ function Index() {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
         let raw = "";
         let json: Json3 | null = null;
-        let tracker = trackNetworkRequest(activeUrl, "GET", "native_bridge");
+        let tracker: ReturnType<typeof trackNetworkRequest> | null = null;
         try {
           for (const mode of subtitleRequestModeOrder(requestModeRef.current)) {
             const requestUrl =
@@ -356,10 +356,10 @@ function Index() {
             raw = shell.fetchTranslatedCaptionsWithUrl(requestUrl, code, "json3");
             json = parseJson3(raw);
             if (json) break;
-            tracker.fail(`${mode} request returned no captions`);
+            tracker.fail(raw ? `${mode}: invalid caption response` : `${mode}: empty caption response`);
           }
           if (json) {
-            tracker.complete(200, raw);
+            tracker?.complete(200, raw);
             next[code] = json;
             startSubtitlesTransition(() => {
               setTracks((prev) => ({ ...prev, [code]: json! }));
