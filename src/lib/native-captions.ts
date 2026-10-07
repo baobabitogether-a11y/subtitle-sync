@@ -145,3 +145,20 @@ export function buildTranslatedCaptionUrl(
     return baseUrl;
   }
 }
+
+/** Request type "lang": replace the lang query with the desired language (no tlang). */
+export function buildLangReplacedCaptionUrl(
+  baseUrl: string,
+  language: string,
+  format = "json3",
+): string {
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set("lang", language);
+    url.searchParams.delete("tlang");
+    if (format) url.searchParams.set("fmt", format);
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}

@@ -25,6 +25,7 @@ import {
   type Strategy,
 } from "@/lib/subtitles";
 import {
+  buildLangReplacedCaptionUrl,
   buildTranslatedCaptionUrl,
   decodeInterceptedCaption,
   nativeShell,
@@ -360,19 +361,17 @@ function Index() {
           }
           if (json) {
             tracker?.complete(200, raw);
-            next[code] = json;
+            const loaded = json;
+            next[code] = loaded;
             startSubtitlesTransition(() => {
-              setTracks((prev) => ({ ...prev, [code]: json! }));
+              setTracks((prev) => ({ ...prev, [code]: loaded }));
               setShown((prev) => (prev.includes(code) ? prev : [...prev, code]));
             });
           } else {
-            tracker.fail(
-              raw ? "Invalid or non-JSON3/XML caption response" : "Empty caption response",
-            );
             failed.push(code);
           }
         } catch (err) {
-          tracker.fail(String(err));
+          tracker?.fail(String(err));
           failed.push(code);
         }
       }
