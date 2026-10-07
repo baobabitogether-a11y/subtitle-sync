@@ -48,6 +48,19 @@ import {
 } from "@/utils/audioTrackManager";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
+import { createIframePlayer } from "@/lib/iframe-player";
+import {
+  getPlayerKind,
+  getSectionOrder,
+  getSubtitleRequestMode,
+  setPlayerKind as savePlayerKind,
+  setSectionOrder as saveSectionOrder,
+  setSubtitleRequestMode as saveSubtitleRequestMode,
+  subtitleRequestModeOrder,
+  type PlayerKind,
+  type SectionOrder,
+  type SubtitleRequestMode,
+} from "@/lib/playback-preferences";
 import { ApkReleaseModal } from "@/components/ApkReleaseModal";
 import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
 import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
@@ -290,6 +303,9 @@ function Index() {
   // Single attempt per language per observed URL (no automatic retries, like Youtubenet6)
   const attemptedRef = useRef<Set<string>>(new Set());
   const [failedLangs, setFailedLangs] = useState<string[]>([]);
+  const [requestMode, setRequestModeState] = useState<SubtitleRequestMode>(getSubtitleRequestMode);
+  const requestModeRef = useRef(requestMode);
+  requestModeRef.current = requestMode;
 
   const [networkInspectorOpen, setNetworkInspectorOpen] = useState(false);
   const [apkModalOpen, setApkModalOpen] = useState(false);
@@ -327,14 +343,20 @@ function Index() {
       const next: Record<string, Json3> = {};
       for (const code of needed) {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        const translatedUrl = buildTranslatedCaptionUrl(activeUrl, code, "json3");
-        const tracker = trackNetworkRequest(translatedUrl, "GET", "native_bridge");
+        let raw = "";
+        let json: Json3 | null = null;
+        let tracker = trackNetworkRequest(activeUrl, "GET", "native_bridge");
         try {
-          let raw = shell.fetchTranslatedCaptionsWithUrl(translatedUrl, code, "json3");
-          let json = parseJson3(raw);
-          if (!json && shell.fetchTranslatedCaptions) {
-            raw = shell.fetchTranslatedCaptions(code, "json3");
+          for (const mode of subtitleRequestModeOrder(requestModeRef.current)) {
+            const requestUrl =
+              mode === "lang"
+                ? buildLangReplacedCaptionUrl(activeUrl, code, "json3")
+                : buildTranslatedCaptionUrl(activeUrl, code, "json3");
+            tracker = trackNetworkRequest(requestUrl, "GET", "native_bridge");
+            raw = shell.fetchTranslatedCaptionsWithUrl(requestUrl, code, "json3");
             json = parseJson3(raw);
+            if (json) break;
+            tracker.fail(`${mode} request returned no captions`);
           }
           if (json) {
             tracker.complete(200, raw);
@@ -399,6 +421,8 @@ function Index() {
   const themeWasSelectedRef = useRef(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [pauseMode, setPauseMode] = useState(true);
+  const [sectionOrder, setSectionOrderState] = useState<SectionOrder>(getSectionOrder);
+  const [playerKind, setPlayerKindState] = useState<PlayerKind>(getPlayerKind);
   const [audioTrackMode, setAudioTrackModeState] = useState(false);
   const onAudioTrackModeChange = (enabled: boolean) => {
     setAudioTrackModeState(enabled);
