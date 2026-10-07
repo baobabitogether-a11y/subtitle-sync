@@ -1,12 +1,27 @@
 # Tasks
 
-## Task 47: Fix README.md Broken Links for Validated Reports
+## Task 48: Fix APK Version Collision, Update Script Robustness & In-App Version Display with Releases Link
 
-- [ ] **Subtask 47.1: Synchronize README.md links and badges with validated live reports (`mostuf2556/Youtubenet6`)**:
-  - Update `README.md` report and demo links to point to the validated live reports (`https://mostuf2556.github.io/Youtubenet6/` and associated Mochawesome, Playwright, and Android emulator endpoints).
-  - Update `scripts/update-readme.mjs` default target repository to `Youtubenet6`.
-  - Update `scripts/verify-readme-links.ts` and `scripts/verify-e2e-report-links.ts` to validate the live `Youtubenet6` report URLs.
-  - Run all link and documentation verification tests.
+- [ ] **Subtask 48.1: Robust APK Installation & Version Code Handling in Update Script**:
+  - Update `update.apk.sh` to handle package collisions (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, `INSTALL_FAILED_VERSION_DOWNGRADE`, `INSTALL_FAILED_CONFLICTING_PROVIDER`), performing deep purge (`pm uninstall`, `pm uninstall --user 0`, `pm clear`) and retrying cleanly.
+  - Ensure `package.json` defines a standard `"version"` field and `release-apk.yml` correctly propagates version code and version name.
+  - In `README.md`, ensure the APK section links to the all releases page (`https://github.com/mostuf2556/subtitle-sync/releases`).
+- [ ] **Subtask 48.2: In-App Version Display with Link to All Releases Page**:
+  - Display the application version in the UI.
+  - Link the version directly to the GitHub All Releases page (`https://github.com/mostuf2556/subtitle-sync/releases`).
+  - Add dedicated test `scripts/verify-apk-version-and-releases.ts` and verify.
+
+## Task 47: Fix README.md Links, CI Workflows & GitHub Pages Staging for Forked Repositories
+
+- [x] **Subtask 47.1: Synchronize README.md Links & Static Fallbacks for Current and Forked Repositories**:
+  - Ensure all badge URLs, CLI install scripts, GitHub Pages web demo, and E2E report links in `README.md` cleanly resolve to the current repository identity (`subtitle-sync`).
+  - Provide static `public/android-emulator-report.html` asset so GitHub Pages never serves a 404 for the emulator report.
+  - Update `scripts/update-readme.mjs` and `.github/workflows/update-readme.yml` for zero-touch fork sync.
+  - Add dedicated test `scripts/verify-fork-readme-links.ts` and verify.
+- [ ] **Subtask 47.2: Ensure GitHub Actions E2E Tests Pass and Deploy to GitHub Pages on Forked Repos**:
+  - Add `push: branches: [main, master]` triggers to `web.yml` and `emulation.yml` in addition to `workflow_run` so forks automatically run CI and publish to `gh-pages`.
+  - Verify `web.yml`, `deploy-demo.yml`, and `emulation.yml` deploy all reports (`mochawesome.html`, `playwright/`, `android-emulator-report.html`, `screenshots/`) to `gh-pages` with `keep_files: true`.
+  - Run all E2E test suites locally and verify app compilation and linting.
 
 ## Task 46: Fix E2E Report Generation, CI Workflows & GitHub Pages Staging
 
