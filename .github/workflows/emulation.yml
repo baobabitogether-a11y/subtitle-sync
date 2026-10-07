@@ -1,6 +1,10 @@
 name: Android Emulator E2E Tests
 
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_run:
     workflows: ["Build & Release Android APK"]
     types:

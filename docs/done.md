@@ -1,5 +1,15 @@
 # Done tasks
 
+## Task 47: Fix README.md Links, CI Workflows & GitHub Pages Staging for Forked Repositories
+
+### Subtask 47.1: Synchronize README.md Links & Static Fallbacks for Current and Forked Repositories
+
+- Created `public/android-emulator-report.html` and unignored it in `.gitignore` so that when `npm run build` runs, Vite automatically places `android-emulator-report.html` into `dist/`. This ensures GitHub Pages never serves a 404 for the emulator report even before the macOS emulator runner executes.
+- Updated `.github/workflows/update-readme.yml` by removing path filters, ensuring that any push to `main` or `master` on a fork automatically triggers identity synchronization for `README.md` to match the fork's owner and repo.
+- Verified `scripts/update-readme.mjs` cleanly rewrites badge links, workflow links, raw curl update commands, and GitHub Pages demo & report URLs when switching between owners and repositories.
+- Created dedicated verification suite `scripts/verify-fork-readme-links.ts` (`npm run test:fork-readme-links`).
+- Registered `test:fork-readme-links` in `package.json` and documented in `docs/files.md`.
+
 ## Task 46: Fix E2E Report Generation, CI Workflows & GitHub Pages Staging
 
 ### Subtask 46.1: Fix Playwright E2E Locator Ambiguity

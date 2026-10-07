@@ -1,6 +1,10 @@
 name: Web E2E Tests
 
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_run:
     workflows: ["Publish Web Demo to GitHub Pages"]
     types:

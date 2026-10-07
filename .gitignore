@@ -61,6 +61,7 @@ cypress/screenshots/
 playwright-report/
 test-results/
 android-emulator-report.html
+!public/android-emulator-report.html
 gh-pages-staging/
 android-emulator-screenshot.png
 android-emulator-logcat.txt

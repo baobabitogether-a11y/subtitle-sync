@@ -60,6 +60,8 @@
     "test:subtitle-api-fallback": "tsx scripts/verify-subtitle-api-fallback.ts",
     "test:playwright-locators": "tsx scripts/verify-playwright-locators.ts",
     "test:hotfix": "tsx scripts/verify-hotfix-links-and-actions.ts",
+    "test:fork-readme-links": "tsx scripts/verify-fork-readme-links.ts",
+    "test:fork-ci-workflows": "tsx scripts/verify-fork-ci-workflows.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {
