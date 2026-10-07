@@ -2456,6 +2456,7 @@ function AccordionSection({
 }) {
   return (
     <details
+      data-panel={title.toLowerCase().replace(/\s+/g, "-")}
       open={open}
       onToggle={(event) => onOpenChange(event.currentTarget.open)}
       className={`overflow-hidden rounded-lg border border-border bg-card text-sm ${wide ? "lg:col-span-2" : ""}`}

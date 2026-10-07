@@ -56,6 +56,32 @@ jobs:
           echo "⚙️ Compiling latest web application..."
           npm run build
 
+      - name: Stage E2E Reports into Web Distribution
+        run: |
+          # Fetch and preserve reports from gh-pages branch if available
+          git fetch origin gh-pages:gh-pages 2>/dev/null || true
+          if git rev-parse --verify gh-pages >/dev/null 2>&1; then
+            echo "Preserving existing E2E reports from gh-pages branch..."
+            git checkout gh-pages -- mochawesome.html 2>/dev/null || true
+            git checkout gh-pages -- playwright 2>/dev/null || true
+            git checkout gh-pages -- android-emulator-report.html 2>/dev/null || true
+            git checkout gh-pages -- screenshots 2>/dev/null || true
+
+            [ -f mochawesome.html ] && cp mochawesome.html dist/mochawesome.html && echo "Preserved mochawesome.html"
+            [ -d playwright ] && cp -r playwright dist/ && echo "Preserved playwright report"
+            [ -f android-emulator-report.html ] && cp android-emulator-report.html dist/android-emulator-report.html && echo "Preserved android-emulator-report.html"
+            [ -d screenshots ] && cp -r screenshots dist/ && echo "Preserved screenshots directory"
+          fi
+          # Also stage any locally generated test reports
+          if [ -d "cypress/reports" ]; then
+            cp -r cypress/reports/* dist/ 2>/dev/null || true
+            echo "Staged local cypress/reports to dist/"
+          fi
+          if [ -d "gh-pages-staging" ]; then
+            cp -r gh-pages-staging/* dist/ 2>/dev/null || true
+            echo "Staged local gh-pages-staging to dist/"
+          fi
+
       - name: Deploy Web Demo to GitHub Pages (gh-pages branch)
         if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
         uses: peaceiris/actions-gh-pages@v4

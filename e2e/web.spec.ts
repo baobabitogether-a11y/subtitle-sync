@@ -11,7 +11,9 @@ test.describe("Parallel Subtitles web app", () => {
     const subtitleTable = page.locator("details").filter({ hasText: "Parallel subtitles" });
     await expect(subtitleTable.locator("tbody tr").first()).toBeVisible();
 
-    const languagesPanel = page.locator("details").filter({ hasText: "Languages" });
+    const languagesPanel = page
+      .locator("details")
+      .filter({ has: page.locator("summary", { hasText: "Languages" }) });
     await expect(languagesPanel.locator("table")).toBeVisible();
     await expect(languagesPanel.locator("table tbody tr")).toHaveCount(6);
 
@@ -25,7 +27,9 @@ test.describe("Parallel Subtitles web app", () => {
 
     await darkButton.click();
     await expect(darkButton).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("details").filter({ hasText: "Languages" })).toBeVisible();
+    await expect(
+      page.locator("details").filter({ has: page.locator("summary", { hasText: "Languages" }) }),
+    ).toBeVisible();
 
     await themeControls.getByRole("button", { name: "light", exact: true }).click();
     await expect(page.locator("html")).not.toHaveClass(/dark/);
@@ -93,7 +97,9 @@ test.describe("Parallel Subtitles web app", () => {
 
     expect(hydrationErrors).toEqual([]);
 
-    const languagesPanel = page.locator("details").filter({ hasText: "Languages" });
+    const languagesPanel = page
+      .locator("details")
+      .filter({ has: page.locator("summary", { hasText: "Languages" }) });
     await expect(languagesPanel).toBeVisible();
     await expect(languagesPanel.locator("#target-language-select")).toBeVisible();
   });

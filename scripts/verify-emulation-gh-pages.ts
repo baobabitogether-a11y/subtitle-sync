@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import assert from "node:assert";
+import jsYaml from "js-yaml";
 
 console.log("====================================================");
 console.log("🧪 Starting Emulation GitHub Pages Publication Test");
@@ -99,6 +100,10 @@ assert(
   "emulation.yml must contain deployment step to gh-pages",
 );
 assert(
+  workflowContent.includes("if: always() &&"),
+  "emulation.yml deployment step must include if: always() to guarantee report publishing on triage/failure",
+);
+assert(
   workflowContent.includes("peaceiris/actions-gh-pages@v4"),
   "emulation.yml deployment step must use peaceiris/actions-gh-pages@v4",
 );
@@ -115,6 +120,14 @@ assert(
   "emulation.yml deployment must deploy from ./gh-pages-staging",
 );
 console.log("✅ PASS: emulation.yml configures gh-pages deployment with keep_files: true");
+
+// Assert YAML validity via js-yaml
+let parsedWorkflow: unknown;
+assert.doesNotThrow(() => {
+  parsedWorkflow = jsYaml.load(workflowContent);
+}, "emulation.yml must be valid YAML parseable by js-yaml");
+assert(parsedWorkflow && typeof parsedWorkflow === "object", "emulation.yml must parse to an object");
+console.log("✅ PASS: emulation.yml syntax is 100% valid YAML verified by js-yaml");
 
 // 2. Verify .gitignore ignores ephemeral emulator artifacts
 const gitignorePath = path.join(rootDir, ".gitignore");

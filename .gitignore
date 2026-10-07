@@ -65,6 +65,9 @@ gh-pages-staging/
 android-emulator-screenshot.png
 android-emulator-logcat.txt
 screenshots/
+!public/screenshots/
+!public/screenshots/*
+!public/assets/*
 
 # Editor directories and files
 .vscode/*
