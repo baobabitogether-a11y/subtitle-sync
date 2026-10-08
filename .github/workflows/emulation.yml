@@ -278,7 +278,7 @@ jobs:
           echo "Generated gh-pages-staging/android-emulator-report.html"
 
       - name: Deploy Android Emulator Artifacts to GitHub Pages (gh-pages branch)
-        if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master'))) && !cancelled()
         uses: peaceiris/actions-gh-pages@v4
         continue-on-error: true
         with:

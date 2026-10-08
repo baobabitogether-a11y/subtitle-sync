@@ -29,6 +29,14 @@
 - Added direct link to GitHub all releases page in `README.md`.
 - Created dedicated verification suite `scripts/verify-apk-installation-robustness.ts` and registered in `package.json`.
 
+### Subtask 48.2: In-App Version Display with Link to All Releases Page
+
+- Defined canonical constants `APP_VERSION = "1.0.16"` and `ALL_RELEASES_URL = "https://github.com/mostuf2556/subtitle-sync/releases"` in `src/config/appConfig.ts` and aligned `CURRENT_APK_VERSION = "v1.0.16"` in `src/utils/apkUpdater.ts`.
+- Added header version badge `v1.0.16` (`data-testid="header-app-version-badge"`) linking to GitHub all releases page.
+- Added footer link `All Releases (v1.0.16)` (`data-testid="footer-all-releases-link"`) linking to GitHub all releases page.
+- Updated `ApkReleaseModal` with direct link to all releases (`data-testid="modal-all-releases-link"`).
+- Created dedicated verification suite `scripts/verify-apk-version-and-releases.ts` and registered in `package.json`.
+
 ## Task 49: Multi-Instance Video Elements with Independent Audio-Track Configuration & Horizontal Swiper Synchronization
 
 ### Subtask 49.1: Multi-Instance Video Player State & Independent Configuration Architecture

@@ -1,10 +1,10 @@
 # Active Sub-task
 
-## Subtask 48.2: In-App Version Display with Link to All Releases Page
+## Subtask 47.2: Ensure GitHub Actions E2E Tests Pass and Deploy to GitHub Pages on Forked Repos
 
-- Display the application version in the UI.
-- Link the version directly to the GitHub All Releases page (`https://github.com/mostuf2556/subtitle-sync/releases`).
-- Add dedicated test `scripts/verify-apk-version-and-releases.ts` and verify.
+- Add `push: branches: [main, master]` triggers to `web.yml` and `emulation.yml` in addition to `workflow_run` so forks automatically run CI and publish to `gh-pages`.
+- Verify `web.yml`, `deploy-demo.yml`, and `emulation.yml` deploy all reports (`mochawesome.html`, `playwright/`, `android-emulator-report.html`, `screenshots/`) to `gh-pages` with `keep_files: true`.
+- Run all E2E test suites locally and verify app compilation and linting.
 
 
 

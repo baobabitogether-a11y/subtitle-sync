@@ -83,7 +83,7 @@ jobs:
           fi
 
       - name: Deploy Web Demo to GitHub Pages (gh-pages branch)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master'))) && !cancelled()
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -92,12 +92,12 @@ jobs:
           keep_files: true
 
       - name: Setup GitHub Pages (Native Actions Mode)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master'))) && !cancelled()
         uses: actions/configure-pages@v5
         continue-on-error: true
 
       - name: Upload GitHub Pages Artifact (Native Actions Mode)
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master'))) && !cancelled()
         uses: actions/upload-pages-artifact@v3
         continue-on-error: true
         with:
@@ -105,6 +105,6 @@ jobs:
 
       - name: Deploy to GitHub Pages (Native Actions Mode)
         id: deployment
-        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'main')) && !cancelled()
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch' || (github.event_name == 'workflow_run' && (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'master'))) && !cancelled()
         uses: actions/deploy-pages@v4
         continue-on-error: true
