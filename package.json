@@ -63,6 +63,8 @@
     "test:fork-readme-links": "tsx scripts/verify-fork-readme-links.ts",
     "test:fork-ci-workflows": "tsx scripts/verify-fork-ci-workflows.ts",
     "test:tts-ratio": "tsx scripts/verify-tts-subtitles-ratio.ts",
+    "test:multi-video-player": "tsx scripts/verify-multi-video-player-state.ts",
+    "test:video-instances-swiper": "tsx scripts/verify-video-instances-swiper.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {

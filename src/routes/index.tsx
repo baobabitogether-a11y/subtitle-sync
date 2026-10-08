@@ -58,6 +58,13 @@ import {
   repeatSegmentWithAudioTrack,
 } from "@/utils/audioTrackManager";
 import { deduplicateVoices, getLanguageVoices, getUniqueVoiceKey } from "@/utils/speechVoiceUtils";
+import {
+  computeVideoInstances,
+  multiVideoPlayerRegistry,
+  type VideoInstanceConfig,
+  type YTPlayerLike,
+} from "@/utils/multiVideoPlayerManager";
+import { VideoInstancesSwiper } from "@/components/VideoInstancesSwiper";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 import { createIframePlayer } from "@/lib/iframe-player";
@@ -597,6 +604,17 @@ function Index() {
   const [audioTrackMode, setAudioTrackModeState] = useState(() =>
     typeof window !== "undefined" ? getAudioTrackMode() : false,
   );
+  const [activeSwiperIndex, setActiveSwiperIndex] = useState(0);
+  const secondaryPlayerHosts = useRef<Map<string, HTMLDivElement>>(new Map());
+  const secondaryPlayers = useRef<Map<string, YTPlayerLike>>(new Map());
+
+  const videoInstances = useMemo(() => {
+    if (!audioTrackMode) {
+      return computeVideoInstances([], LANGS, videoId);
+    }
+    return computeVideoInstances(spoken, LANGS, videoId);
+  }, [audioTrackMode, spoken, videoId]);
+
   const onAudioTrackModeChange = (enabled: boolean) => {
     setAudioTrackModeState(enabled);
     setAudioTrackMode(enabled);
@@ -1058,6 +1076,9 @@ function Index() {
       playerEl.current.appendChild(host);
       if (playerKind === "iframe") {
         player.current = createIframePlayer(host, videoId, { autoplay: isAndroid });
+        if (player.current) {
+          multiVideoPlayerRegistry.register("primary", player.current);
+        }
         return;
       }
       if (!window.YT) return;
@@ -1069,7 +1090,17 @@ function Index() {
           cc_load_policy: isAndroid ? 1 : 0,
           playsinline: 1,
         },
+        events: {
+          onReady: () => {
+            if (player.current) {
+              multiVideoPlayerRegistry.register("primary", player.current);
+            }
+          },
+        },
       });
+      if (player.current) {
+        multiVideoPlayerRegistry.register("primary", player.current);
+      }
     };
     if (playerKind === "iframe" || window.YT?.Player) init();
     else {
@@ -1218,10 +1249,64 @@ function Index() {
     return () => {
       clearInterval(iv);
       cancelSpeech();
+      multiVideoPlayerRegistry.unregister("primary");
       player.current?.destroy?.();
       player.current = null;
     };
   }, [videoId, isAndroid, playerKind]);
+
+  // Mount and manage dedicated video player instances for each language with speak/audio enabled
+  useEffect(() => {
+    if (!audioTrackMode) return;
+    for (const inst of videoInstances) {
+      if (inst.isPrimary) continue;
+      const host = secondaryPlayerHosts.current.get(inst.id);
+      if (host && !secondaryPlayers.current.has(inst.id)) {
+        host.innerHTML = "";
+        const child = document.createElement("div");
+        child.className = "h-full w-full";
+        host.appendChild(child);
+        let secPlayer: YTPlayerLike | null = null;
+        if (playerKind === "iframe") {
+          secPlayer = createIframePlayer(child, videoId, { autoplay: false });
+        } else if (window.YT?.Player) {
+          secPlayer = new window.YT.Player(child, {
+            videoId,
+            playerVars: {
+              rel: 0,
+              autoplay: 0,
+              cc_load_policy: 0,
+              playsinline: 1,
+            },
+            events: {
+              onReady: () => {
+                try {
+                  secPlayer.mute?.();
+                } catch {
+                  // ignore
+                }
+              },
+            },
+          });
+        }
+        if (secPlayer) {
+          secondaryPlayers.current.set(inst.id, secPlayer);
+          multiVideoPlayerRegistry.register(inst.id, secPlayer);
+        }
+      }
+    }
+  }, [audioTrackMode, videoInstances, videoId, playerKind]);
+
+  // Keep swiper active index synced to active speaking language when repeating with audio track
+  useEffect(() => {
+    if (!audioTrackMode) return;
+    if (speakingLang) {
+      const idx = videoInstances.findIndex((inst) => inst.languageCode === speakingLang);
+      if (idx >= 0) setActiveSwiperIndex(idx);
+    } else {
+      setActiveSwiperIndex(0);
+    }
+  }, [speakingLang, audioTrackMode, videoInstances]);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -1462,30 +1547,57 @@ function Index() {
                       <Button type="submit">Load video</Button>
                     </form>
                   )}
-                  <div className="relative aspect-video overflow-hidden bg-muted">
-                    <div ref={playerEl} className="h-full w-full" />
-                    {showVideoSubtitles && speakingLang && speakingRow >= 0 && (
-                      <div
-                        className="pointer-events-none absolute inset-x-3 top-3 text-center"
-                        aria-live="polite"
-                      >
-                        <p
-                          dir={RTL.has(speakingLang) ? "rtl" : "ltr"}
-                          className="inline-block max-w-[92%] rounded-md bg-foreground/90 px-3 py-2 text-base font-medium text-background shadow-lg md:text-lg"
-                        >
-                          <HighlightedSubtitle
-                            text={rows[speakingRow]?.texts[speakingLang] ?? ""}
-                            progress={
-                              speechProgress?.row === speakingRow &&
-                              speechProgress.lang === speakingLang
-                                ? speechProgress
-                                : null
+                  <VideoInstancesSwiper
+                    instances={videoInstances}
+                    activeIndex={activeSwiperIndex}
+                    onActiveIndexChange={setActiveSwiperIndex}
+                    activePlayingId={
+                      speakingLang && audioTrackMode ? `lang_${speakingLang}` : "primary"
+                    }
+                    videoId={videoId}
+                    renderPlayerContainer={(instance) => {
+                      if (instance.isPrimary) {
+                        return (
+                          <div className="relative h-full w-full">
+                            <div ref={playerEl} className="h-full w-full" />
+                            {showVideoSubtitles && speakingLang && speakingRow >= 0 && (
+                              <div
+                                className="pointer-events-none absolute inset-x-3 top-3 text-center"
+                                aria-live="polite"
+                              >
+                                <p
+                                  dir={RTL.has(speakingLang) ? "rtl" : "ltr"}
+                                  className="inline-block max-w-[92%] rounded-md bg-foreground/90 px-3 py-2 text-base font-medium text-background shadow-lg md:text-lg"
+                                >
+                                  <HighlightedSubtitle
+                                    text={rows[speakingRow]?.texts[speakingLang] ?? ""}
+                                    progress={
+                                      speechProgress?.row === speakingRow &&
+                                      speechProgress.lang === speakingLang
+                                        ? speechProgress
+                                        : null
+                                    }
+                                  />
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div
+                          ref={(el) => {
+                            if (el) {
+                              secondaryPlayerHosts.current.set(instance.id, el);
+                            } else {
+                              secondaryPlayerHosts.current.delete(instance.id);
                             }
-                          />
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                          }}
+                          className="h-full w-full"
+                        />
+                      );
+                    }}
+                  />
                   {isAndroid && (
                     <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
                       {captionStatus}

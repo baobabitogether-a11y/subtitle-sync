@@ -1,5 +1,14 @@
 # Done tasks
 
+## Task 49: Multi-Instance Video Elements with Independent Audio-Track Configuration & Horizontal Swiper Synchronization
+
+### Subtask 49.1: Multi-Instance Video Player State & Independent Configuration Architecture
+
+- Built `src/utils/multiVideoPlayerManager.ts` to manage multiple video player instances mapped by language code: primary video plus dedicated instances for each language with speak/audio enabled.
+- Implemented isolated local storage persistence (`yt_multi_instance_{videoId}_configs`) and independent state management per video element instance (volume, mute, manual audio track configured status, label) so setting audio track or volume in one instance never leaks to others.
+- Implemented `MultiVideoPlayerRegistry` for multi-instance coordination (`pauseAllExcept`, `unmuteOnly`, `syncSecondaryPlayers`, `register`, `unregister`).
+- Created dedicated verification suite `scripts/verify-multi-video-player-state.ts`.
+
 ## Task 47: Fix README.md Links, CI Workflows & GitHub Pages Staging for Forked Repositories
 
 ### Subtask 47.1: Synchronize README.md Links & Static Fallbacks for Current and Forked Repositories

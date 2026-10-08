@@ -1,5 +1,22 @@
 # Tasks
 
+## Task 49: Multi-Instance Video Elements with Independent Audio-Track Configuration & Horizontal Swiper Synchronization
+
+- [x] **Subtask 49.1: Multi-Instance Video Player State & Independent Configuration Architecture**:
+  - Build `src/utils/multiVideoPlayerManager.ts` to manage multiple video player instances mapped by language code (primary video + one instance for each language with speak/audio enabled).
+  - Provide isolated storage and state management per video instance (volume, mute, active track setup, language association) so configuration in one player element never affects others.
+  - Implement dedicated verification suite `scripts/verify-multi-video-player-state.ts`.
+- [ ] **Subtask 49.2: Horizontal Swiper Carousel Component for Multi-Video Elements**:
+  - Create `src/components/VideoInstancesSwiper.tsx` providing a smooth horizontal swipeable carousel for mobile touch and desktop navigation.
+  - Include slide indicators, previous/next controls, language headers (e.g. `Primary (en)`, `Audio Track (es)`, `Audio Track (he)`), active playback badge, and user setup guidance (prompting user to configure the native YouTube audio track for that specific language instance).
+  - Integrate the swiper into the player panel in `src/routes/index.tsx`.
+  - Implement dedicated verification suite `scripts/verify-video-instances-swiper.ts`.
+- [ ] **Subtask 49.3: Multi-Video Pause/Resume Audio-Track Synchronization Loop**:
+  - Update the playback loop in `src/routes/index.tsx` for `audioTrackMode`: switch between pause/resume across matched video elements for each spoken language during subtitle cue intervals instead of TTS synthesis.
+  - Ensure accurate seek-to-segment, unmuting the speaking instance while keeping other instances paused, auto-swiping to the active player or indicating active status, and smoothly resuming the primary instance.
+  - Support smooth fallback to Web Speech TTS if audio track mode is disabled.
+  - Implement dedicated verification suite `scripts/verify-multi-video-audio-sync.ts`.
+
 ## Task 48: Fix APK Version Collision, Update Script Robustness & In-App Version Display with Releases Link
 
 - [ ] **Subtask 48.1: Robust APK Installation & Version Code Handling in Update Script**:
@@ -106,4 +123,3 @@
 ## Task 44 (Hotfix): Verify working links for E2E testing and live web demo & fix GitHub Actions
 
 - [x] **Subtask 44.1: Fix GitHub Actions workflows and verify E2E testing & demo links**: Restore authentic emulator screenshot in `public/` and `dist/`, remove stray `x` from `README.md`, fix router basepath on `github.io`, add lazy setting initialization, and add dedicated verification test.
- 
