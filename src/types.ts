@@ -13,6 +13,7 @@ export interface LibraryVideoItem {
   timestamp: number;
   targetLanguages?: TargetLanguage[];
   ttsRates?: Record<string, number>;
+  ttsRatios?: Record<string, number>; // langCode -> ratio (1 in N sentences)
   playOrder?: SyncPlayOrder;
   sourceLang?: string;
   activeTargetLang?: string;
@@ -59,6 +60,7 @@ export interface TargetLanguage {
   code: string;
   name: string;
   ttsRate: number; // 0.5 to 2.0
+  ttsRatio?: number; // 1 to N, e.g. 1 (all subtitles), 2 (every 2nd), etc.
   voice?: string; // voice name or voiceURI
   enabled: boolean;
   color?: string;

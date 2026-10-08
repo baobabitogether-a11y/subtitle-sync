@@ -62,6 +62,7 @@
     "test:hotfix": "tsx scripts/verify-hotfix-links-and-actions.ts",
     "test:fork-readme-links": "tsx scripts/verify-fork-readme-links.ts",
     "test:fork-ci-workflows": "tsx scripts/verify-fork-ci-workflows.ts",
+    "test:tts-ratio": "tsx scripts/verify-tts-subtitles-ratio.ts",
     "test:android": "bash scripts/run-android-e2e.sh"
   },
   "overrides": {
