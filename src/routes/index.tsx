@@ -49,12 +49,22 @@ import {
   setAutoScrollSetting,
   getDebugModeSetting,
   setDebugModeSetting,
+  loadVideoSettings,
+  saveVideoSettings,
 } from "@/utils/appSettings";
 import {
   getAudioTrackMode,
   setAudioTrackMode,
   repeatSegmentWithAudioTrack,
 } from "@/utils/audioTrackManager";
+import { deduplicateVoices, getLanguageVoices, getUniqueVoiceKey } from "@/utils/speechVoiceUtils";
+import {
+  computeVideoInstances,
+  multiVideoPlayerRegistry,
+  type VideoInstanceConfig,
+  type YTPlayerLike,
+} from "@/utils/multiVideoPlayerManager";
+import { VideoInstancesSwiper } from "@/components/VideoInstancesSwiper";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 import { createIframePlayer } from "@/lib/iframe-player";
@@ -62,9 +72,13 @@ import {
   getPlayerKind,
   getSectionOrder,
   getSubtitleRequestMode,
+  getTtsRatiosPreference,
+  isSubtitleInstanceEligibleForTTS,
+  shouldHighlightSentenceForTTS,
   setPlayerKind as savePlayerKind,
   setSectionOrder as saveSectionOrder,
   setSubtitleRequestMode as saveSubtitleRequestMode,
+  setTtsRatioPreference as saveTtsRatioPreference,
   subtitleRequestModeOrder,
   type PlayerKind,
   type SectionOrder,
@@ -136,6 +150,10 @@ const PANELS: { id: PanelId; title: string }[] = [
 ];
 
 function cancelSpeech() {
+  if (typeof window !== "undefined") {
+    (window as Window & { _activeUtterance?: SpeechSynthesisUtterance | null })._activeUtterance =
+      null;
+  }
   if (typeof window !== "undefined" && window.AndroidNativeShell?.stopSpeaking) {
     try {
       window.AndroidNativeShell.stopSpeaking();
@@ -229,10 +247,24 @@ function speak(
           end: event.charIndex + wordLength,
         });
       };
-      u.onend = u.onerror = () => {
+      let resolved = false;
+      const done = () => {
+        if (resolved) return;
+        resolved = true;
+        if (typeof window !== "undefined") {
+          (
+            window as Window & { _activeUtterance?: SpeechSynthesisUtterance | null }
+          )._activeUtterance = null;
+        }
         onProgress(null);
         res();
       };
+      u.onend = u.onerror = done;
+      if (typeof window !== "undefined") {
+        (
+          window as Window & { _activeUtterance?: SpeechSynthesisUtterance | null }
+        )._activeUtterance = u;
+      }
       window.speechSynthesis.speak(u);
     } catch (e) {
       console.warn("Speech synthesis error:", e);
@@ -545,6 +577,22 @@ function Index() {
   const [rates, setRates] = useState<Record<string, number>>(() =>
     Object.fromEntries(LANGS.map((lang) => [lang.code, 1])),
   );
+  const [ttsRatios, setTtsRatios] = useState<Record<string, number>>(() => {
+    const saved = getTtsRatiosPreference();
+    const defaults = Object.fromEntries(LANGS.map((lang) => [lang.code, 1]));
+    return { ...defaults, ...saved };
+  });
+
+  useEffect(() => {
+    if (!videoId) return;
+    const settings = loadVideoSettings(videoId);
+    if (settings?.ttsRatios) {
+      setTtsRatios((curr) => ({
+        ...curr,
+        ...settings.ttsRatios,
+      }));
+    }
+  }, [videoId]);
   const [voiceSelections, setVoiceSelections] = useState<Record<string, string>>({});
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [theme, setTheme] = useState<Theme>("light");
@@ -556,6 +604,17 @@ function Index() {
   const [audioTrackMode, setAudioTrackModeState] = useState(() =>
     typeof window !== "undefined" ? getAudioTrackMode() : false,
   );
+  const [activeSwiperIndex, setActiveSwiperIndex] = useState(0);
+  const secondaryPlayerHosts = useRef<Map<string, HTMLDivElement>>(new Map());
+  const secondaryPlayers = useRef<Map<string, YTPlayerLike>>(new Map());
+
+  const videoInstances = useMemo(() => {
+    if (!audioTrackMode) {
+      return computeVideoInstances([], LANGS, videoId);
+    }
+    return computeVideoInstances(spoken, LANGS, videoId);
+  }, [audioTrackMode, spoken, videoId]);
+
   const onAudioTrackModeChange = (enabled: boolean) => {
     setAudioTrackModeState(enabled);
     setAudioTrackMode(enabled);
@@ -859,7 +918,7 @@ function Index() {
     }
     const refreshVoices = () => {
       try {
-        setVoices(window.speechSynthesis.getVoices());
+        setVoices(deduplicateVoices(window.speechSynthesis.getVoices() || []));
       } catch (_e) {
         // Ignore getVoices errors
       }
@@ -973,6 +1032,7 @@ function Index() {
     rows,
     spoken,
     rates,
+    ttsRatios,
     voiceSelections,
     pauseMode,
     orderedLangs,
@@ -983,6 +1043,7 @@ function Index() {
     rows,
     spoken,
     rates,
+    ttsRatios,
     voiceSelections,
     pauseMode,
     orderedLangs,
@@ -994,6 +1055,16 @@ function Index() {
   const player = useRef<YTPlayer | null>(null);
   const busy = useRef(false);
   const lastRow = useRef(-1);
+  const handledRow = useRef(-1);
+  const lastMs = useRef(0);
+  const playedTtsRecords = useRef<Set<number>>(new Set());
+  const [playedRecordsCount, setPlayedRecordsCount] = useState(0);
+
+  useEffect(() => {
+    playedTtsRecords.current.clear();
+    handledRow.current = -1;
+    setPlayedRecordsCount(0);
+  }, [videoId, rows]);
 
   useEffect(() => {
     const init = () => {
@@ -1005,6 +1076,9 @@ function Index() {
       playerEl.current.appendChild(host);
       if (playerKind === "iframe") {
         player.current = createIframePlayer(host, videoId, { autoplay: isAndroid });
+        if (player.current) {
+          multiVideoPlayerRegistry.register("primary", player.current);
+        }
         return;
       }
       if (!window.YT) return;
@@ -1016,7 +1090,17 @@ function Index() {
           cc_load_policy: isAndroid ? 1 : 0,
           playsinline: 1,
         },
+        events: {
+          onReady: () => {
+            if (player.current) {
+              multiVideoPlayerRegistry.register("primary", player.current);
+            }
+          },
+        },
       });
+      if (player.current) {
+        multiVideoPlayerRegistry.register("primary", player.current);
+      }
     };
     if (playerKind === "iframe" || window.YT?.Player) init();
     else {
@@ -1029,10 +1113,17 @@ function Index() {
       const p = player.current;
       if (!p?.getCurrentTime || busy.current) return;
       const ms = p.getCurrentTime() * 1000;
+      // Detect user manually seeking or scrubbing across playback timeline
+      if (Math.abs(ms - lastMs.current) > 2500 || ms < lastMs.current - 1000) {
+        handledRow.current = -1;
+      }
+      lastMs.current = ms;
+
       const {
         rows,
         spoken,
         rates,
+        ttsRatios: currentTtsRatios,
         voiceSelections,
         pauseMode,
         orderedLangs,
@@ -1042,8 +1133,27 @@ function Index() {
       setActive(idx);
       const prev = lastRow.current;
       lastRow.current = idx;
+
+      const getEligibleLangs = (rowIdx: number) => {
+        if (rowIdx < 0 || playedTtsRecords.current.has(rowIdx)) return [];
+        return orderedLangs.filter(
+          (l) =>
+            spoken.includes(l.code) &&
+            isSubtitleInstanceEligibleForTTS(
+              rowIdx,
+              currentTtsRatios?.[l.code] ?? 1,
+              playedTtsRecords.current,
+            ),
+        );
+      };
+
       const speakRow = async (rowIdx: number) => {
-        const langs = orderedLangs.filter((l) => spoken.includes(l.code));
+        if (rowIdx < 0 || playedTtsRecords.current.has(rowIdx)) return;
+        const langs = getEligibleLangs(rowIdx);
+        if (langs.length === 0) return;
+        // Strictly skip this subtitles record from being TTS-played more than once
+        playedTtsRecords.current.add(rowIdx);
+        setPlayedRecordsCount(playedTtsRecords.current.size);
         for (const l of langs) {
           if (!busy.current) break;
           setSpeakingLang(l.code);
@@ -1082,35 +1192,121 @@ function Index() {
       const isPlaying = p.getPlayerState() === 1;
       if (pauseMode && st.current.sectionOrder === "tts-first") {
         // Speech first: on entering a section, pause, speak it, then play that section's video.
-        if (idx >= 0 && idx !== prev && isPlaying) {
-          busy.current = true;
-          p.pauseVideo();
-          await speakRow(idx);
-          const wasCancelled = !busy.current;
-          busy.current = false;
-          if (wasCancelled) return;
-          p.seekTo((rows[idx]?.start ?? 0) / 1000, true);
-          p.playVideo();
+        if (
+          idx >= 0 &&
+          isPlaying &&
+          !playedTtsRecords.current.has(idx) &&
+          handledRow.current !== idx
+        ) {
+          handledRow.current = idx;
+          const eligibleLangs = getEligibleLangs(idx);
+          if (eligibleLangs.length > 0) {
+            busy.current = true;
+            p.pauseVideo();
+            await speakRow(idx);
+            const wasCancelled = !busy.current;
+            busy.current = false;
+            handledRow.current = idx;
+            if (wasCancelled) return;
+            const targetSec = (rows[idx]?.start ?? 0) / 1000;
+            lastMs.current = targetSec * 1000;
+            p.seekTo(targetSec, true);
+            p.playVideo();
+          }
         }
         return;
       }
       // Video first: crossed the end of a section while playing → pause and speak it.
-      if (pauseMode && prev >= 0 && idx === prev + 1 && isPlaying) {
-        busy.current = true;
-        p.pauseVideo();
-        await speakRow(prev);
-        busy.current = false;
-        p.seekTo(rows[idx]?.start ? rows[idx].start / 1000 : p.getCurrentTime(), true);
-        p.playVideo();
+      if (pauseMode && isPlaying) {
+        const candidateRow =
+          prev >= 0 && (idx !== prev || ms >= (rows[prev]?.end ?? Infinity) - 80) ? prev : -1;
+        if (
+          candidateRow >= 0 &&
+          !playedTtsRecords.current.has(candidateRow) &&
+          handledRow.current !== candidateRow
+        ) {
+          handledRow.current = candidateRow;
+          const eligibleLangs = getEligibleLangs(candidateRow);
+          if (eligibleLangs.length > 0) {
+            busy.current = true;
+            p.pauseVideo();
+            await speakRow(candidateRow);
+            busy.current = false;
+            handledRow.current = candidateRow;
+            const resumeTarget =
+              idx >= 0 && rows[idx]?.start
+                ? rows[idx].start / 1000
+                : rows[candidateRow + 1]?.start
+                  ? rows[candidateRow + 1].start / 1000
+                  : p.getCurrentTime();
+            lastMs.current = resumeTarget * 1000;
+            p.seekTo(resumeTarget, true);
+            p.playVideo();
+          }
+        }
       }
     }, 150);
     return () => {
       clearInterval(iv);
       cancelSpeech();
+      multiVideoPlayerRegistry.unregister("primary");
       player.current?.destroy?.();
       player.current = null;
     };
   }, [videoId, isAndroid, playerKind]);
+
+  // Mount and manage dedicated video player instances for each language with speak/audio enabled
+  useEffect(() => {
+    if (!audioTrackMode) return;
+    for (const inst of videoInstances) {
+      if (inst.isPrimary) continue;
+      const host = secondaryPlayerHosts.current.get(inst.id);
+      if (host && !secondaryPlayers.current.has(inst.id)) {
+        host.innerHTML = "";
+        const child = document.createElement("div");
+        child.className = "h-full w-full";
+        host.appendChild(child);
+        let secPlayer: YTPlayerLike | null = null;
+        if (playerKind === "iframe") {
+          secPlayer = createIframePlayer(child, videoId, { autoplay: false });
+        } else if (window.YT?.Player) {
+          secPlayer = new window.YT.Player(child, {
+            videoId,
+            playerVars: {
+              rel: 0,
+              autoplay: 0,
+              cc_load_policy: 0,
+              playsinline: 1,
+            },
+            events: {
+              onReady: () => {
+                try {
+                  secPlayer.mute?.();
+                } catch {
+                  // ignore
+                }
+              },
+            },
+          });
+        }
+        if (secPlayer) {
+          secondaryPlayers.current.set(inst.id, secPlayer);
+          multiVideoPlayerRegistry.register(inst.id, secPlayer);
+        }
+      }
+    }
+  }, [audioTrackMode, videoInstances, videoId, playerKind]);
+
+  // Keep swiper active index synced to active speaking language when repeating with audio track
+  useEffect(() => {
+    if (!audioTrackMode) return;
+    if (speakingLang) {
+      const idx = videoInstances.findIndex((inst) => inst.languageCode === speakingLang);
+      if (idx >= 0) setActiveSwiperIndex(idx);
+    } else {
+      setActiveSwiperIndex(0);
+    }
+  }, [speakingLang, audioTrackMode, videoInstances]);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -1123,6 +1319,8 @@ function Index() {
     cancelSpeech();
     busy.current = false;
     lastRow.current = i;
+    handledRow.current = -1;
+    lastMs.current = r.start;
     player.current?.seekTo(r.start / 1000, true);
     player.current?.playVideo();
   };
@@ -1349,30 +1547,57 @@ function Index() {
                       <Button type="submit">Load video</Button>
                     </form>
                   )}
-                  <div className="relative aspect-video overflow-hidden bg-muted">
-                    <div ref={playerEl} className="h-full w-full" />
-                    {showVideoSubtitles && speakingLang && speakingRow >= 0 && (
-                      <div
-                        className="pointer-events-none absolute inset-x-3 top-3 text-center"
-                        aria-live="polite"
-                      >
-                        <p
-                          dir={RTL.has(speakingLang) ? "rtl" : "ltr"}
-                          className="inline-block max-w-[92%] rounded-md bg-foreground/90 px-3 py-2 text-base font-medium text-background shadow-lg md:text-lg"
-                        >
-                          <HighlightedSubtitle
-                            text={rows[speakingRow]?.texts[speakingLang] ?? ""}
-                            progress={
-                              speechProgress?.row === speakingRow &&
-                              speechProgress.lang === speakingLang
-                                ? speechProgress
-                                : null
+                  <VideoInstancesSwiper
+                    instances={videoInstances}
+                    activeIndex={activeSwiperIndex}
+                    onActiveIndexChange={setActiveSwiperIndex}
+                    activePlayingId={
+                      speakingLang && audioTrackMode ? `lang_${speakingLang}` : "primary"
+                    }
+                    videoId={videoId}
+                    renderPlayerContainer={(instance) => {
+                      if (instance.isPrimary) {
+                        return (
+                          <div className="relative h-full w-full">
+                            <div ref={playerEl} className="h-full w-full" />
+                            {showVideoSubtitles && speakingLang && speakingRow >= 0 && (
+                              <div
+                                className="pointer-events-none absolute inset-x-3 top-3 text-center"
+                                aria-live="polite"
+                              >
+                                <p
+                                  dir={RTL.has(speakingLang) ? "rtl" : "ltr"}
+                                  className="inline-block max-w-[92%] rounded-md bg-foreground/90 px-3 py-2 text-base font-medium text-background shadow-lg md:text-lg"
+                                >
+                                  <HighlightedSubtitle
+                                    text={rows[speakingRow]?.texts[speakingLang] ?? ""}
+                                    progress={
+                                      speechProgress?.row === speakingRow &&
+                                      speechProgress.lang === speakingLang
+                                        ? speechProgress
+                                        : null
+                                    }
+                                  />
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div
+                          ref={(el) => {
+                            if (el) {
+                              secondaryPlayerHosts.current.set(instance.id, el);
+                            } else {
+                              secondaryPlayerHosts.current.delete(instance.id);
                             }
-                          />
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                          }}
+                          className="h-full w-full"
+                        />
+                      );
+                    }}
+                  />
                   {isAndroid && (
                     <p role="status" className="px-3 py-2 text-sm text-muted-foreground">
                       {captionStatus}
@@ -1398,14 +1623,31 @@ function Index() {
                         : "Continuous playback."}
                     </p>
                   )}
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={pauseMode}
-                      onChange={(e) => setPauseMode(e.target.checked)}
-                    />{" "}
-                    Pause &amp; speak after each section
-                  </label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={pauseMode}
+                        onChange={(e) => setPauseMode(e.target.checked)}
+                      />{" "}
+                      Pause &amp; speak after each section
+                    </label>
+                    {playedRecordsCount > 0 && (
+                      <button
+                        type="button"
+                        data-testid="reset-played-subtitles-btn"
+                        onClick={() => {
+                          playedTtsRecords.current.clear();
+                          handledRow.current = -1;
+                          setPlayedRecordsCount(0);
+                        }}
+                        className="text-xs text-primary hover:underline font-medium"
+                        title="Reset history of spoken subtitle records so they can be spoken again"
+                      >
+                        Reset spoken history ({playedRecordsCount} spoken)
+                      </button>
+                    )}
+                  </div>
                   <label className="flex flex-wrap items-center gap-2">
                     <span>For each section, play first:</span>
                     <select
@@ -2022,107 +2264,270 @@ function Index() {
                     <thead>
                       <tr className="text-xs text-muted-foreground">
                         <th className="text-left font-normal">Language</th>
-                        <th className="font-normal">Show</th>
-                        <th className="font-normal">Speak</th>
-                        <th className="font-normal">Order</th>
+                        <th className="font-normal text-center">Show</th>
+                        <th className="font-normal text-center">Speak</th>
+                        <th
+                          className="font-normal text-center"
+                          title="Foreign subtitle TTS play frequency ratio"
+                        >
+                          TTS Ratio
+                        </th>
+                        <th className="font-normal text-center">Order</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {orderedLangs.map((l, index) => (
-                        <tr key={l.code}>
-                          <td className="py-1">{l.name}</td>
-                          <td className="text-center">
-                            <input
-                              type="checkbox"
-                              checked={shown.includes(l.code)}
-                              onChange={() => toggle(shown, setShown, l.code)}
-                            />
-                          </td>
-                          <td className="text-center">
-                            <input
-                              type="checkbox"
-                              checked={spoken.includes(l.code)}
-                              onChange={() => toggle(spoken, setSpoken, l.code)}
-                            />
-                          </td>
-                          <td>
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                disabled={index === 0}
-                                onClick={() => moveLanguage(l.code, -1)}
-                                title={`Move ${l.name} earlier`}
-                                aria-label={`Move ${l.name} earlier`}
-                              >
-                                <ChevronUp aria-hidden="true" />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                disabled={index === orderedLangs.length - 1}
-                                onClick={() => moveLanguage(l.code, 1)}
-                                title={`Move ${l.name} later`}
-                                aria-label={`Move ${l.name} later`}
-                              >
-                                <ChevronDown aria-hidden="true" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {orderedLangs.map((l, index) => {
+                        const isSpoken = spoken.includes(l.code);
+                        const ratio = ttsRatios[l.code] ?? 1;
+                        return (
+                          <tr key={l.code}>
+                            <td className="py-1">{l.name}</td>
+                            <td className="text-center">
+                              <input
+                                type="checkbox"
+                                checked={shown.includes(l.code)}
+                                onChange={() => toggle(shown, setShown, l.code)}
+                              />
+                            </td>
+                            <td className="text-center">
+                              <input
+                                type="checkbox"
+                                checked={isSpoken}
+                                onChange={() => toggle(spoken, setSpoken, l.code)}
+                              />
+                            </td>
+                            <td className="text-center">
+                              {isSpoken ? (
+                                <span
+                                  data-testid={`tts-ratio-badge-${l.code}`}
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono font-medium bg-primary/10 text-primary border border-primary/20"
+                                  title={`1:${ratio} ratio (${ratio === 1 ? "All sentences" : `${Math.round(100 / ratio)}% of sentences`})`}
+                                >
+                                  1:{ratio}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td>
+                              <div className="flex justify-center gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={index === 0}
+                                  onClick={() => moveLanguage(l.code, -1)}
+                                  title={`Move ${l.name} earlier`}
+                                  aria-label={`Move ${l.name} earlier`}
+                                >
+                                  <ChevronUp aria-hidden="true" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  disabled={index === orderedLangs.length - 1}
+                                  onClick={() => moveLanguage(l.code, 1)}
+                                  title={`Move ${l.name} later`}
+                                  aria-label={`Move ${l.name} later`}
+                                >
+                                  <ChevronDown aria-hidden="true" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
-                  <div className="mt-4 space-y-3 border-t border-border pt-3">
+                  <div className="mt-4 space-y-4 border-t border-border pt-3">
                     {orderedLangs
                       .filter((lang) => spoken.includes(lang.code))
                       .map((lang) => {
-                        const languageVoices = voices.filter((voice) =>
-                          voice.lang.replace("_", "-").startsWith(lang.tts.slice(0, 2)),
-                        );
+                        const languageVoices = getLanguageVoices(voices, lang.tts);
+                        const ratio = ttsRatios[lang.code] ?? 1;
                         return (
-                          <div key={lang.code} className="space-y-1.5">
+                          <div
+                            key={lang.code}
+                            data-testid={`tts-settings-card-${lang.code}`}
+                            className="space-y-2.5 rounded-lg border border-border/60 bg-muted/20 p-3"
+                          >
                             <div className="flex items-center justify-between">
-                              <span className="font-medium">{lang.name}</span>
-                              <span className="tabular-nums text-muted-foreground">
-                                {(rates[lang.code] ?? 1).toFixed(1)}×
+                              <span className="font-semibold text-sm text-foreground">
+                                {lang.name}
                               </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  data-testid={`tts-ratio-summary-${lang.code}`}
+                                  className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-primary/10 text-primary border border-primary/20"
+                                >
+                                  Ratio 1:{ratio}
+                                </span>
+                                <span className="tabular-nums text-xs text-muted-foreground">
+                                  {(rates[lang.code] ?? 1).toFixed(1)}×
+                                </span>
+                              </div>
                             </div>
-                            <input
-                              aria-label={`${lang.name} speech rate`}
-                              type="range"
-                              min={0.6}
-                              max={1.4}
-                              step={0.1}
-                              value={rates[lang.code] ?? 1}
-                              onChange={(e) =>
-                                setRates((current) => ({
-                                  ...current,
-                                  [lang.code]: Number(e.target.value),
-                                }))
-                              }
-                              className="w-full"
-                            />
-                            <select
-                              aria-label={`${lang.name} voice`}
-                              value={voiceSelections[lang.code] ?? ""}
-                              onChange={(e) =>
-                                setVoiceSelections((current) => ({
-                                  ...current,
-                                  [lang.code]: e.target.value,
-                                }))
-                              }
-                              className="w-full rounded-md border border-input bg-background px-2 py-1.5"
-                            >
-                              <option value="">Device default</option>
-                              {languageVoices.map((voice) => (
-                                <option key={voice.voiceURI} value={voice.voiceURI}>
-                                  {voice.name}
-                                </option>
-                              ))}
-                            </select>
+
+                            {/* Foreign Subtitles TTS Playback Ratio / Language Level */}
+                            <div className="space-y-2 rounded-md bg-background/80 p-2.5 border border-border/50">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-medium text-foreground">
+                                  Foreign Subtitle TTS Ratio (Comprehension Level)
+                                </span>
+                                <span
+                                  data-testid={`tts-ratio-label-${lang.code}`}
+                                  className="font-mono text-primary font-semibold text-xs"
+                                >
+                                  1:{ratio} (
+                                  {ratio === 1
+                                    ? "100% • All sentences"
+                                    : `${Math.round(100 / ratio)}% of sentences`}
+                                  )
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-normal">
+                                Adjust video-to-TTS ratio based on your {lang.name} level. Plays
+                                speech for 1 out of every {ratio} sentence{ratio > 1 ? "s" : ""} so
+                                you can listen to the video with periodic speech.
+                              </p>
+
+                              {/* Quick Level Presets */}
+                              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mr-1">
+                                  Level:
+                                </span>
+                                {[
+                                  {
+                                    label: "Advanced (1:1)",
+                                    value: 1,
+                                    title: "Hear every sentence (100% - advanced)",
+                                  },
+                                  {
+                                    label: "Proficient (1:2)",
+                                    value: 2,
+                                    title: "Hear 1 in 2 sentences (50%)",
+                                  },
+                                  {
+                                    label: "Intermediate (1:4)",
+                                    value: 4,
+                                    title: "Hear 1 in 4 sentences (25%)",
+                                  },
+                                  {
+                                    label: "Beginner (1:7)",
+                                    value: 7,
+                                    title: "Hear 1 sentence per every 7 sentences (beginner)",
+                                  },
+                                ].map((preset) => (
+                                  <button
+                                    key={preset.value}
+                                    type="button"
+                                    data-testid={`tts-ratio-preset-${lang.code}-${preset.value}`}
+                                    onClick={() => {
+                                      setTtsRatios((curr) => ({
+                                        ...curr,
+                                        [lang.code]: preset.value,
+                                      }));
+                                      saveTtsRatioPreference(lang.code, preset.value);
+                                      if (videoId) {
+                                        saveVideoSettings(videoId, {
+                                          ttsRatios: { [lang.code]: preset.value },
+                                        });
+                                      }
+                                    }}
+                                    className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
+                                      ratio === preset.value
+                                        ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                                        : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                                    }`}
+                                    title={preset.title}
+                                  >
+                                    {preset.label}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-1">
+                                <input
+                                  aria-label={`${lang.name} TTS sentence ratio`}
+                                  data-testid={`tts-ratio-slider-${lang.code}`}
+                                  type="range"
+                                  min={1}
+                                  max={10}
+                                  step={1}
+                                  value={ratio}
+                                  onChange={(e) => {
+                                    const val = Math.max(1, Math.min(10, Number(e.target.value)));
+                                    setTtsRatios((curr) => ({ ...curr, [lang.code]: val }));
+                                    saveTtsRatioPreference(lang.code, val);
+                                    if (videoId) {
+                                      saveVideoSettings(videoId, {
+                                        ttsRatios: { [lang.code]: val },
+                                      });
+                                    }
+                                  }}
+                                  className="w-full h-1.5 cursor-pointer accent-primary"
+                                />
+                                <span className="text-xs font-mono font-medium tabular-nums text-muted-foreground w-8 text-right">
+                                  1:{ratio}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Speech rate slider */}
+                            <div className="space-y-1 pt-0.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground font-medium">
+                                  Speech rate
+                                </span>
+                                <span className="tabular-nums font-mono text-muted-foreground">
+                                  {(rates[lang.code] ?? 1).toFixed(1)}×
+                                </span>
+                              </div>
+                              <input
+                                aria-label={`${lang.name} speech rate`}
+                                type="range"
+                                min={0.6}
+                                max={1.4}
+                                step={0.1}
+                                value={rates[lang.code] ?? 1}
+                                onChange={(e) =>
+                                  setRates((current) => ({
+                                    ...current,
+                                    [lang.code]: Number(e.target.value),
+                                  }))
+                                }
+                                className="w-full h-1.5 cursor-pointer"
+                              />
+                            </div>
+
+                            {/* Voice selector */}
+                            <div className="space-y-1">
+                              <label className="text-xs text-muted-foreground font-medium">
+                                Voice
+                              </label>
+                              <select
+                                aria-label={`${lang.name} voice`}
+                                value={voiceSelections[lang.code] ?? ""}
+                                onChange={(e) =>
+                                  setVoiceSelections((current) => ({
+                                    ...current,
+                                    [lang.code]: e.target.value,
+                                  }))
+                                }
+                                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
+                              >
+                                <option value="">Device default</option>
+                                {languageVoices.map((voice, voiceIndex) => (
+                                  <option
+                                    key={getUniqueVoiceKey(voice, voiceIndex)}
+                                    value={voice.voiceURI}
+                                  >
+                                    {voice.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
                         );
                       })}
@@ -2268,6 +2673,8 @@ function Index() {
                               speechProgress={speechProgress}
                               tracks={tracks}
                               onSeek={seek}
+                              spokenLangs={spoken}
+                              ttsRatios={ttsRatios}
                             />
                           );
                         })}
@@ -2369,6 +2776,8 @@ interface SubtitleRowProps {
   speechProgress: SpeechProgress;
   tracks: Record<string, Json3> | null;
   onSeek: (r: Row, index: number) => void;
+  spokenLangs?: string[];
+  ttsRatios?: Record<string, number>;
 }
 
 const SubtitleRow = memo(function SubtitleRow({
@@ -2379,6 +2788,8 @@ const SubtitleRow = memo(function SubtitleRow({
   speechProgress,
   tracks,
   onSeek,
+  spokenLangs,
+  ttsRatios,
 }: SubtitleRowProps) {
   return (
     <tr
@@ -2390,26 +2801,68 @@ const SubtitleRow = memo(function SubtitleRow({
       <td className="whitespace-nowrap px-3 py-2 tabular-nums text-muted-foreground">
         {fmt(r.start)}–{fmt(r.end)}
       </td>
-      {cols.map((l) => (
-        <td
-          key={l.code}
-          dir={RTL.has(l.code) ? "rtl" : "ltr"}
-          className="px-3 py-2 leading-relaxed"
-        >
-          {tracks && !tracks[l.code] ? (
-            <span className="text-xs text-muted-foreground italic">Loading subtitles…</span>
-          ) : (
-            <HighlightedSubtitle
-              text={r.texts[l.code] ?? ""}
-              progress={
-                speechProgress?.row === actualIndex && speechProgress.lang === l.code
-                  ? speechProgress
-                  : null
-              }
-            />
-          )}
-        </td>
-      ))}
+      {cols.map((l) => {
+        const isSpoken = Boolean(spokenLangs?.includes(l.code));
+        const ratio = ttsRatios?.[l.code] ?? 1;
+        const isEligible = isSubtitleInstanceEligibleForTTS(actualIndex, ratio);
+        const isPronouncedHighlight = shouldHighlightSentenceForTTS(actualIndex, ratio, isSpoken);
+        return (
+          <td
+            key={l.code}
+            dir={RTL.has(l.code) ? "rtl" : "ltr"}
+            data-testid={`subtitle-cell-${actualIndex}-${l.code}`}
+            data-tts-pronounced={isPronouncedHighlight ? "true" : undefined}
+            className={`px-3 py-2 leading-relaxed transition-colors ${
+              isPronouncedHighlight
+                ? "bg-primary/10 border-s-2 border-primary/60 dark:bg-primary/15 dark:border-primary/80"
+                : ""
+            }`}
+          >
+            {tracks && !tracks[l.code] ? (
+              <span className="text-xs text-muted-foreground italic">Loading subtitles…</span>
+            ) : (
+              <div
+                data-testid={`sentence-container-${actualIndex}-${l.code}`}
+                data-tts-pronounced-highlight={isPronouncedHighlight ? "true" : "false"}
+                className={`flex items-start justify-between gap-1.5 p-1 rounded transition-colors ${
+                  isPronouncedHighlight
+                    ? "bg-primary/15 text-foreground font-medium ring-1 ring-primary/25 shadow-xs dark:bg-primary/20 dark:ring-primary/40"
+                    : ""
+                }`}
+              >
+                <div className="flex-1">
+                  <HighlightedSubtitle
+                    text={r.texts[l.code] ?? ""}
+                    progress={
+                      speechProgress?.row === actualIndex && speechProgress.lang === l.code
+                        ? speechProgress
+                        : null
+                    }
+                    isPronouncedHighlighted={isPronouncedHighlight}
+                  />
+                </div>
+                {isSpoken && ratio > 1 && (
+                  <span
+                    data-testid={`row-${actualIndex}-tts-status-${l.code}`}
+                    className={`shrink-0 inline-flex items-center px-1 py-0.2 rounded text-[9px] font-mono select-none ${
+                      isEligible
+                        ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                        : "opacity-35 text-muted-foreground line-through"
+                    }`}
+                    title={
+                      isEligible
+                        ? `TTS will play this sentence (1:${ratio} ratio)`
+                        : `TTS skipped for this sentence (1:${ratio} ratio)`
+                    }
+                  >
+                    TTS
+                  </span>
+                )}
+              </div>
+            )}
+          </td>
+        );
+      })}
     </tr>
   );
 });
@@ -2417,11 +2870,25 @@ const SubtitleRow = memo(function SubtitleRow({
 function HighlightedSubtitle({
   text,
   progress,
+  isPronouncedHighlighted,
 }: {
   text: string;
   progress: Exclude<SpeechProgress, null> | null;
+  isPronouncedHighlighted?: boolean;
 }) {
-  if (!progress) return text;
+  if (!progress) {
+    if (isPronouncedHighlighted) {
+      return (
+        <span
+          data-testid="pronounced-sentence-text"
+          className="bg-primary/10 dark:bg-primary/20 px-1 py-0.5 rounded-sm"
+        >
+          {text}
+        </span>
+      );
+    }
+    return text;
+  }
   return (
     <>
       {text.slice(0, progress.start)}

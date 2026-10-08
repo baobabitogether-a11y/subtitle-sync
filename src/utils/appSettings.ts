@@ -254,6 +254,7 @@ export function saveAppSettings(settings: AppSettings): void {
 export interface VideoSpecificSettings {
   targetLanguages?: any[];
   ttsRates?: Record<string, number>; // langCode -> rate
+  ttsRatios?: Record<string, number>; // langCode -> ratio (1 in N sentences)
   playOrder?: "video_first" | "tts_first";
   sourceLang?: string;
   activeTargetLang?: string;
@@ -285,6 +286,10 @@ export function saveVideoSettings(videoId: string, settings: Partial<VideoSpecif
       ttsRates: {
         ...(existing.ttsRates || {}),
         ...(settings.ttsRates || {}),
+      },
+      ttsRatios: {
+        ...(existing.ttsRatios || {}),
+        ...(settings.ttsRatios || {}),
       },
       lastUpdated: Date.now(),
     };
