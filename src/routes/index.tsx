@@ -57,6 +57,7 @@ import {
   setAudioTrackMode,
   repeatSegmentWithAudioTrack,
 } from "@/utils/audioTrackManager";
+import { deduplicateVoices, getLanguageVoices, getUniqueVoiceKey } from "@/utils/speechVoiceUtils";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 import { createIframePlayer } from "@/lib/iframe-player";
@@ -899,7 +900,7 @@ function Index() {
     }
     const refreshVoices = () => {
       try {
-        setVoices(window.speechSynthesis.getVoices());
+        setVoices(deduplicateVoices(window.speechSynthesis.getVoices() || []));
       } catch (_e) {
         // Ignore getVoices errors
       }
@@ -2231,9 +2232,7 @@ function Index() {
                     {orderedLangs
                       .filter((lang) => spoken.includes(lang.code))
                       .map((lang) => {
-                        const languageVoices = voices.filter((voice) =>
-                          voice.lang.replace("_", "-").startsWith(lang.tts.slice(0, 2)),
-                        );
+                        const languageVoices = getLanguageVoices(voices, lang.tts);
                         const ratio = ttsRatios[lang.code] ?? 1;
                         return (
                           <div
@@ -2407,8 +2406,11 @@ function Index() {
                                 className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs"
                               >
                                 <option value="">Device default</option>
-                                {languageVoices.map((voice) => (
-                                  <option key={voice.voiceURI} value={voice.voiceURI}>
+                                {languageVoices.map((voice, voiceIndex) => (
+                                  <option
+                                    key={getUniqueVoiceKey(voice, voiceIndex)}
+                                    value={voice.voiceURI}
+                                  >
                                     {voice.name}
                                   </option>
                                 ))}

@@ -41,6 +41,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/utils/videoSettings.ts`               | Per-Video Preferences Store        | Persists language choices and playback configurations specific to individual video IDs.                                |
 | `src/utils/logBuffer.ts`                   | Diagnostic Log Buffer              | Captures and retains rolling logs for network, bridge, and playback diagnostic inspection.                             |
 | `src/utils/subtitleNotificationManager.ts` | Subtitle Notification State        | Manages subtitle fetch notifications, auto-dismiss timers, broadcast events, and notification mute state.              |
+| `src/utils/speechVoiceUtils.ts`            | Speech Synthesis Voice Utilities   | Provides voice deduplication, language filtering, and unique React option key generation to eliminate duplicate keys.  |
 
 ## Configuration & Data Fixtures (`src/config/`)
 
@@ -109,5 +110,6 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-fork-readme-links.ts`             | Fork README & Report Staging Test                | Validates zero-touch repository identity synchronization for forks and static fallback report staging in public/.                                       |
 | `scripts/verify-fork-ci-workflows.ts`              | Fork CI Workflows & Staging Test                  | Asserts push triggers on web and emulation workflows, resilient report deployment, and preservation in deploy-demo.                                     |
 | `scripts/verify-tts-subtitles-ratio.ts`           | Foreign Subtitles TTS Playback Ratio Verification | Validates per-language TTS frequency ratio calculations, device & video persistence, uninterrupted playback on skipped instances, and UI controls.     |
+| `scripts/verify-unique-voice-keys.ts`             | Speech Voice Keys & Deduplication Verification   | Asserts deduplication of duplicate system voices (e.g. Microsoft Asaf) and guaranteed unique React keys for voice options.                              |
 | `scripts/verify-md-links.ts`                      | Markdown Links Checker                           | Validates that all documentation cross-references and links resolve properly.                                                                          |
 | `scripts/normalize-web-assets.mjs`                | Build Asset Normalizer                           | Adjusts asset paths for GitHub Pages sub-path hosting.                                                                                                 |
