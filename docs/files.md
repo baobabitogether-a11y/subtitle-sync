@@ -24,6 +24,7 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `src/components/ApkReleaseModal.tsx`          | Latest APK Release Modal      | Displays direct APK downloads, GitHub release links, web artifacts, and CLI install commands for both mostuf2556 and mostuf25561.  |
 | `src/components/SubtitleFetchToast.tsx`       | Subtitle Fetch Notification   | Popup indicator notifying when subtitle fetching begins and finishes, with quick link to table and mute option.                    |
 | `src/components/VideoInstancesSwiper.tsx`     | Multi-Video Swiper Carousel   | Horizontal swipeable carousel for multi-instance YouTube video elements with slide indicators, touch gestures, and setup guidance. |
+| `src/components/FloatingDraggablePauseButton.tsx` | Floating Setup Pause Button | Draggable fixed-position pause button allowing users to freeze playback, autoscroll, and autofocus during app setup.                 |
 
 ## Feature Utilities (`src/utils/`)
 
@@ -115,5 +116,9 @@ This document maintains the registry of codebase files, their specific roles, ar
 | `scripts/verify-unique-voice-keys.ts`             | Speech Voice Keys & Deduplication Verification    | Asserts deduplication of duplicate system voices (e.g. Microsoft Asaf) and guaranteed unique React keys for voice options.                             |
 | `scripts/verify-multi-video-player-state.ts`      | Multi-Video Instance State Verification           | Asserts independent instance configuration, state persistence per video element, and multi-player registry coordination.                               |
 | `scripts/verify-video-instances-swiper.ts`        | Video Instances Swiper Verification               | Validates carousel swiping, indicators, YouTube audio track setup guidance, isolated persistence, and route integration.                               |
+| `scripts/verify-multi-video-audio-sync.ts`        | Multi-Video Audio-Track Sync Verification         | Validates pause/resume coordination across matched video elements, seek-to-segment, unmuting speaking instance, and primary resume.                    |
+| `scripts/verify-apk-installation-robustness.ts`   | APK Install Robustness & Version Code Verification | Asserts deep purge on collision, downgrade & provider collision handling, standard version in package.json, and releases link in README.               |
+| `scripts/verify-floating-draggable-pause.ts`      | Floating Draggable Pause Verification              | Asserts component contracts, touch & mouse drag clamping, tap-vs-drag discrimination, visual indicators, and accessibility semantics.                   |
+| `scripts/verify-apk-version-and-releases.ts`      | In-App Version & Releases Link Verification        | Asserts version parity across manifests, header version badge, footer all releases link, and modal direct release links.                               |
 | `scripts/verify-md-links.ts`                      | Markdown Links Checker                            | Validates that all documentation cross-references and links resolve properly.                                                                          |
 | `scripts/normalize-web-assets.mjs`                | Build Asset Normalizer                            | Adjusts asset paths for GitHub Pages sub-path hosting.                                                                                                 |

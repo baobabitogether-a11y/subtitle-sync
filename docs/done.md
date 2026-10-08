@@ -1,5 +1,34 @@
 # Done tasks
 
+## Task 50: Draggable Floating Setup Pause Button with Autofocus, Auto-scroll & Play-Switch Suppression
+
+### Subtask 50.1: Draggable Floating Pause Component & Drag Handling
+
+- Created `src/components/FloatingDraggablePauseButton.tsx` with fixed viewport positioning and z-index priority.
+- Implemented smooth side-to-side dragging via both touch (`onTouchStart`, `onTouchMove`, `onTouchEnd`) and mouse (`onMouseDown`, `mousemove`, `mouseup`) with dynamic viewport clamping.
+- Implemented tap-vs-drag discrimination (`hasMovedRef`) preventing accidental toggle clicks when releasing a drag.
+- Added visual feedback with distinct setup pause badge ("Autoscroll & Play OFF"), pause/play icons, responsive grab/grabbing cursors, and local storage coordinate persistence (`yt_floating_pause_pos`).
+- Created dedicated verification suite `scripts/verify-floating-draggable-pause.ts` and registered in `package.json`.
+
+### Subtask 50.2: Player Coordination & Autofocus / Auto-scroll / Play-Switch Suppression
+
+- Integrated `FloatingDraggablePauseButton` into `src/routes/index.tsx` root view with `isSetupPaused` state and `toggleSetupPause` handler.
+- When setup pause is engaged, all media players (`multiVideoPlayerRegistry.pauseAllExcept()`, `player.current.pauseVideo()`) are instantly paused and active speech synthesis (`cancelSpeech()`) is cancelled.
+- Completely suppressed playback interval loop (`st.current.isSetupPaused`), preventing automatic subtitle cue progression, play-switching, and seeking.
+- Completely suppressed subtitle table row auto-scroll (`scrollIntoView`) and Android pagination autoFocus during setup pause.
+- Updated and verified dedicated test suite `scripts/verify-floating-draggable-pause.ts` (`npm run test:floating-pause`).
+
+## Task 48: Fix APK Version Collision, Update Script Robustness & In-App Version Display with Releases Link
+
+### Subtask 48.1: Robust APK Installation & Version Code Handling in Update Script
+
+- Updated `update.apk.sh` and `install-apk.sh` with `deep_purge_package` (`am force-stop`, `pm clear`, `adb uninstall`, `pm uninstall --user 0`) ensuring total cleanup of colliding packages or lingering corrupted data.
+- Added `has_collision_error` detecting signature and package conflicts (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, `INSTALL_FAILED_VERSION_DOWNGRADE`, `INSTALL_FAILED_CONFLICTING_PROVIDER`, `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE`, `INSTALL_FAILED_DUPLICATE_PERMISSION`) with automatic deep purge and re-installation.
+- Configured standard semantic version (`"version": "1.0.16"`) in `package.json`.
+- Propagated `appVersionCode` and `appVersionName` via `.github/workflows/release-apk.yml` into Gradle `assembleDebug`.
+- Added direct link to GitHub all releases page in `README.md`.
+- Created dedicated verification suite `scripts/verify-apk-installation-robustness.ts` and registered in `package.json`.
+
 ## Task 49: Multi-Instance Video Elements with Independent Audio-Track Configuration & Horizontal Swiper Synchronization
 
 ### Subtask 49.1: Multi-Instance Video Player State & Independent Configuration Architecture
@@ -8,6 +37,23 @@
 - Implemented isolated local storage persistence (`yt_multi_instance_{videoId}_configs`) and independent state management per video element instance (volume, mute, manual audio track configured status, label) so setting audio track or volume in one instance never leaks to others.
 - Implemented `MultiVideoPlayerRegistry` for multi-instance coordination (`pauseAllExcept`, `unmuteOnly`, `syncSecondaryPlayers`, `register`, `unregister`).
 - Created dedicated verification suite `scripts/verify-multi-video-player-state.ts`.
+
+### Subtask 49.2: Horizontal Swiper Carousel Component for Multi-Video Elements
+
+- Created `src/components/VideoInstancesSwiper.tsx` providing a smooth horizontal swipeable carousel with touch gestures (`onTouchStart`, `onTouchMove`, `onTouchEnd`) and desktop controls (`ChevronLeft`, `ChevronRight`).
+- Implemented slide indicators, language headers (Primary vs Spoken Languages), and active playback indicator badges (`Active Audio`).
+- Integrated independent YouTube audio track setup guidance and isolated per-instance toggle persistence (`Mark Configured` / `Track Configured`).
+- Integrated `VideoInstancesSwiper` into `src/routes/index.tsx` player panel.
+- Created dedicated verification suite `scripts/verify-video-instances-swiper.ts` and registered in `package.json`.
+
+### Subtask 49.3: Multi-Video Pause/Resume Audio-Track Synchronization Loop
+
+- Implemented `executeMultiVideoSegmentSync` in `src/utils/multiVideoPlayerManager.ts` to coordinate pause/resume and unmuting across multi-video player instances during subtitle cue intervals.
+- Pauses all other player instances and unmutes exclusively the active speaking language instance during segment repetition.
+- Emits real-time progress callbacks for subtitle highlighting, and automatically pauses target player and restores unmuted state to primary upon completion or cancellation.
+- Integrated `executeMultiVideoSegmentSync` into `speakRow` in `src/routes/index.tsx` with smooth fallback to Web Speech TTS when `audioTrackMode` is disabled.
+- Synchronized primary player resumption with registry state (`unmuteOnly("primary")`) and cancellation cleanup.
+- Created dedicated verification suite `scripts/verify-multi-video-audio-sync.ts` and registered in `package.json`.
 
 ## Task 47: Fix README.md Links, CI Workflows & GitHub Pages Staging for Forked Repositories
 

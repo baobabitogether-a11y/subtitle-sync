@@ -61,10 +61,12 @@ import { deduplicateVoices, getLanguageVoices, getUniqueVoiceKey } from "@/utils
 import {
   computeVideoInstances,
   multiVideoPlayerRegistry,
+  executeMultiVideoSegmentSync,
   type VideoInstanceConfig,
   type YTPlayerLike,
 } from "@/utils/multiVideoPlayerManager";
 import { VideoInstancesSwiper } from "@/components/VideoInstancesSwiper";
+import { FloatingDraggablePauseButton } from "@/components/FloatingDraggablePauseButton";
 import { trackNetworkRequest, useNetworkRequests } from "@/utils/networkTracker";
 import { NetworkRequestsInspector } from "@/components/NetworkRequestsInspector";
 import { createIframePlayer } from "@/lib/iframe-player";
@@ -89,7 +91,7 @@ import { SubtitleFetchToast } from "@/components/SubtitleFetchToast";
 import { notifySubtitleFetch } from "@/utils/subtitleNotificationManager";
 import { getApkReleaseLinks } from "@/utils/apkUpdater";
 import { isValidJsonSubtitleResponse } from "@/utils/subtitleCache";
-import { STORAGE_KEYS } from "@/config/appConfig";
+import { STORAGE_KEYS, APP_VERSION, ALL_RELEASES_URL } from "@/config/appConfig";
 import { JSON3_RAW_MAP } from "../../test/fixtures/L2Ryrr6txwA/jsonStrings";
 
 const DEMO_VIDEO = "L2Ryrr6txwA";
@@ -171,6 +173,12 @@ function cancelSpeech() {
     } catch (_e) {
       // Ignore speech cancellation error
     }
+  }
+  try {
+    multiVideoPlayerRegistry.pauseAllExcept("primary");
+    multiVideoPlayerRegistry.unmuteOnly("primary");
+  } catch {
+    // Ignore multi-player cleanup error
   }
 }
 
@@ -636,6 +644,23 @@ function Index() {
       setNetworkInspectorOpen(false);
     }
   };
+  const [isSetupPaused, setIsSetupPaused] = useState(false);
+  const toggleSetupPause = useCallback(() => {
+    setIsSetupPaused((prev) => {
+      const next = !prev;
+      if (next) {
+        try {
+          multiVideoPlayerRegistry.pauseAllExcept();
+          player.current?.pauseVideo?.();
+        } catch {
+          // ignore
+        }
+        cancelSpeech();
+        busy.current = false;
+      }
+      return next;
+    });
+  }, []);
   const [showVideoSubtitles, setShowVideoSubtitles] = useState(true);
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(() => PANELS.map((panel) => panel.id));
   const [openPanels, setOpenPanels] = useState<Record<PanelId, boolean>>({
@@ -1038,6 +1063,7 @@ function Index() {
     orderedLangs,
     audioTrackMode,
     sectionOrder,
+    isSetupPaused,
   });
   st.current = {
     rows,
@@ -1049,6 +1075,7 @@ function Index() {
     orderedLangs,
     audioTrackMode,
     sectionOrder,
+    isSetupPaused,
   };
 
   const playerEl = useRef<HTMLDivElement>(null);
@@ -1111,7 +1138,7 @@ function Index() {
     }
     const iv = setInterval(async () => {
       const p = player.current;
-      if (!p?.getCurrentTime || busy.current) return;
+      if (!p?.getCurrentTime || busy.current || st.current.isSetupPaused) return;
       const ms = p.getCurrentTime() * 1000;
       // Detect user manually seeking or scrubbing across playback timeline
       if (Math.abs(ms - lastMs.current) > 2500 || ms < lastMs.current - 1000) {
@@ -1159,11 +1186,12 @@ function Index() {
           setSpeakingLang(l.code);
           setSpeakingRow(rowIdx);
           if (isAudioTrackMode) {
-            await repeatSegmentWithAudioTrack({
-              player: p,
+            await executeMultiVideoSegmentSync({
+              registry: multiVideoPlayerRegistry,
+              primaryPlayer: p,
+              languageCode: l.code,
               startMs: rows[rowIdx]?.start ?? 0,
               endMs: rows[rowIdx]?.end ?? 0,
-              targetLangCode: l.code,
               checkCancelled: () => !busy.current,
               onProgress: (prog) => {
                 setSpeechProgress({
@@ -1184,6 +1212,10 @@ function Index() {
               setSpeechProgress,
             );
           }
+        }
+        if (isAudioTrackMode) {
+          multiVideoPlayerRegistry.pauseAllExcept("primary");
+          multiVideoPlayerRegistry.unmuteOnly("primary");
         }
         setSpeakingLang(null);
         setSpeakingRow(-1);
@@ -1210,6 +1242,7 @@ function Index() {
             if (wasCancelled) return;
             const targetSec = (rows[idx]?.start ?? 0) / 1000;
             lastMs.current = targetSec * 1000;
+            multiVideoPlayerRegistry.unmuteOnly("primary");
             p.seekTo(targetSec, true);
             p.playVideo();
           }
@@ -1240,6 +1273,7 @@ function Index() {
                   ? rows[candidateRow + 1].start / 1000
                   : p.getCurrentTime();
             lastMs.current = resumeTarget * 1000;
+            multiVideoPlayerRegistry.unmuteOnly("primary");
             p.seekTo(resumeTarget, true);
             p.playVideo();
           }
@@ -1309,11 +1343,11 @@ function Index() {
   }, [speakingLang, audioTrackMode, videoInstances]);
 
   useEffect(() => {
-    if (!autoFocus) return;
+    if (!autoFocus || isSetupPaused) return;
     document
       .querySelector(`[data-row="${active}"]`)
       ?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [active, autoFocus]);
+  }, [active, autoFocus, isSetupPaused]);
 
   const seek = (r: Row, i: number) => {
     cancelSpeech();
@@ -1408,13 +1442,13 @@ function Index() {
   }, [rows, isAndroid, subtitlesLimit, subtitlesPage]);
 
   useEffect(() => {
-    if (isAndroid && autoFocus && active >= 0 && subtitlesLimit > 0) {
+    if (isAndroid && autoFocus && !isSetupPaused && active >= 0 && subtitlesLimit > 0) {
       const targetPage = Math.floor(active / subtitlesLimit) + 1;
       if (targetPage !== subtitlesPage) {
         setSubtitlesPage(targetPage);
       }
     }
-  }, [active, autoFocus, isAndroid, subtitlesLimit, subtitlesPage]);
+  }, [active, autoFocus, isSetupPaused, isAndroid, subtitlesLimit, subtitlesPage]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -1422,8 +1456,19 @@ function Index() {
         className="flex flex-wrap items-center gap-4 border-b border-border px-6 py-4"
         data-app-hydrated={isHydrated ? "true" : undefined}
       >
-        <div className="mr-auto flex items-baseline gap-4">
+        <div className="mr-auto flex items-baseline gap-3 flex-wrap">
           <h1 className="font-display text-2xl">Parallel Subtitles</h1>
+          <a
+            href={ALL_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="header-app-version-badge"
+            className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-mono font-medium text-primary hover:bg-primary/20 transition-colors"
+            title="Browse All GitHub Releases & Versions"
+          >
+            v{APP_VERSION}
+            <ExternalLink className="h-2.5 w-2.5 opacity-70" />
+          </a>
           <span className="text-sm text-muted-foreground">
             video {videoId} · {rows.length} sections ·{" "}
             {isAndroid ? "live Android captions" : "fixture demo"}
@@ -2742,6 +2787,17 @@ function Index() {
               <Smartphone className="h-3.5 w-3.5 text-emerald-500" />
               <span>All Options & CLI</span>
             </Button>
+            <a
+              href={ALL_RELEASES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="footer-all-releases-link"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline px-1 py-1"
+              title="Browse All GitHub Releases & Versions"
+            >
+              <span>All Releases (v{APP_VERSION})</span>
+              <ExternalLink className="h-3 w-3" />
+            </a>
           </div>
         </div>
       </footer>
@@ -2763,6 +2819,10 @@ function Index() {
             el.scrollIntoView({ behavior: "smooth", block: "start" });
           }
         }}
+      />
+      <FloatingDraggablePauseButton
+        isSetupPaused={isSetupPaused}
+        onToggleSetupPause={toggleSetupPause}
       />
     </div>
   );

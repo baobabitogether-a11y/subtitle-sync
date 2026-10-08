@@ -222,3 +222,99 @@ export class MultiVideoPlayerRegistry {
 
 // Global shared registry instance for multi-video elements
 export const multiVideoPlayerRegistry = new MultiVideoPlayerRegistry();
+
+export interface MultiVideoSegmentSyncOptions {
+  registry: MultiVideoPlayerRegistry;
+  primaryPlayer: YTPlayerLike;
+  languageCode: string;
+  startMs: number;
+  endMs: number;
+  checkCancelled?: () => boolean;
+  onProgress?: (progress: { currentMs: number; totalMs: number; percent: number }) => void;
+}
+
+/**
+ * Executes audio-track segment playback synchronization across multi-video player instances.
+ * - Resolves the dedicated video player instance for the requested language code (falling back to primary).
+ * - Pauses all other player instances and unmutes exclusively the target speaking instance.
+ * - Seeks the target instance to startMs and plays through the duration.
+ * - Streams progress updates for visual subtitle highlighting / status indicator.
+ * - Once complete or cancelled, pauses the target player and restores unmuted state to primary.
+ */
+export function executeMultiVideoSegmentSync(
+  options: MultiVideoSegmentSyncOptions,
+): Promise<void> {
+  const { registry, primaryPlayer, languageCode, startMs, endMs, checkCancelled, onProgress } =
+    options;
+
+  return new Promise<void>((resolve) => {
+    const secondaryId = `lang_${languageCode}`;
+    const targetPlayer = registry.get(secondaryId) || primaryPlayer;
+    const activeId = registry.get(secondaryId) ? secondaryId : "primary";
+
+    if (!targetPlayer || typeof targetPlayer.seekTo !== "function") {
+      resolve();
+      return;
+    }
+
+    // Pause all other instances and unmute only the active speaking instance
+    registry.pauseAllExcept(activeId);
+    registry.unmuteOnly(activeId);
+
+    const durationMs = Math.max(100, endMs - startMs);
+    try {
+      targetPlayer.seekTo(startMs / 1000, true);
+      targetPlayer.playVideo();
+    } catch {
+      // Continue even if initial seek or play triggers error
+    }
+
+    const startTime = Date.now();
+    const timeoutMs = durationMs + 8000;
+
+    const checkInterval = setInterval(() => {
+      if (checkCancelled && checkCancelled()) {
+        cleanup();
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startTime > timeoutMs) {
+        cleanup();
+        resolve();
+        return;
+      }
+
+      try {
+        const currentMs = (targetPlayer.getCurrentTime?.() ?? 0) * 1000;
+        const elapsed = Math.max(0, currentMs - startMs);
+        const percent = Math.min(100, Math.round((elapsed / durationMs) * 100));
+
+        if (onProgress) {
+          onProgress({ currentMs, totalMs: durationMs, percent });
+        }
+
+        if (currentMs >= endMs - 50) {
+          cleanup();
+          resolve();
+        }
+      } catch {
+        cleanup();
+        resolve();
+      }
+    }, 100);
+
+    function cleanup() {
+      clearInterval(checkInterval);
+      try {
+        targetPlayer.pauseVideo();
+      } catch {
+        // ignore
+      }
+      // Return mute state safely: pause all secondaries and restore primary
+      registry.pauseAllExcept("primary");
+      registry.unmuteOnly("primary");
+    }
+  });
+}
+

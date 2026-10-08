@@ -11,6 +11,8 @@ A dedicated Android native shell application for YouTube video learning with syn
 
 ## 📲 Install & Update Android APK via CLI
 
+All releases, version changelogs, and compiled APK artifacts are published on GitHub: [**Browse All Releases**](https://github.com/mostuf2556/subtitle-sync/releases).
+
 To download and install the latest `YouTube-Viewer-debug.apk` directly onto any connected Android device or emulator via ADB without cloning this repository or keeping local build files, run this single command:
 
 ```bash

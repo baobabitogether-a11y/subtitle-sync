@@ -1,17 +1,33 @@
 # Tasks
 
+## Task 50: Draggable Floating Setup Pause Button with Autofocus, Auto-scroll & Play-Switch Suppression
+
+- [x] **Subtask 50.1: Draggable Floating Pause Component & Drag Handling**:
+  - Build `src/components/FloatingDraggablePauseButton.tsx` with fixed viewport positioning.
+  - Implement smooth side-to-side dragging via both touch (`onTouchStart`, `onTouchMove`, `onTouchEnd`) and mouse (`onMouseDown`, `onMouseMove`, `onMouseUp`) with viewport clamping.
+  - Distinguish click/tap from dragging so dragging does not accidentally trigger a click.
+  - Include clear visual feedback (active setup pause badge, pause/play icons, tooltip/accessible labels).
+  - Implement dedicated verification tests in `scripts/verify-floating-draggable-pause.ts`.
+- [x] **Subtask 50.2: Player Coordination & Autofocus / Auto-scroll / Play-Switch Suppression**:
+  - Integrate the floating button into `src/routes/index.tsx`.
+  - When setup pause is engaged:
+    - Instantly pause all active players (`multiVideoPlayerRegistry.pauseAllExcept()`, primary player `pauseVideo()`).
+    - Cancel active speech / audio loops (`cancelSpeech()`).
+    - Suppress `autoFocus`, auto-scroll (`scrollIntoView`), and automatic play-switching / subtitle cue progression so the user can configure settings and browse the table undisturbed.
+  - Verify complete integration, run test suite, compile applet, and lint.
+
 ## Task 49: Multi-Instance Video Elements with Independent Audio-Track Configuration & Horizontal Swiper Synchronization
 
 - [x] **Subtask 49.1: Multi-Instance Video Player State & Independent Configuration Architecture**:
   - Build `src/utils/multiVideoPlayerManager.ts` to manage multiple video player instances mapped by language code (primary video + one instance for each language with speak/audio enabled).
   - Provide isolated storage and state management per video instance (volume, mute, active track setup, language association) so configuration in one player element never affects others.
   - Implement dedicated verification suite `scripts/verify-multi-video-player-state.ts`.
-- [ ] **Subtask 49.2: Horizontal Swiper Carousel Component for Multi-Video Elements**:
+- [x] **Subtask 49.2: Horizontal Swiper Carousel Component for Multi-Video Elements**:
   - Create `src/components/VideoInstancesSwiper.tsx` providing a smooth horizontal swipeable carousel for mobile touch and desktop navigation.
   - Include slide indicators, previous/next controls, language headers (e.g. `Primary (en)`, `Audio Track (es)`, `Audio Track (he)`), active playback badge, and user setup guidance (prompting user to configure the native YouTube audio track for that specific language instance).
   - Integrate the swiper into the player panel in `src/routes/index.tsx`.
   - Implement dedicated verification suite `scripts/verify-video-instances-swiper.ts`.
-- [ ] **Subtask 49.3: Multi-Video Pause/Resume Audio-Track Synchronization Loop**:
+- [x] **Subtask 49.3: Multi-Video Pause/Resume Audio-Track Synchronization Loop**:
   - Update the playback loop in `src/routes/index.tsx` for `audioTrackMode`: switch between pause/resume across matched video elements for each spoken language during subtitle cue intervals instead of TTS synthesis.
   - Ensure accurate seek-to-segment, unmuting the speaking instance while keeping other instances paused, auto-swiping to the active player or indicating active status, and smoothly resuming the primary instance.
   - Support smooth fallback to Web Speech TTS if audio track mode is disabled.
@@ -19,7 +35,7 @@
 
 ## Task 48: Fix APK Version Collision, Update Script Robustness & In-App Version Display with Releases Link
 
-- [ ] **Subtask 48.1: Robust APK Installation & Version Code Handling in Update Script**:
+- [x] **Subtask 48.1: Robust APK Installation & Version Code Handling in Update Script**:
   - Update `update.apk.sh` to handle package collisions (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`, `INSTALL_FAILED_VERSION_DOWNGRADE`, `INSTALL_FAILED_CONFLICTING_PROVIDER`), performing deep purge (`pm uninstall`, `pm uninstall --user 0`, `pm clear`) and retrying cleanly.
   - Ensure `package.json` defines a standard `"version"` field and `release-apk.yml` correctly propagates version code and version name.
   - In `README.md`, ensure the APK section links to the all releases page (`https://github.com/mostuf2556/subtitle-sync/releases`).

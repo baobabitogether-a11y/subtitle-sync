@@ -138,11 +138,32 @@ echo "[+] Download complete (${FILE_SIZE} bytes)."
 echo ""
 
 # ----------------------------------------------------------------------------
-# 5. Uninstall Existing App from Device (Clean Slate)
+# 5. Uninstall Existing App from Device (Clean Slate & Deep Purge)
 # ----------------------------------------------------------------------------
+deep_purge_package() {
+  echo "[!] Performing deep purge of ${PACKAGE_NAME} (resolving collisions & lingering data)..."
+  $ADB_CMD shell am force-stop "${PACKAGE_NAME}" 2>/dev/null || true
+  $ADB_CMD shell pm clear "${PACKAGE_NAME}" 2>/dev/null || true
+  $ADB_CMD uninstall "${PACKAGE_NAME}" 2>/dev/null || true
+  $ADB_CMD shell pm uninstall --user 0 "${PACKAGE_NAME}" 2>/dev/null || true
+  $ADB_CMD shell pm uninstall "${PACKAGE_NAME}" 2>/dev/null || true
+  echo "[+] Deep purge complete."
+}
+
+has_collision_error() {
+  local out="$1"
+  if echo "$out" | grep -qE "INSTALL_FAILED_UPDATE_INCOMPATIBLE|INSTALL_FAILED_VERSION_DOWNGRADE|INSTALL_FAILED_CONFLICTING_PROVIDER|INSTALL_FAILED_SHARED_USER_INCOMPATIBLE|INSTALL_FAILED_DUPLICATE_PERMISSION"; then
+    return 0
+  fi
+  return 1
+}
+
 echo "[*] Uninstalling existing ${PACKAGE_NAME} from device..."
+$ADB_CMD shell am force-stop "${PACKAGE_NAME}" 2>/dev/null || true
+$ADB_CMD shell pm clear "${PACKAGE_NAME}" 2>/dev/null || true
 UNINSTALL_RES=$($ADB_CMD uninstall "${PACKAGE_NAME}" 2>&1 || true)
 echo "${UNINSTALL_RES}"
+$ADB_CMD shell pm uninstall --user 0 "${PACKAGE_NAME}" 2>/dev/null || true
 if echo "${UNINSTALL_RES}" | grep -iq "Success"; then
   echo "[+] Existing version removed."
 else
@@ -156,21 +177,40 @@ echo ""
 echo "[*] Installing APK to device (${ADB_TARGET_PATH})..."
 INSTALL_SUCCESS=false
 
-# Method A: Try native Windows path with replace & grant flags
-INSTALL_OUTPUT=$($ADB_CMD install -r -d -t -g "${ADB_TARGET_PATH}" 2>&1 || true)
+# Method A: Try native Windows path with replace (-r), downgrade (-d), and test (-t)
+INSTALL_OUTPUT=$($ADB_CMD install -r -d -t "${ADB_TARGET_PATH}" 2>&1 || true)
 echo "${INSTALL_OUTPUT}"
 
 if echo "${INSTALL_OUTPUT}" | grep -iq "Success"; then
   INSTALL_SUCCESS=true
 fi
 
+# Collision check after Method A
+if [ "$INSTALL_SUCCESS" = false ] && has_collision_error "${INSTALL_OUTPUT}"; then
+  echo "[!] Collision detected: performing deep purge and retrying install..."
+  deep_purge_package
+  INSTALL_OUTPUT=$($ADB_CMD install -r -d -t "${ADB_TARGET_PATH}" 2>&1 || true)
+  echo "${INSTALL_OUTPUT}"
+  if echo "${INSTALL_OUTPUT}" | grep -iq "Success"; then
+    INSTALL_SUCCESS=true
+  fi
+fi
+
 # Method B: If Windows path fails, try bash POSIX path
 if [ "$INSTALL_SUCCESS" = false ]; then
   echo "[!] Retrying installation with POSIX path (${APK_FILE})..."
-  INSTALL_OUTPUT_B=$($ADB_CMD install -r -d -t -g "${APK_FILE}" 2>&1 || true)
+  INSTALL_OUTPUT_B=$($ADB_CMD install -r -d -t "${APK_FILE}" 2>&1 || true)
   echo "${INSTALL_OUTPUT_B}"
   if echo "${INSTALL_OUTPUT_B}" | grep -iq "Success"; then
     INSTALL_SUCCESS=true
+  elif has_collision_error "${INSTALL_OUTPUT_B}"; then
+    echo "[!] Collision detected on POSIX install: performing deep purge..."
+    deep_purge_package
+    INSTALL_OUTPUT_B=$($ADB_CMD install -r -d -t "${APK_FILE}" 2>&1 || true)
+    echo "${INSTALL_OUTPUT_B}"
+    if echo "${INSTALL_OUTPUT_B}" | grep -iq "Success"; then
+      INSTALL_SUCCESS=true
+    fi
   fi
 fi
 
@@ -180,12 +220,22 @@ if [ "$INSTALL_SUCCESS" = false ]; then
   $ADB_CMD push "${APK_FILE}" /data/local/tmp/app-install.apk 2>&1 || \
     $ADB_CMD push "${ADB_TARGET_PATH}" /data/local/tmp/app-install.apk 2>&1 || true
 
-  INSTALL_OUTPUT_C=$($ADB_CMD shell pm install -r -d -g /data/local/tmp/app-install.apk 2>&1 || true)
+  INSTALL_OUTPUT_C=$($ADB_CMD shell pm install -r -d -t /data/local/tmp/app-install.apk 2>&1 || true)
   echo "${INSTALL_OUTPUT_C}"
   $ADB_CMD shell rm -f /data/local/tmp/app-install.apk 2>/dev/null || true
 
   if echo "${INSTALL_OUTPUT_C}" | grep -iq "Success"; then
     INSTALL_SUCCESS=true
+  elif has_collision_error "${INSTALL_OUTPUT_C}"; then
+    echo "[!] Collision detected on pm install: performing deep purge..."
+    deep_purge_package
+    $ADB_CMD push "${APK_FILE}" /data/local/tmp/app-install.apk 2>/dev/null || true
+    INSTALL_OUTPUT_C=$($ADB_CMD shell pm install -r -d -t /data/local/tmp/app-install.apk 2>&1 || true)
+    echo "${INSTALL_OUTPUT_C}"
+    $ADB_CMD shell rm -f /data/local/tmp/app-install.apk 2>/dev/null || true
+    if echo "${INSTALL_OUTPUT_C}" | grep -iq "Success"; then
+      INSTALL_SUCCESS=true
+    fi
   fi
 fi
 

@@ -61,11 +61,23 @@ export const ApkReleaseModal: React.FC<ApkReleaseModalProps> = ({ isOpen, onClos
               <h2 id="apk-release-title" className="text-xl font-bold font-display tracking-tight">
                 Latest Android APK Releases
               </h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Current App Version:{" "}
+              <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>Version:</span>
                 <span className="font-mono font-semibold text-foreground">
                   {activeVersion || CURRENT_APK_VERSION}
                 </span>
+                <span>·</span>
+                <a
+                  href="https://github.com/mostuf2556/subtitle-sync/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="modal-all-releases-link"
+                  className="font-medium text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+                  title="Browse All Releases on GitHub"
+                >
+                  <span>All Releases</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </p>
             </div>
           </div>
