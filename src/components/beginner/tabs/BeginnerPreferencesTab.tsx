@@ -65,6 +65,7 @@ import {
   getLovableTtsApiKey,
   setLovableTtsApiKey,
   getSpeakApiToken,
+  setSpeakApiToken,
   isSpeakApiPersonalToken,
   getServerOpenRouterApiKey,
   hasCustomOpenRouterApiKey,
@@ -91,6 +92,7 @@ import { ExternalTtsDebuggerPanel } from "@/components/ExternalTtsDebuggerPanel"
 import { GlobalFavoriteLanguagesPanel } from "@/components/GlobalFavoriteLanguagesPanel";
 import { PerformanceModeSettingsPanel } from "@/components/shared/PerformanceModeSettingsPanel";
 import { OpenRouterSettingsPanel } from "@/components/OpenRouterSettingsPanel";
+import { subscribeToCredentialUpdates } from "@/utils/credentialStatus";
 import { useIsElementEnabled } from "@/utils/performanceModeManager";
 import {
   LearningGoalsFiltersPanel,
@@ -197,18 +199,19 @@ export const BeginnerPreferencesTab: React.FC<BeginnerPreferencesTabProps> = ({
     typeof window !== "undefined" ? getLovableTtsSpeed() : 1.0,
   );
   const [openRouterKeyInput, setOpenRouterKeyInput] = useState<string>(() =>
-    typeof window !== "undefined"
-      ? localStorage.getItem("yt_openrouter_api_key") ||
-        localStorage.getItem("yt_openrouter_api_key_v1") ||
-        localStorage.getItem("yt_alternative_tts_lovable_api_key_v1") ||
-        ""
-      : "",
+    typeof window !== "undefined" ? getOpenRouterApiKeySetting() : "",
   );
   const [showOpenRouterKey, setShowOpenRouterKey] = useState<boolean>(false);
   const [openRouterKeySaved, setOpenRouterKeySaved] = useState<boolean>(false);
   const [openRouterModel, setOpenRouterModel] = useState<string>(() =>
     typeof window !== "undefined" ? getOpenRouterModelSetting() : "openrouter/auto:free",
   );
+
+  useEffect(() => {
+    return subscribeToCredentialUpdates(() => {
+      setOpenRouterKeyInput(getOpenRouterApiKeySetting());
+    });
+  }, []);
   const [isTestingAlternativeTts, setIsTestingAlternativeTts] = useState<boolean>(false);
   const [isValidatingRemoteTts, setIsValidatingRemoteTts] = useState<boolean>(false);
   const [remoteValidationResult, setRemoteValidationResult] = useState<RemoteTtsValidationResult | null>(() => {
@@ -769,8 +772,13 @@ export const BeginnerPreferencesTab: React.FC<BeginnerPreferencesTabProps> = ({
                         type="button"
                         data-testid="beginner-save-openrouter-key-btn"
                         onClick={() => {
-                          setLovableTtsApiKey(openRouterKeyInput);
-                          setOpenRouterApiKeySetting(openRouterKeyInput);
+                          const clean = openRouterKeyInput.trim().replace(/^bearer\s+/i, "");
+                          if (isSpeakApiPersonalToken(clean)) {
+                            setSpeakApiToken(clean);
+                          } else {
+                            setLovableTtsApiKey(openRouterKeyInput);
+                            setOpenRouterApiKeySetting(openRouterKeyInput);
+                          }
                           setOpenRouterKeySaved(true);
                           setTimeout(() => setOpenRouterKeySaved(false), 2500);
                         }}
@@ -783,9 +791,14 @@ export const BeginnerPreferencesTab: React.FC<BeginnerPreferencesTabProps> = ({
                           type="button"
                           data-testid="beginner-clear-openrouter-key-btn"
                           onClick={() => {
+                            const clean = openRouterKeyInput.trim().replace(/^bearer\s+/i, "");
                             setOpenRouterKeyInput("");
-                            setLovableTtsApiKey("");
-                            setOpenRouterApiKeySetting("");
+                            if (isSpeakApiPersonalToken(clean)) {
+                              setSpeakApiToken("");
+                            } else {
+                              setLovableTtsApiKey("");
+                              setOpenRouterApiKeySetting("");
+                            }
                           }}
                           className="px-2 py-1 rounded border border-input bg-background text-muted-foreground hover:text-foreground text-xs"
                           title="Clear custom key"

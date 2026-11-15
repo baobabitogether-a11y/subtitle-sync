@@ -542,6 +542,9 @@ export function setSpeakApiToken(token: string): void {
         localStorage.removeItem(STORAGE_KEY_ALTERNATIVE_TTS_SPEAK_API_TOKEN);
       }
     }
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("yt-credentials-updated"));
+    }
   } catch (err) {
     console.warn("Failed to persist Speak API token:", err);
   }
@@ -598,6 +601,9 @@ export function setProviderApiKey(apiKey: string): void {
         localStorage.removeItem("yt_openrouter_api_key_v1");
         localStorage.removeItem("yt_openrouter_api_key");
       }
+    }
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("yt-credentials-updated"));
     }
   } catch (err) {
     console.warn("Failed to persist Provider API key:", err);
@@ -1384,6 +1390,7 @@ export interface RemoteTtsValidationOptions {
   provider?: LovableTtsProvider;
   timeoutMs?: number;
   isAnonymous?: boolean;
+  speakApiToken?: string;
 }
 
 const lastValidationResults: Partial<Record<"lovable", RemoteTtsValidationResult>> = {};
@@ -1438,7 +1445,10 @@ export async function validateRemoteTtsService(
   const serviceName = "Lovable TTS3 Service (tts3.lovable.app)";
   const provider = options?.provider || getLovableTtsProvider();
   const endpoint = LOVABLE_TTS_ENDPOINT;
-  const { speakApiToken, providerApiKey } = resolveTtsCredentials();
+  const { speakApiToken, providerApiKey } = resolveTtsCredentials({
+    speakApiToken: options?.speakApiToken,
+    isAnonymous: options?.isAnonymous,
+  });
 
   try {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;

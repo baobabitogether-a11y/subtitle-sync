@@ -1099,6 +1099,9 @@ export function setOpenRouterApiKeySetting(key: string): void {
       window.localStorage.removeItem("yt_alternative_tts_lovable_api_key_v1");
       window.localStorage.removeItem("yt_openrouter_api_key_v1");
     }
+    if (typeof window.dispatchEvent === "function") {
+      window.dispatchEvent(new CustomEvent("yt-credentials-updated"));
+    }
   } catch {
     // Ignore storage errors
   }

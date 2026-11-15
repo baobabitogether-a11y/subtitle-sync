@@ -232,6 +232,7 @@ import {
   getLovableTtsApiKey,
   setLovableTtsApiKey,
   getSpeakApiToken,
+  setSpeakApiToken,
   isSpeakApiPersonalToken,
   getServerOpenRouterApiKey,
   hasCustomOpenRouterApiKey,
@@ -307,6 +308,7 @@ import {
 } from "@/utils/newSubtitlesParser";
 import { PerformanceModeSettingsPanel } from "@/components/shared/PerformanceModeSettingsPanel";
 import { OpenRouterSettingsPanel } from "@/components/OpenRouterSettingsPanel";
+import { subscribeToCredentialUpdates } from "@/utils/credentialStatus";
 import { useIsElementEnabled } from "@/utils/performanceModeManager";
 import { LearningGoalsFiltersPanel } from "@/components/shared/LearningGoalsFiltersPanel";
 import { BeginnerFlowContainer } from "@/components/beginner/BeginnerFlowContainer";
@@ -1579,6 +1581,7 @@ function Index() {
   );
 
   const handleNavigateToTtsSetup = useCallback(() => {
+    setShowWordBalloonLearningView(false);
     if (workflowMode === "beginner") {
       const prefTabBtn = document.querySelector(
         '[data-testid="beginner-tab-preferences"]',
@@ -1588,6 +1591,7 @@ function Index() {
       }
     } else {
       setShowOtherSettingsAccordions(true);
+      setCurrentAccordionStage(4);
       setOpenPanels((prev) => ({
         ...prev,
         playback: true,
@@ -1640,6 +1644,11 @@ function Index() {
   const [openRouterKeyInput, setOpenRouterKeyInput] = useState<string>(() =>
     typeof window !== "undefined" ? getOpenRouterApiKeySetting() : "",
   );
+  useEffect(() => {
+    return subscribeToCredentialUpdates(() => {
+      setOpenRouterKeyInput(getOpenRouterApiKeySetting());
+    });
+  }, []);
   const [openRouterModel, setOpenRouterModel] = useState<string>(() =>
     typeof window !== "undefined" ? getOpenRouterModelSetting() : "openrouter/auto:free",
   );
@@ -3308,6 +3317,8 @@ function Index() {
     setDebugModeSetting(enabled);
     if (!enabled) {
       setNetworkInspectorOpen(false);
+      setCurrentAccordionStage((stage) => (stage === 6 ? 1 : stage));
+      setActiveTopTab((tab) => (tab === "playground" || tab === "ai-punctuation" ? "viewer" : tab));
     }
   };
   const handleToggleDebugMode = useCallback(() => {
@@ -3317,6 +3328,10 @@ function Index() {
       setDebugModeSetting(next);
       if (!next) {
         setNetworkInspectorOpen(false);
+        setCurrentAccordionStage((stage) => (stage === 6 ? 1 : stage));
+        setActiveTopTab((tab) =>
+          tab === "playground" || tab === "ai-punctuation" ? "viewer" : tab,
+        );
       }
       return next;
     });
@@ -3695,7 +3710,9 @@ function Index() {
         if (stageParam === "3") return 3;
         if (stageParam === "4" || stageParam === "settings") return 4;
         if (stageParam === "5" || stageParam === "learning") return 5;
-        if (stageParam === "6" || stageParam === "history") return 6;
+        if (stageParam === "6" || stageParam === "history") {
+          return isDeveloperModeEnabled(window.location.search) ? 6 : 1;
+        }
         if (params.get("all_stages") === "true") return 4;
       }
       return 1;
@@ -8195,7 +8212,7 @@ function Index() {
           </div>
         </div>
 
-        {workflowMode === "expert" && (
+        {workflowMode === "expert" && isDeveloperMode && (
           <div
             id="top-tabs-nav"
             data-testid="top-tabs-nav"
@@ -8204,111 +8221,88 @@ function Index() {
             aria-label="App Navigation Tabs"
           >
             <button
-              id="tab-viewer"
-              data-testid="tab-viewer"
+              id="tab-playground"
+              data-testid="tab-playground"
               role="tab"
-              aria-selected={activeTopTab === "viewer"}
+              aria-selected={activeTopTab === "playground"}
               type="button"
-              onClick={() => setActiveTopTab("viewer")}
-              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-                activeTopTab === "viewer"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setActiveTopTab((prev) => (prev === "playground" ? "viewer" : "playground"));
+                cancelSpeech();
+                try {
+                  player.current?.pauseVideo?.();
+                } catch {
+                  // ignore
+                }
+              }}
+              data-control-category="experimental"
+              className={`inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTopTab === "playground"
+                  ? "bg-sky-600 text-white shadow-sm"
+                  : "bg-sky-500/10 text-sky-800 hover:bg-sky-500/20 dark:text-sky-200"
               }`}
-              data-control-category="daily-usage"
             >
-              <LayoutList className="h-3.5 w-3.5" />
-              <span>Parallel Viewer</span>
+              <Tv className="h-3.5 w-3.5" />
+              <span>Playground</span>
+              {Object.keys(detectedPlaygroundTracks).length > 0 && (
+                <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-[10px] font-mono font-bold">
+                  {Object.keys(detectedPlaygroundTracks).length}
+                </span>
+              )}
             </button>
-            {isDeveloperMode && (
-              <button
-                id="tab-playground"
-                data-testid="tab-playground"
-                role="tab"
-                aria-selected={activeTopTab === "playground"}
-                type="button"
-                onClick={() => {
-                  setActiveTopTab("playground");
-                  cancelSpeech();
-                  try {
-                    player.current?.pauseVideo?.();
-                  } catch {
-                    // ignore
-                  }
-                }}
-                data-control-category="experimental"
-                className={`inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 px-3 py-1.5 text-xs font-semibold transition-all ${
-                  activeTopTab === "playground"
-                    ? "bg-sky-600 text-white shadow-sm"
-                    : "bg-sky-500/10 text-sky-800 hover:bg-sky-500/20 dark:text-sky-200"
-                }`}
-              >
-                <Tv className="h-3.5 w-3.5" />
-                <span>Playground</span>
-                {Object.keys(detectedPlaygroundTracks).length > 0 && (
-                  <span className="rounded-full bg-primary-foreground/20 px-1.5 py-0.2 text-[10px] font-mono font-bold">
-                    {Object.keys(detectedPlaygroundTracks).length}
-                  </span>
-                )}
-              </button>
-            )}
-            {isDeveloperMode && (
-              <button
-                id="tab-ai-punctuation"
-                data-testid="tab-ai-punctuation"
-                role="tab"
-                aria-selected={activeTopTab === "ai-punctuation"}
-                type="button"
-                onClick={() => {
-                  setActiveTopTab("ai-punctuation");
-                  cancelSpeech();
-                  try {
-                    player.current?.pauseVideo?.();
-                  } catch {
-                    // ignore
-                  }
-                }}
-                data-control-category="experimental"
-                className={`inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 px-3 py-1.5 text-xs font-semibold transition-all ${
-                  activeTopTab === "ai-punctuation"
-                    ? "bg-sky-600 text-white shadow-sm"
-                    : "bg-sky-500/10 text-sky-800 hover:bg-sky-500/20 dark:text-sky-200"
-                }`}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>AI Punctuation</span>
-                {hasCachedAi && (
-                  <span
-                    data-testid="tab-ai-cached-indicator"
-                    className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold"
-                    title="Cached AI subtitles available"
-                  >
-                    Cached
-                  </span>
-                )}
-              </button>
-            )}
-            {isDeveloperMode && (
-              <a
-                id="tab-storybook"
-                data-testid="tab-storybook"
-                href="./storybook"
-                className="inline-flex items-center gap-1.5 rounded-md border border-pink-500/30 px-3 py-1.5 text-xs font-semibold transition-all bg-pink-500/10 text-pink-700 hover:bg-pink-500/20 dark:text-pink-300"
-                title="Open Storybook component isolation workbench"
-              >
-                <BookOpen className="h-3.5 w-3.5 text-pink-500" />
-                <span>Storybook</span>
-              </a>
-            )}
-            {isDeveloperMode && (
-              <span
-                data-testid="developer-mode-indicator"
-                data-control-category="experimental"
-                className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-1.5 text-[10px] font-semibold text-sky-800 dark:text-sky-200"
-              >
-                Developer mode
-              </span>
-            )}
+            <button
+              id="tab-ai-punctuation"
+              data-testid="tab-ai-punctuation"
+              role="tab"
+              aria-selected={activeTopTab === "ai-punctuation"}
+              type="button"
+              onClick={() => {
+                setActiveTopTab((prev) =>
+                  prev === "ai-punctuation" ? "viewer" : "ai-punctuation",
+                );
+                cancelSpeech();
+                try {
+                  player.current?.pauseVideo?.();
+                } catch {
+                  // ignore
+                }
+              }}
+              data-control-category="experimental"
+              className={`inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 px-3 py-1.5 text-xs font-semibold transition-all ${
+                activeTopTab === "ai-punctuation"
+                  ? "bg-sky-600 text-white shadow-sm"
+                  : "bg-sky-500/10 text-sky-800 hover:bg-sky-500/20 dark:text-sky-200"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>AI Punctuation</span>
+              {hasCachedAi && (
+                <span
+                  data-testid="tab-ai-cached-indicator"
+                  className="rounded-full bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold"
+                  title="Cached AI subtitles available"
+                >
+                  Cached
+                </span>
+              )}
+            </button>
+            <a
+              id="tab-storybook"
+              data-testid="tab-storybook"
+              href="./storybook"
+              className="inline-flex items-center gap-1.5 rounded-md border border-pink-500/30 px-3 py-1.5 text-xs font-semibold transition-all bg-pink-500/10 text-pink-700 hover:bg-pink-500/20 dark:text-pink-300"
+              title="Open Storybook component isolation workbench"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-pink-500" />
+              <span>Storybook</span>
+            </a>
+            <span
+              data-testid="developer-mode-indicator"
+              data-control-category="experimental"
+              className="rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-1.5 text-[10px] font-semibold text-sky-800 dark:text-sky-200"
+            >
+              Developer mode
+            </span>
           </div>
         )}
 
@@ -9080,11 +9074,13 @@ function Index() {
               />
             }
             historyStageSlot={
-              <TtsPlayHistoryPanel
-                currentVideoId={videoId}
-                onReplayEntry={handleReplayHistoryEntry}
-                onNavigateToVideo={handleNavigateToHistoryVideo}
-              />
+              debugMode ? (
+                <TtsPlayHistoryPanel
+                  currentVideoId={videoId}
+                  onReplayEntry={handleReplayHistoryEntry}
+                  onNavigateToVideo={handleNavigateToHistoryVideo}
+                />
+              ) : undefined
             }
           />
         </div>
@@ -9399,26 +9395,28 @@ function Index() {
                       </span>
                       <span>Sentence &amp; Word Game</span>
                     </button>
-                    <button
-                      type="button"
-                      id="stage-step-history"
-                      data-testid="stage-step-history"
-                      onClick={() => {
-                        setShowOtherSettingsAccordions(false);
-                        setShowWordBalloonLearningView(false);
-                        setCurrentAccordionStage(6);
-                      }}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
-                        currentAccordionStage === 6
-                          ? "bg-primary text-primary-foreground shadow"
-                          : "bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <span className="h-4 w-4 rounded-full bg-background/20 flex items-center justify-center text-[10px] font-bold">
-                        6
-                      </span>
-                      <span>History</span>
-                    </button>
+                    {debugMode && (
+                      <button
+                        type="button"
+                        id="stage-step-history"
+                        data-testid="stage-step-history"
+                        onClick={() => {
+                          setShowOtherSettingsAccordions(false);
+                          setShowWordBalloonLearningView(false);
+                          setCurrentAccordionStage(6);
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                          currentAccordionStage === 6
+                            ? "bg-primary text-primary-foreground shadow"
+                            : "bg-muted/70 hover:bg-muted text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <span className="h-4 w-4 rounded-full bg-background/20 flex items-center justify-center text-[10px] font-bold">
+                          6
+                        </span>
+                        <span>History</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2" />
@@ -10482,14 +10480,23 @@ function Index() {
                                         hasCustomSpeakToken={Boolean(getSpeakApiToken())}
                                         hasServerKey={Boolean(getServerOpenRouterApiKey())}
                                         onSaveKey={(k) => {
-                                          setOpenRouterKeyInput(k);
-                                          setLovableTtsApiKey(k);
-                                          setOpenRouterApiKeySetting(k);
+                                          const clean = k.trim().replace(/^bearer\s+/i, "");
+                                          if (isSpeakApiPersonalToken(clean)) {
+                                            setSpeakApiToken(clean);
+                                          } else {
+                                            setOpenRouterKeyInput(clean);
+                                            setLovableTtsApiKey(clean);
+                                            setOpenRouterApiKeySetting(clean);
+                                          }
                                         }}
                                         onClearKey={() => {
-                                          setOpenRouterKeyInput("");
-                                          setLovableTtsApiKey("");
-                                          setOpenRouterApiKeySetting("");
+                                          if (getSpeakApiToken()) {
+                                            setSpeakApiToken("");
+                                          } else {
+                                            setOpenRouterKeyInput("");
+                                            setLovableTtsApiKey("");
+                                            setOpenRouterApiKeySetting("");
+                                          }
                                         }}
                                         onValidateService={() => handleValidateRemoteService()}
                                         onTestAudio={async () => {
@@ -14740,7 +14747,7 @@ function Index() {
                   })}
               </div>
 
-              {currentAccordionStage === 6 && (
+              {debugMode && currentAccordionStage === 6 && (
                 <div className="px-4 md:px-6 pb-6" data-testid="advanced-history-stage-container">
                   <TtsPlayHistoryPanel
                     currentVideoId={videoId}
@@ -14856,6 +14863,8 @@ function Index() {
         onPause={handlePauseVideo}
         currentTimeSec={playbackCurrentTime}
         durationSec={playbackDuration}
+        onOpenOpenRouterSettings={handleNavigateToOpenRouterSetup}
+        onOpenTtsServiceSettings={handleNavigateToTtsSetup}
       />
       <FloatingErrorButton />
       {/* Auto-Fetching Subtitles widget: folded and hidden by default on refresh */}

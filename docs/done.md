@@ -1,5 +1,46 @@
 # Done tasks
 
+### Tasks 422–424: Prompt 211 — Remove Redundant "Parallel Viewer" Tab, Debug-Only History Stage, & Floating Settings OpenRouter/TTS-Service Credential Indication + Click-to-Update (`v2.1.126`)
+
+- **Prompt**:
+  ```
+  the "Parallel Viewer" elementis is redundunt.
+
+  show the history stage only on debug mode
+
+  openrouter api key - show indication valid/missing on the floating settings button and allow to click in order to update it.
+  - do the same for the tts-service token
+
+  should all application settings be persistent accross app uninstall and install
+  Apply style changes to the selected element(s).
+  [Focused selector: div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div#top-tabs-nav:nth-of-type(2)]
+  ```
+- **Changes**:
+  - **Task 422 — Remove Redundant `#tab-viewer` & Debug-Gate `#top-tabs-nav`**: Removed the redundant `"Parallel Viewer"` (`#tab-viewer`) button inside `#top-tabs-nav` (`src/routes/index.tsx`), gated `#top-tabs-nav` rendering strictly on `workflowMode === "expert" && isDeveloperMode`, updated `#tab-playground` and `#tab-ai-punctuation` to toggle back to `"viewer"` when re-clicked, and aligned `e2e/web.spec.ts` and `scripts/verify-video-playground-tab.ts`.
+  - **Task 423 — Debug-Only History Stage (Advanced & Beginner Parity)**: Restricted `#stage-step-history`, Stage 6 panel (`advanced-history-stage-container`), `?stage=6`/`?stage=history` URL bootstrap (`isDeveloperModeEnabled(window.location.search)`), and Beginner `historyStageSlot` in `BeginnerFlowContainer` to `debugMode === true` only, automatically resetting Stage 6 / developer tabs back to Stage 1 / `"viewer"` when debug mode is disabled.
+  - **Task 424 — Floating Settings OpenRouter API Key & TTS-Service Token Indicators + Click-to-Update**:
+    - Added `src/utils/credentialStatus.ts` (`getCredentialStatusSnapshot`, `saveFloatingOpenRouterKey`, `saveFloatingTtsServiceToken`, `verifyOpenRouterCredential`, `verifyTtsServiceTokenCredential`, `subscribeToCredentialUpdates` via `yt-credentials-updated` and `storage`) with strict isolation between OpenRouter keys (`yt_openrouter_api_key`) and Speak/TTS-Service tokens (`yt_speak_api_token_v1`).
+    - Updated `src/utils/appSettings.ts` (`setOpenRouterApiKeySetting`) and `src/lib/alternative-tts.ts` (`setSpeakApiToken`, `setProviderApiKey`, `RemoteTtsValidationOptions.speakApiToken`) to broadcast credential updates cleanly and keep `spk_`/`tts_` tokens from clobbering OpenRouter keys across `TtsServiceSettingsPanel`, `OpenRouterSettingsPanel`, and `BeginnerPreferencesTab`.
+    - Updated `src/components/FloatingDraggablePauseButton.tsx`, `src/components/FloatingDraggablePauseButton.stories.tsx`, and `src/storybook/StorybookWorkbench.tsx` to display `OR Valid/Missing/Invalid` (`floating-openrouter-status-indicator`) and `TTS Valid/Missing/Invalid` (`floating-tts-token-status-indicator`) directly on `floating-menu-toggle-btn`, open inline Save/Verify/Clear/Show-Hide editors on click, and provide `"Full Settings"` navigation (`onOpenOpenRouterSettings`, `onOpenTtsServiceSettings`) wired in `src/routes/index.tsx`.
+    - Bumped single-source version to `v2.1.126` (`code: 20226` via `npx tsx scripts/sync-version.ts 2.1.126`) and documented in `docs/files.md`.
+- **Verification**: `npm run test:prompt-211` (credentialStatus unit tests, source & Storybook parity, live Chromium non-debug omission, Debug Mode History Stage reveal, and live floating button credential indicator + click-to-update with zero `pageerror`s / `FloatingErrorButton`s), `npm run test:tts-play-history-stage`, `npx tsx scripts/verify-floating-menu-third-option-tts-play.ts`, `npx tsx scripts/verify-top-menu-debug-toggle.ts`, `npx tsx scripts/verify-video-playground-tab.ts`, `npm run check-version` (`2.1.126` / `20226`), `npm run test:no-duplicate-md`, `npm run test:agents-all` (22/22), `npx tsc --noEmit`, `compile_applet`, and `lint_applet` (git commit/push skipped — no `.git` directory): **PASSED**.
+
+### Hotfix: Vite HMR Reload & Stale Module Export Mismatch at Container Boot (Prompt 210, `v2.1.125`)
+
+- **Prompt**:
+  ```
+  Fix the errors in the app
+  [AIS_METADATA_SECTION_START]
+  fix_it_trigger: manual
+  error 0: 10:24:39 PM [vite] (client) hmr update /src/styles.css, /src/components/FloatingErrorButton.tsx
+  error 1..8: [vite] Failed to reload /src/routes/index.tsx, /src/styles.css, /src/components/AiSubtitlePunctuationTab.tsx, /src/components/WordBalloonLearningView.tsx, /src/components/ListeningGamePanel.tsx; SyntaxError: missing exports unlockTtsAudioPlayback, splitSentenceHighlightParts, LISTENING_RATE_PRESETS
+  [AIS_METADATA_SECTION_END]
+  ```
+- **Root Cause & Resolution**:
+  - Verified all 8 reported modules (`src/styles.css`, `src/components/FloatingErrorButton.tsx`, `src/routes/index.tsx`, `src/components/AiSubtitlePunctuationTab.tsx`, `src/lib/alternative-tts.ts`, `src/utils/listeningGame.ts`, `src/components/WordBalloonLearningView.tsx`, `src/components/ListeningGamePanel.tsx`) already contain the required exports (`unlockTtsAudioPlayback`, `splitSentenceHighlightParts`, `LISTENING_RATE_PRESETS`), zero TypeScript errors, zero non-Prettier ESLint errors/warnings, and zero syntax issues; the errors originated from container-boot HMR / stale client module cache at `22:24:39`.
+  - Bumped single-source version to `v2.1.125` (`code: 20225` via `npx tsx scripts/sync-version.ts 2.1.125`) and restarted the Vite dev server cleanly (`restart_dev_server`) to purge stale in-memory module graph/HMR state.
+- **Verification**: `npm run test:vite-reload-modules` (17/17 HTTP 200), `npm run test:client-pretransform-health`, `npm run test:dev-server-prewarming-hotfix`, `npm run test:react-instance-and-vite-reload-hotfix`, `npm run test:listening-game-mode`, `npm run test:no-duplicate-md`, `npm run check-version`, HTTP 200 probes across all 8 reported modules & 179 `src/` files, live Chromium render (`/` & `?mode=beginner`, `ERR_BTN: 0`, zero `pageerror`s), `compile_applet`, and `lint_applet` (git commit/push skipped — no `.git` directory): **PASSED**.
+
 ### Task 421: Prompt 209 — YouTube API Default & Auto-Translation Switcher Container Inside `#switchable-default-subtitles-bar` (`v2.1.124`)
 
 - **Prompt**:

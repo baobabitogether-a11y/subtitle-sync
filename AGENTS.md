@@ -129,10 +129,17 @@ The application processes and presents subtitles through a strict sequential pip
 
 ## Last raw prompt
 ```
-add container element which shows the video's default/auto translation based on youtube api request and allow to switch between them
+the "Parallel Viewer" elementis is redundunt.
+
+show the history stage only on debug mode
+
+openrouter api key - show indication valid/missing on the floating settings button and allow to click in order to update it.
+- do the same for the tts-service token
+
+should all application settings be persistent accross app uninstall and install
 Apply style changes to the selected element(s).
 [AIS_METADATA_SECTION_START]
-CSS selector 1: div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > details:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div#switchable-default-subtitles-bar:nth-of-type(1)
+CSS selector 1: div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div#top-tabs-nav:nth-of-type(2)
 CSS 1: {
 
 }

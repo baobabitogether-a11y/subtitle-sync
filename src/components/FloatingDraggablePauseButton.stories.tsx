@@ -100,3 +100,28 @@ export const SpeechSpeakingState: Story = {
     />
   ),
 };
+
+export const CredentialsMissingState: Story = {
+  render: () => (
+    <InteractiveFloatingWrapper
+      isSetupPaused={false}
+      isAutoScrollEnabled={true}
+      isTtsPlayEnabled={true}
+      openRouterStatus="missing"
+      ttsTokenStatus="missing"
+    />
+  ),
+};
+
+export const CredentialsValidState: Story = {
+  render: () => (
+    <InteractiveFloatingWrapper
+      isSetupPaused={false}
+      isAutoScrollEnabled={true}
+      isTtsPlayEnabled={true}
+      openRouterStatus="valid"
+      ttsTokenStatus="valid"
+    />
+  ),
+};
+

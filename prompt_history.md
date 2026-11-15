@@ -2680,4 +2680,40 @@ CSS 1: {
 [AIS_METADATA_SECTION_END]
 ```
 
+---
 
+### Prompt 210: Hotfix — Vite HMR Reload & Export Mismatch Errors at Container Boot
+```
+Fix the errors in the app
+[AIS_METADATA_SECTION_START]
+fix_it_trigger: manual
+error 0: 10:24:39 PM [vite] (client) hmr update /src/styles.css, /src/components/FloatingErrorButton.tsx
+error 1: [vite] Failed to reload /src/routes/index.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+error 2: [vite] Failed to reload /src/styles.css. This could be due to syntax errors or importing non-existent modules. (see errors above)
+error 3: [vite] Failed to reload /src/components/AiSubtitlePunctuationTab.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+error 4: [vite] SyntaxError: The requested module '/src/lib/alternative-tts.ts' does not provide an export named 'unlockTtsAudioPlayback'
+error 5: [vite] SyntaxError: The requested module '/src/utils/listeningGame.ts' does not provide an export named 'splitSentenceHighlightParts'
+error 6: [vite] Failed to reload /src/components/WordBalloonLearningView.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+error 7: [vite] SyntaxError: The requested module '/src/utils/listeningGame.ts' does not provide an export named 'LISTENING_RATE_PRESETS'
+error 8: [vite] Failed to reload /src/components/ListeningGamePanel.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above)
+[AIS_METADATA_SECTION_END]
+---
+
+### Prompt 211: Remove Redundant Parallel Viewer Tab, Debug-Only History Stage, Floating Settings Credential Status & Click-to-Update, & Uninstall Persistence Question
+```
+the "Parallel Viewer" elementis is redundunt.
+
+show the history stage only on debug mode
+
+openrouter api key - show indication valid/missing on the floating settings button and allow to click in order to update it.
+- do the same for the tts-service token
+
+should all application settings be persistent accross app uninstall and install
+Apply style changes to the selected element(s).
+[AIS_METADATA_SECTION_START]
+CSS selector 1: div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div#top-tabs-nav:nth-of-type(2)
+CSS 1: {
+
+}
+[AIS_METADATA_SECTION_END]
+```

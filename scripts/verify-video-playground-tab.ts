@@ -28,24 +28,27 @@ assert.ok(
 
 const appConfig = fs.readFileSync(path.resolve(rootDir, "src/config/appConfig.ts"), "utf-8");
 assert.ok(
-  appConfig.includes(`APP_VERSION = "${expectedVersion}"`),
-  `appConfig.ts must declare APP_VERSION ${expectedVersion}`,
+  appConfig.includes("APP_VERSION = packageJson.version") ||
+    appConfig.includes(`APP_VERSION = "${expectedVersion}"`),
+  `appConfig.ts must derive APP_VERSION from package.json (${expectedVersion})`,
 );
 
 const apkUpdater = fs.readFileSync(path.resolve(rootDir, "src/utils/apkUpdater.ts"), "utf-8");
 assert.ok(
-  apkUpdater.includes(`CURRENT_APK_VERSION = "v${expectedVersion}"`),
-  `apkUpdater.ts must declare CURRENT_APK_VERSION v${expectedVersion}`,
+  apkUpdater.includes("CURRENT_APK_VERSION = `v${APP_VERSION}`") ||
+    apkUpdater.includes(`CURRENT_APK_VERSION = "v${expectedVersion}"`),
+  `apkUpdater.ts must derive CURRENT_APK_VERSION from APP_VERSION (v${expectedVersion})`,
 );
 
 const appSettings = fs.readFileSync(path.resolve(rootDir, "src/utils/appSettings.ts"), "utf-8");
 assert.ok(
-  appSettings.includes(`version: "${expectedVersion}"`),
-  `appSettings.ts must declare version ${expectedVersion}`,
+  appSettings.includes("version: APP_VERSION") ||
+    appSettings.includes(`version: "${expectedVersion}"`),
+  `appSettings.ts must derive version from APP_VERSION (${expectedVersion})`,
 );
 
 console.log(
-  "✅ PASS: Semantic version 1.0.21 and versionCode 10021 strictly aligned across all 5 files.",
+  `✅ PASS: Semantic version ${expectedVersion} aligned via single source of truth across package.json, build.gradle.kts, appConfig.ts, apkUpdater.ts, and appSettings.ts.`,
 );
 
 // -----------------------------------------------------------------------------
@@ -117,20 +120,20 @@ assert.ok(
   "index.tsx must import VideoPlayground from @/components/VideoPlayground",
 );
 
-// Assert top tabs navigation and testids
+// Assert top tabs navigation and testids (redundant tab-viewer removed, top-tabs-nav debug-only)
 assert.ok(
   indexContent.includes('data-testid="top-tabs-nav"'),
-  "index.tsx must render top-tabs-nav",
+  "index.tsx must render top-tabs-nav when developer/debug mode is active",
 );
 assert.ok(
-  indexContent.includes('data-testid="tab-viewer"'),
-  "index.tsx must include tab-viewer button",
+  !indexContent.includes('data-testid="tab-viewer"'),
+  "index.tsx must remove redundant tab-viewer (Parallel Viewer) button",
 );
 assert.ok(
   indexContent.includes('data-testid="tab-playground"'),
   "index.tsx must include tab-playground button",
 );
-console.log("✅ PASS: Top tabs navigation (tab-viewer and tab-playground) present in index.tsx.");
+console.log("✅ PASS: Debug-gated top-tabs-nav (tab-playground, redundant tab-viewer removed) verified in index.tsx.");
 
 // Assert activeTopTab state and isolation in player interval
 assert.ok(
