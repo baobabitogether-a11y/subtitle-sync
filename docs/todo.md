@@ -1,10 +1,12 @@
 # Active Subtask Mirror (`docs/todo.md`)
 
-- **Status**: [ACTIVE]
-- **Active Task**: Task 419 (Prompt 207 Chapter 4 — Game & OpenRouter sentence generation using target words to learn, on-demand next X=5 sentences)
-- **Active Step**: Inspect Game views (`WordBalloonLearningView.tsx`, `ListeningGamePanel.tsx`, `listeningGame.ts`), build `openRouterSentenceGenerator.ts` (`OPENROUTER_SENTENCE_BATCH_SIZE = 5`) + Storybook-first `OpenRouterSentenceGamePanel.tsx` & wire into Advanced/Beginner `WordBalloonLearningView`.
-- **Upcoming**: Task 414 & Task 415 (Prompt 204 auto-scroll fixes)
+- **Status**: [IDLE]
+- **Active Task**: None (Task 421 completed; pending backlog: Task 419, Task 414, Task 415)
+- **Active Step**: Ready for next prompt or pending backlog resume.
+- **Upcoming**: Task 419, Task 414 & Task 415
 - **Completed**:
+  - Task 421 (Prompt 209): Added YouTube API Default & Auto-Translation switcher container (`youtube-api-default-auto-translations-container`) inside `#switchable-default-subtitles-bar` (`test:youtube-api-default-auto-translations` & `test:agents-all` 22/22 PASSED, `v2.1.124`)
+  - Task 420 (Prompt 208): Fixed progress bar seek during TTS-play or video playback being overwritten by next queued section (`test:seek-overrides-tts-queue` & `test:agents-all` 22/22 PASSED, `v2.1.123`)
   - Task 418 (Prompt 207 Chapter 3): Fetched live OpenRouter free models (`frontend/v1/models/find`) with API key on init, defaulted to `openrouter/auto:free`, rendered model dropdown across Advanced, Beginner & Storybook (`test:openrouter-free-models` PASSED, `v2.1.121`)
   - Task 417 (Prompt 207 Chapter 2): Built shared `OpenRouterSettingsPanel` + Storybook story/Workbench tab and mounted as 1st accordion above TTS Service (2nd accordion) in Advanced & Beginner modes (`test:openrouter-accordion` PASSED, `v2.1.120`)
   - Task 416 (Prompt 207 Chapter 1): Moved TTS Service upper in Settings into its own dedicated accordion (2nd accordion slot) across Advanced & Beginner modes (`test:settings-tts-service-accordion` PASSED, `v2.1.119`)

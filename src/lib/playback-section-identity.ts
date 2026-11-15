@@ -3,6 +3,9 @@ export interface PlaybackSectionTiming {
   end: number;
 }
 
-export function getPlaybackSectionId(section: PlaybackSectionTiming): string {
+export function getPlaybackSectionId(section?: PlaybackSectionTiming | null): string {
+  if (!section || typeof section.start !== "number" || typeof section.end !== "number") {
+    return "";
+  }
   return `${section.start}:${section.end}`;
 }

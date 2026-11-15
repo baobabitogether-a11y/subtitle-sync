@@ -73,6 +73,14 @@ import {
   Minimize2,
 } from "lucide-react";
 import { getPlaybackSectionId } from "@/lib/playback-section-identity";
+import {
+  detectManualProgressBarSeek,
+  findRowIndexAtTimeMs,
+  getEffectivePlayerTimeSec,
+  isAwaitingPendingSeek,
+  shouldAbortQueuedSectionResume,
+  type PendingSeekTarget,
+} from "@/lib/playback-seek-coordinator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
@@ -433,6 +441,8 @@ import {
 } from "@/utils/videoLibraryManager";
 import {
   fetchVideoMetadata,
+  fetchAvailableCaptionTracks,
+  cacheVideoMetadata,
   getCachedVideoMetadata,
   enrichMetadataWithPlayer,
 } from "@/utils/videoMetadataManager";
@@ -451,6 +461,7 @@ import {
   saveDefaultSubtitleLanguages,
 } from "@/utils/subtitleCache";
 import { SwitchableDefaultSubtitlesBar } from "@/components/SwitchableDefaultSubtitlesBar";
+import type { YouTubeApiSubtitleEntry } from "@/utils/youtubeApiSubtitleTracks";
 import { resolveKingOfComma } from "@/utils/subtitlePunctuationStats";
 import { LanguageRatioCompositionSelector } from "@/components/LanguageRatioCompositionSelector";
 import {
@@ -1875,6 +1886,16 @@ function Index() {
     [kingOfCommaLang, setBaseLanguage, videoId],
   );
 
+  const [activeApiTrackId, setActiveApiTrackId] = useState<string>("");
+  const [isRefreshingApiTracks, setIsRefreshingApiTracks] = useState<boolean>(false);
+  const [switchingApiTrackId, setSwitchingApiTrackId] = useState<string | null>(null);
+  const fetchedApiTrackUrlsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    setActiveApiTrackId("");
+    fetchedApiTrackUrlsRef.current.clear();
+  }, [videoId]);
+
   // Automatically select `king-of-comma` as translation base & generate `mother-tongue-language` as default-language
   useEffect(() => {
     if (!kingOfCommaLang || manualBaseOverrideVideoId === videoId) return;
@@ -2316,6 +2337,13 @@ function Index() {
     }
   }, []);
   const networkRequests = useNetworkRequests();
+  const timedTextNetworkRequests = useMemo(
+    () =>
+      networkRequests.filter(
+        (req) => typeof req.url === "string" && req.url.includes("/api/timedtext"),
+      ),
+    [networkRequests],
+  );
   const apkReleaseLinks = useMemo(() => getApkReleaseLinks(), []);
 
   const fetchFavoriteLanguageSubtitles = useCallback(
@@ -3395,6 +3423,8 @@ function Index() {
   const [playbackCurrentTime, setPlaybackCurrentTime] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1.0);
+  const playbackRateRef = useRef(1.0);
+  playbackRateRef.current = playbackRate;
   const [isPlayerHovered, setIsPlayerHovered] = useState(false);
 
   const [showVideoSubtitles, setShowVideoSubtitles] = useState(
@@ -3830,6 +3860,227 @@ function Index() {
       .catch(() => {});
   }, [videoId]);
 
+  const handleRefreshYouTubeApiTracks = useCallback(async () => {
+    if (!videoId || isRefreshingApiTracks) return;
+    setIsRefreshingApiTracks(true);
+    try {
+      const captionInfo = await fetchAvailableCaptionTracks(videoId);
+      if (captionInfo.tracks.length > 0) {
+        const existing = getCachedVideoMetadata(videoId) ||
+          videoMetadata || {
+            videoId,
+            title: `YouTube Video (${videoId})`,
+            fetchedAt: Date.now(),
+          };
+        const updatedMeta: VideoMetadata = {
+          ...existing,
+          availableCaptionTracks: captionInfo.tracks,
+          defaultSubtitleLang: captionInfo.defaultLang || existing.defaultSubtitleLang,
+        };
+        cacheVideoMetadata(updatedMeta);
+        setVideoMetadata(updatedMeta);
+      }
+    } catch {
+      // ignore network/CORS error cleanly
+    } finally {
+      setIsRefreshingApiTracks(false);
+    }
+  }, [videoId, isRefreshingApiTracks, videoMetadata]);
+
+  const handleSwitchYouTubeApiTrack = useCallback(
+    async (entry: YouTubeApiSubtitleEntry) => {
+      if (!entry?.langCode) return;
+      const langCode = entry.langCode;
+      setActiveApiTrackId(entry.id);
+
+      try {
+        const primaryPlayer = multiVideoPlayerRegistry.get("primary");
+        (primaryPlayer as unknown as { loadModule?: (mod: string) => void })?.loadModule?.(
+          "captions",
+        );
+        primaryPlayer?.setOption?.("captions", "track", { languageCode: langCode });
+      } catch {
+        // ignore player option error
+      }
+
+      const existingTrack = tracksRef.current
+        ? tracksRef.current[langCode] ||
+          Object.entries(tracksRef.current).find(
+            ([k]) =>
+              (k === "iw" ? "he" : k.toLowerCase()) ===
+              (langCode === "iw" ? "he" : langCode.toLowerCase()),
+          )?.[1]
+        : undefined;
+
+      if (existingTrack && (!entry.requestUrl || fetchedApiTrackUrlsRef.current.has(entry.id))) {
+        if (entry.isAutoTranslation) {
+          setYoutubeTranslatedLanguages((prev) =>
+            prev.includes(langCode) ? prev : [...prev, langCode],
+          );
+        }
+        handleSelectDefaultSubtitle(langCode);
+        return;
+      }
+
+      const detected =
+        detectedPlaygroundTracks[langCode] ||
+        Object.values(detectedPlaygroundTracks).find(
+          (d) =>
+            (d.lang === "iw" ? "he" : d.lang.toLowerCase()) ===
+            (langCode === "iw" ? "he" : langCode.toLowerCase()),
+        );
+      if (detected?.json && (detected.json.events?.length || 0) > 0 && !existingTrack) {
+        tracksRef.current = { ...(tracksRef.current || {}), [langCode]: detected.json };
+        setTracks((prev) => ({ ...(prev || {}), [langCode]: detected.json }));
+        setShown((prev) => (prev.includes(langCode) ? prev : [langCode, ...prev]));
+        if (entry.isAutoTranslation) {
+          setYoutubeTranslatedLanguages((prev) =>
+            prev.includes(langCode) ? prev : [...prev, langCode],
+          );
+        }
+        fetchedApiTrackUrlsRef.current.add(entry.id);
+        handleSelectDefaultSubtitle(langCode);
+        return;
+      }
+
+      if (!existingTrack && videoId) {
+        const cachedRaw = getCachedRawJson3(videoId, langCode);
+        if (cachedRaw && isValidJsonSubtitleResponse(cachedRaw)) {
+          const parsedCached = parseJson3(cachedRaw);
+          if (parsedCached) {
+            tracksRef.current = { ...(tracksRef.current || {}), [langCode]: parsedCached };
+            setTracks((prev) => ({ ...(prev || {}), [langCode]: parsedCached }));
+            setShown((prev) => (prev.includes(langCode) ? prev : [langCode, ...prev]));
+            if (entry.isAutoTranslation) {
+              setYoutubeTranslatedLanguages((prev) =>
+                prev.includes(langCode) ? prev : [...prev, langCode],
+              );
+            }
+            fetchedApiTrackUrlsRef.current.add(entry.id);
+            handleSelectDefaultSubtitle(langCode);
+            return;
+          }
+        }
+      }
+
+      if (entry.requestUrl) {
+        let fetchUrl = entry.requestUrl;
+        try {
+          const parsedUrl = new URL(fetchUrl, "https://www.youtube.com");
+          if (!parsedUrl.searchParams.get("fmt")) {
+            parsedUrl.searchParams.set("fmt", "json3");
+          }
+          fetchUrl = parsedUrl.toString();
+        } catch {
+          // keep original URL
+        }
+
+        setSwitchingApiTrackId(entry.id);
+        try {
+          let rawBody = "";
+          const shell = nativeShell();
+          const attemptMode = fetchUrl.includes("tlang=") ? "tlang" : "lang";
+
+          if (shell?.fetchTimedTextExact) {
+            const tracker = trackNetworkRequest(fetchUrl, "GET", "native_bridge", {
+              attemptMode,
+              attemptSend: "session",
+            });
+            const res = nativeExactFetch(shell, fetchUrl, true);
+            if (res.status === 200 && isValidJsonSubtitleResponse(res.body)) {
+              tracker.complete(res.status, res.body);
+              rawBody = res.body;
+            } else {
+              tracker.fail(res.error || `HTTP ${res.status}`, res.status, res.body);
+            }
+          } else {
+            const tracker = trackNetworkRequest(fetchUrl, "GET", "fetch", {
+              attemptMode,
+              attemptSend: "anon",
+            });
+            try {
+              const resp = await fetch(fetchUrl, { method: "GET" });
+              const bodyText = await resp.text();
+              if (resp.ok && isValidJsonSubtitleResponse(bodyText)) {
+                tracker.complete(resp.status, bodyText);
+                rawBody = bodyText;
+              } else {
+                tracker.fail(`HTTP ${resp.status}`, resp.status, bodyText);
+              }
+            } catch (err) {
+              tracker.fail(err instanceof Error ? err.message : "Network or CORS error");
+            }
+
+            if (!rawBody && useFetchServerRef.current && fetchServerUrlRef.current) {
+              const serverTracker = trackNetworkRequest(fetchUrl, "GET", "server_proxy", {
+                attemptMode,
+                attemptSend: "anon",
+              });
+              const serverRes = await fetchViaServer(fetchServerUrlRef.current, fetchUrl);
+              if (serverRes.status === 200 && isValidJsonSubtitleResponse(serverRes.body)) {
+                serverTracker.complete(serverRes.status, serverRes.body);
+                rawBody = serverRes.body;
+              } else {
+                serverTracker.fail(
+                  serverRes.error || `HTTP ${serverRes.status}`,
+                  serverRes.status,
+                  serverRes.body,
+                );
+              }
+            }
+          }
+
+          if (rawBody && isValidJsonSubtitleResponse(rawBody)) {
+            const parsed = parseJson3(rawBody);
+            if (parsed) {
+              fetchedApiTrackUrlsRef.current.add(entry.id);
+              if (videoId) {
+                saveCachedRawJson3(videoId, langCode, rawBody);
+                addDefaultSubtitleLanguage(videoId, langCode);
+                setDefaultSubtitleLanguages((prev) =>
+                  prev.includes(langCode) ? prev : [...prev, langCode],
+                );
+              }
+              tracksRef.current = { ...(tracksRef.current || {}), [langCode]: parsed };
+              startSubtitlesTransition(() => {
+                setTracks((prev) => ({ ...(prev || {}), [langCode]: parsed }));
+                setShown((prev) => (prev.includes(langCode) ? prev : [langCode, ...prev]));
+                if (entry.isAutoTranslation) {
+                  setYoutubeTranslatedLanguages((prev) =>
+                    prev.includes(langCode) ? prev : [...prev, langCode],
+                  );
+                }
+              });
+              const cuesCount =
+                parsed.events?.filter((ev) => ev.segs?.some((s) => s.utf8?.trim())).length || 0;
+              setDetectedPlaygroundTracks((prev) => ({
+                ...prev,
+                [langCode]: {
+                  lang: langCode,
+                  langName: entry.name || langCode,
+                  json: parsed,
+                  rawData: rawBody,
+                  url: fetchUrl,
+                  timestamp: Date.now(),
+                  cuesCount,
+                },
+              }));
+              handleSelectDefaultSubtitle(langCode);
+              return;
+            }
+          }
+        } finally {
+          setSwitchingApiTrackId(null);
+        }
+      }
+
+      if (existingTrack) {
+        handleSelectDefaultSubtitle(langCode);
+      }
+    },
+    [videoId, detectedPlaygroundTracks, handleSelectDefaultSubtitle],
+  );
+
   const currentVideoLibraryItem = useMemo(() => {
     return loadVideoLibrary().find((v) => v.id === videoId);
   }, [videoId]);
@@ -4003,6 +4254,8 @@ function Index() {
   const speakingLangRef = useRef<string | null>(null);
   speakingLangRef.current = speakingLang;
   const [speakingRow, setSpeakingRow] = useState(-1);
+  const speakingRowRef = useRef(-1);
+  speakingRowRef.current = speakingRow;
   const [speechProgress, setSpeechProgress] = useState<SpeechProgress>(null);
   const [subtitlesLimit, setSubtitlesLimit] = useState<number>(() => (isAndroid ? 10 : 0));
   const [subtitlesPage, setSubtitlesPage] = useState<number>(1);
@@ -4162,19 +4415,63 @@ function Index() {
 
   const handleSeek = useCallback(
     (seconds: number) => {
-      const p = player.current;
+      const p = player.current || multiVideoPlayerRegistry.get("primary");
       if (!p) return;
       try {
+        const clampedSec = Math.max(0, seconds);
+        const now = Date.now();
+        const wasSpeakingOrPausedForTts =
+          busy.current || isPausedForTtsRef.current || Boolean(speakingLangRef.current);
+        const wasPlaying = p.getPlayerState?.() === 1 || isVideoPlayingRef.current;
+
         logStateMachineAction("PLAYBACK_SEEK_REQUESTED", {
           videoId,
           fromSeconds: p.getCurrentTime?.(),
-          toSeconds: seconds,
+          toSeconds: clampedSec,
+          wasSpeakingOrPausedForTts,
         });
-        p.seekTo?.(seconds, true);
-        setPlaybackCurrentTime(seconds);
-        lastMs.current = seconds * 1000;
+
+        // Supersede any in-flight TTS section so completion cannot snap back to the old queue
+        playbackSeekEpochRef.current += 1;
+        cancelSpeech();
+        busy.current = false;
+        isPausedForTtsRef.current = false;
+        programmaticPauseTimestampRef.current = 0;
+        setSpeakingLang(null);
+        setSpeakingRow(-1);
+        setSpeechProgress(null);
+        setPauseReason(null);
+
+        pendingSeekTargetRef.current = {
+          targetSec: clampedSec,
+          requestedAt: now,
+        };
+        lastTickWallTimeRef.current = now;
+
+        const targetMs = clampedSec * 1000;
+        const targetIdx = findRowIndexAtTimeMs(st.current.rows, targetMs);
+        lastMs.current = targetMs;
+        lastRow.current = targetIdx;
+        setActive(targetIdx);
+        setPlaybackCurrentTime(clampedSec);
         handledTtsFirstSections.current.clear();
         handledVideoFirstSections.current.clear();
+        if (targetIdx >= 0 && st.current.rows[targetIdx]) {
+          resetTtsPlaybackProgress(getPlaybackSectionId(st.current.rows[targetIdx]!));
+        }
+
+        p.seekTo?.(clampedSec, true);
+        if (st.current.audioTrackMode) {
+          multiVideoPlayerRegistry.syncSecondaryPlayers(clampedSec, "primary");
+        }
+        if ((wasSpeakingOrPausedForTts || wasPlaying) && !userExplicitlyPausedRef.current) {
+          try {
+            p.playVideo?.();
+            setIsVideoPlaying(true);
+          } catch {
+            // ignore play resume error
+          }
+        }
       } catch (e) {
         logError("State Machine", "Playback seek failed", {
           error: e instanceof Error ? e.message : String(e),
@@ -4186,12 +4483,18 @@ function Index() {
     },
     [videoId],
   );
+  const handleSeekRef = useRef(handleSeek);
+  handleSeekRef.current = handleSeek;
 
   const handleRewind = useCallback(
     (seconds = 5) => {
-      const p = player.current;
+      const p = player.current || multiVideoPlayerRegistry.get("primary");
       if (!p?.getCurrentTime) return;
-      const cur = p.getCurrentTime();
+      const cur = getEffectivePlayerTimeSec(
+        p.getCurrentTime(),
+        pendingSeekTargetRef.current,
+        Date.now(),
+      );
       handleSeek(Math.max(0, cur - seconds));
     },
     [handleSeek],
@@ -4199,9 +4502,13 @@ function Index() {
 
   const handleFastForward = useCallback(
     (seconds = 5) => {
-      const p = player.current;
+      const p = player.current || multiVideoPlayerRegistry.get("primary");
       if (!p?.getCurrentTime) return;
-      const cur = p.getCurrentTime();
+      const cur = getEffectivePlayerTimeSec(
+        p.getCurrentTime(),
+        pendingSeekTargetRef.current,
+        Date.now(),
+      );
       const dur = p.getDuration?.() || Infinity;
       handleSeek(Math.min(dur, cur + seconds));
     },
@@ -4209,9 +4516,11 @@ function Index() {
   );
 
   const handlePrevSection = useCallback(() => {
-    const p = player.current;
+    const p = player.current || multiVideoPlayerRegistry.get("primary");
     if (!p?.getCurrentTime) return;
-    const curMs = p.getCurrentTime() * 1000;
+    const curMs =
+      getEffectivePlayerTimeSec(p.getCurrentTime(), pendingSeekTargetRef.current, Date.now()) *
+      1000;
     const currentRows = st.current.rows;
     if (currentRows.length === 0) return;
     const prevCues = currentRows.filter((r) => r.start < curMs - 1200);
@@ -4222,9 +4531,11 @@ function Index() {
   }, [handleSeek]);
 
   const handleNextSection = useCallback(() => {
-    const p = player.current;
+    const p = player.current || multiVideoPlayerRegistry.get("primary");
     if (!p?.getCurrentTime) return;
-    const curMs = p.getCurrentTime() * 1000;
+    const curMs =
+      getEffectivePlayerTimeSec(p.getCurrentTime(), pendingSeekTargetRef.current, Date.now()) *
+      1000;
     const currentRows = st.current.rows;
     if (currentRows.length === 0) return;
     const nextCue = currentRows.find((r) => r.start > curMs + 400);
@@ -4234,12 +4545,13 @@ function Index() {
   }, [handleSeek]);
 
   const handleReplaySection = useCallback(() => {
-    const p = player.current;
+    const p = player.current || multiVideoPlayerRegistry.get("primary");
     if (!p) return;
     const currentRows = st.current.rows;
     if (active >= 0 && currentRows[active]) {
       handleSeek(currentRows[active].start / 1000);
       try {
+        userExplicitlyPausedRef.current = false;
         p.playVideo?.();
         setIsVideoPlaying(true);
       } catch {
@@ -4249,11 +4561,21 @@ function Index() {
   }, [active, handleSeek]);
 
   const handleStop = useCallback(() => {
-    const p = player.current;
+    const p = player.current || multiVideoPlayerRegistry.get("primary");
     if (!p) return;
     try {
+      playbackSeekEpochRef.current += 1;
+      pendingSeekTargetRef.current = null;
       cancelSpeech();
       busy.current = false;
+      isPausedForTtsRef.current = false;
+      userExplicitlyPausedRef.current = true;
+      lastMs.current = 0;
+      lastRow.current = -1;
+      setActive(-1);
+      setSpeakingLang(null);
+      setSpeakingRow(-1);
+      setSpeechProgress(null);
       p.pauseVideo?.();
       p.seekTo?.(0, true);
       setIsVideoPlaying(false);
@@ -4266,6 +4588,7 @@ function Index() {
 
   const handleRateChange = useCallback((rate: number) => {
     setPlaybackRate(rate);
+    playbackRateRef.current = rate;
     const p = player.current;
     if (!p) return;
     try {
@@ -4929,7 +5252,7 @@ function Index() {
       },
       onSeek: (seconds: number) => {
         try {
-          player.current?.seekTo?.(seconds, true);
+          handleSeekRef.current(seconds);
         } catch (_err) {
           // ignore seek error
         }
@@ -5765,6 +6088,9 @@ function Index() {
   const busy = useRef(false);
   const lastRow = useRef(-1);
   const lastMs = useRef(0);
+  const playbackSeekEpochRef = useRef(0);
+  const pendingSeekTargetRef = useRef<PendingSeekTarget | null>(null);
+  const lastTickWallTimeRef = useRef(0);
   const playedTtsRecords = useRef<Set<string>>(new Set());
   const playedTtsLanguageRecords = useRef<Map<string, Set<string>>>(new Map());
   const handledTtsFirstSections = useRef<Set<string>>(new Set());
@@ -6177,10 +6503,74 @@ function Index() {
           // ignore
         }
       }
-      if (!p?.getCurrentTime || busy.current || st.current.isSetupPaused) return;
+      if (!p?.getCurrentTime || st.current.isSetupPaused) return;
       if (activeTopTabRef.current === "playground" || showWordBalloonLearningViewRef.current)
         return;
-      const ms = p.getCurrentTime() * 1000;
+
+      const tickNow = Date.now();
+      const rawPlayerSec = p.getCurrentTime();
+      if (isAwaitingPendingSeek(rawPlayerSec, pendingSeekTargetRef.current, tickNow)) {
+        lastTickWallTimeRef.current = tickNow;
+        return;
+      }
+      if (pendingSeekTargetRef.current) {
+        pendingSeekTargetRef.current = null;
+      }
+
+      const ms = rawPlayerSec * 1000;
+      const wallElapsedMs =
+        lastTickWallTimeRef.current > 0 ? tickNow - lastTickWallTimeRef.current : 150;
+      lastTickWallTimeRef.current = tickNow;
+
+      const activeSpeakingRowObj =
+        speakingRowRef.current >= 0 ? (st.current.rows[speakingRowRef.current] ?? null) : null;
+      const didManualSeek = detectManualProgressBarSeek({
+        ms,
+        lastMs: lastMs.current,
+        wallElapsedMs,
+        playbackRate: playbackRateRef.current,
+        isBusyForTts: busy.current,
+        isAudioTrackMode: st.current.audioTrackMode,
+        activeSpeakingRow: activeSpeakingRowObj,
+      });
+
+      if (busy.current) {
+        if (didManualSeek) {
+          // User moved the YouTube progress bar while TTS-play was active:
+          // abort current TTS section so completion never snaps back to the old queue.
+          playbackSeekEpochRef.current += 1;
+          cancelSpeech();
+          busy.current = false;
+          isPausedForTtsRef.current = false;
+          programmaticPauseTimestampRef.current = 0;
+          setSpeakingLang(null);
+          setSpeakingRow(-1);
+          setSpeechProgress(null);
+          setPauseReason(null);
+          handledTtsFirstSections.current.clear();
+          handledVideoFirstSections.current.clear();
+          lastMs.current = ms;
+          setPlaybackCurrentTime(ms / 1000);
+          const soughtIdx = findRowIndexAtTimeMs(st.current.rows, ms);
+          lastRow.current = soughtIdx;
+          setActive(soughtIdx);
+          if (soughtIdx >= 0 && st.current.rows[soughtIdx]) {
+            resetTtsPlaybackProgress(getPlaybackSectionId(st.current.rows[soughtIdx]!));
+          }
+          if (!userExplicitlyPausedRef.current) {
+            try {
+              if (p.getPlayerState?.() !== 1) {
+                p.playVideo?.();
+              }
+              setIsVideoPlaying(true);
+            } catch {
+              // ignore
+            }
+          }
+        }
+        return;
+      }
+
       setPlaybackCurrentTime(ms / 1000);
       try {
         const curState = p.getPlayerState?.();
@@ -6206,9 +6596,12 @@ function Index() {
         // ignore
       }
       // Detect user manually seeking or scrubbing across playback timeline
-      if (Math.abs(ms - lastMs.current) > 2500 || ms < lastMs.current - 1000) {
+      if (didManualSeek) {
         handledTtsFirstSections.current.clear();
         handledVideoFirstSections.current.clear();
+        const soughtIdx = findRowIndexAtTimeMs(st.current.rows, ms);
+        lastRow.current = soughtIdx;
+        setActive(soughtIdx);
       }
       lastMs.current = ms;
 
@@ -6265,8 +6658,8 @@ function Index() {
 
       const getEligibleLangs = (rowIdx: number, requestedOrder?: SectionOrder) => {
         if (!st.current.isTtsPlayEnabled) return [];
-        if (rowIdx < 0 || playedTtsRecords.current.has(getPlaybackSectionId(rows[rowIdx]!)))
-          return [];
+        const targetRow = rowIdx >= 0 ? rows[rowIdx] : undefined;
+        if (!targetRow || playedTtsRecords.current.has(getPlaybackSectionId(targetRow))) return [];
         const baseText = st.current.rows[rowIdx]?.texts[st.current.baseLanguage] ?? "";
         let eligibleLanguages = orderedLangs.filter((l) => {
           const langMaxWords = getEffectiveLanguageMaxWords(
@@ -6339,11 +6732,12 @@ function Index() {
         return requestedOrder === "tts-first" ? orderGroups.ttsFirst : orderGroups.videoFirst;
       };
 
-      const speakRow = async (rowIdx: number, requestedOrder: SectionOrder) => {
-        if (rowIdx < 0 || playedTtsRecords.current.has(getPlaybackSectionId(rows[rowIdx]!))) return;
+      const speakRow = async (rowIdx: number, requestedOrder: SectionOrder, runEpoch: number) => {
+        const targetRow = rowIdx >= 0 ? rows[rowIdx] : undefined;
+        if (!targetRow || playedTtsRecords.current.has(getPlaybackSectionId(targetRow))) return;
         const langs = getEligibleLangs(rowIdx, requestedOrder);
         if (langs.length === 0) return;
-        const sectionId = getPlaybackSectionId(rows[rowIdx]!);
+        const sectionId = getPlaybackSectionId(targetRow);
         const spokenLanguages =
           playedTtsLanguageRecords.current.get(sectionId) ?? new Set<string>();
         playedTtsLanguageRecords.current.set(sectionId, spokenLanguages);
@@ -6355,7 +6749,7 @@ function Index() {
         });
         try {
           for (const l of langs) {
-            if (!busy.current) break;
+            if (!busy.current || playbackSeekEpochRef.current !== runEpoch) break;
             if (isLanguageTtsBlacklisted(l.code, currentTtsBlacklist)) {
               logStateMachineAction("TTS_BLACKLIST_SKIPPED", {
                 videoId,
@@ -6542,13 +6936,15 @@ function Index() {
             } catch (err) {
               console.warn(`[TTS] Speak error for ${l.code} at row ${rowIdx}:`, err);
             }
-            spokenLanguages.add(l.code);
+            if (busy.current && playbackSeekEpochRef.current === runEpoch) {
+              spokenLanguages.add(l.code);
+            }
           }
           if (isAudioTrackMode) {
             multiVideoPlayerRegistry.pauseAllExcept("primary");
             multiVideoPlayerRegistry.unmuteOnly("primary");
           }
-          if (getEligibleLangs(rowIdx).length === 0) {
+          if (playbackSeekEpochRef.current === runEpoch && getEligibleLangs(rowIdx).length === 0) {
             playedTtsRecords.current.add(sectionId);
             setPlayedRecordsCount(playedTtsRecords.current.size);
           }
@@ -6564,11 +6960,13 @@ function Index() {
             videoId,
             sectionId,
             rowIndex: rowIdx,
-            cancelled: !busy.current,
+            cancelled: !busy.current || playbackSeekEpochRef.current !== runEpoch,
           });
-          setSpeakingLang(null);
-          setSpeakingRow(-1);
-          setSpeechProgress(null);
+          if (playbackSeekEpochRef.current === runEpoch) {
+            setSpeakingLang(null);
+            setSpeakingRow(-1);
+            setSpeechProgress(null);
+          }
         }
       };
       const isPlaying = p.getPlayerState() === 1;
@@ -6579,6 +6977,10 @@ function Index() {
         programmaticPauseTimestampRef.current = 0;
         try {
           if (typeof resumeTargetSec === "number" && Number.isFinite(resumeTargetSec)) {
+            pendingSeekTargetRef.current = {
+              targetSec: resumeTargetSec,
+              requestedAt: Date.now(),
+            };
             p.seekTo(resumeTargetSec, true);
           }
           p.playVideo();
@@ -6613,15 +7015,18 @@ function Index() {
 
       if (pauseMode && st.current.isTtsPlayEnabled) {
         // 1. Before Video (tts-first): check if active row has speech-first languages to speak on arrival
-        const sectionId = idx >= 0 ? getPlaybackSectionId(rows[idx]!) : "";
+        const activeRowObj = idx >= 0 ? rows[idx] : undefined;
+        const sectionId = activeRowObj ? getPlaybackSectionId(activeRowObj) : "";
         if (
-          idx >= 0 &&
+          activeRowObj &&
+          sectionId &&
           !playedTtsRecords.current.has(sectionId) &&
           !handledTtsFirstSections.current.has(sectionId)
         ) {
           const eligibleLangs = getEligibleLangs(idx, "tts-first");
 
           if (eligibleLangs.length > 0) {
+            const runEpoch = playbackSeekEpochRef.current;
             handledTtsFirstSections.current.add(sectionId);
             busy.current = true;
             isPausedForTtsRef.current = true;
@@ -6634,15 +7039,44 @@ function Index() {
               // ignore
             }
             try {
-              await speakRow(idx, "tts-first");
+              await speakRow(idx, "tts-first", runEpoch);
             } catch (err) {
               console.warn("[TTS] Error during tts-first speech:", err);
             }
-            setPauseReason(null);
-            const wasCancelled = !busy.current;
-            busy.current = false;
-            isPausedForTtsRef.current = false;
-            if (wasCancelled) return;
+            const wasCancelled = !busy.current || playbackSeekEpochRef.current !== runEpoch;
+            if (playbackSeekEpochRef.current === runEpoch) {
+              setPauseReason(null);
+              busy.current = false;
+              isPausedForTtsRef.current = false;
+            }
+            if (
+              shouldAbortQueuedSectionResume({
+                runEpoch,
+                currentEpoch: playbackSeekEpochRef.current,
+                wasCancelled,
+                isSetupPaused: st.current.isSetupPaused,
+                userExplicitlyPaused: userExplicitlyPausedRef.current,
+              })
+            ) {
+              if (wasCancelled || st.current.isSetupPaused || userExplicitlyPausedRef.current)
+                return;
+            }
+            const livePlayerSec = p.getCurrentTime?.();
+            if (
+              typeof livePlayerSec === "number" &&
+              Number.isFinite(livePlayerSec) &&
+              !isAwaitingPendingSeek(livePlayerSec, pendingSeekTargetRef.current, Date.now()) &&
+              Math.abs(livePlayerSec * 1000 - lastMs.current) > 1500
+            ) {
+              const liveMs = livePlayerSec * 1000;
+              const liveIdx = findRowIndexAtTimeMs(rows, liveMs);
+              lastMs.current = liveMs;
+              lastRow.current = liveIdx;
+              setActive(liveIdx);
+              setPlaybackCurrentTime(livePlayerSec);
+              safelyResumePrimaryVideo();
+              return;
+            }
             const targetSec = (rows[idx]?.start ?? 0) / 1000;
             lastMs.current = targetSec * 1000;
             safelyResumePrimaryVideo(targetSec);
@@ -6651,16 +7085,24 @@ function Index() {
 
         // 2. After Video (video-first): crossed the end of a section while playing → pause and speak it
         const candidateRow =
-          prev >= 0 && (idx !== prev || ms >= (rows[prev]?.end ?? Infinity) - 80) ? prev : -1;
+          !didManualSeek &&
+          prev >= 0 &&
+          prev < rows.length &&
+          rows[prev] &&
+          (idx !== prev || ms >= rows[prev].end - 80)
+            ? prev
+            : -1;
         const candidateSectionId =
-          candidateRow >= 0 ? getPlaybackSectionId(rows[candidateRow]!) : "";
+          candidateRow >= 0 && rows[candidateRow] ? getPlaybackSectionId(rows[candidateRow]!) : "";
         if (
           candidateRow >= 0 &&
+          candidateSectionId &&
           !playedTtsRecords.current.has(candidateSectionId) &&
           !handledVideoFirstSections.current.has(candidateSectionId)
         ) {
           const eligibleLangs = getEligibleLangs(candidateRow, "video-first");
           if (eligibleLangs.length > 0) {
+            const runEpoch = playbackSeekEpochRef.current;
             handledVideoFirstSections.current.add(candidateSectionId);
             busy.current = true;
             isPausedForTtsRef.current = true;
@@ -6673,15 +7115,44 @@ function Index() {
               // ignore
             }
             try {
-              await speakRow(candidateRow, "video-first");
+              await speakRow(candidateRow, "video-first", runEpoch);
             } catch (err) {
               console.warn("[TTS] Error during video-first speech:", err);
             }
-            setPauseReason(null);
-            const wasCancelled = !busy.current;
-            busy.current = false;
-            isPausedForTtsRef.current = false;
-            if (wasCancelled) return;
+            const wasCancelled = !busy.current || playbackSeekEpochRef.current !== runEpoch;
+            if (playbackSeekEpochRef.current === runEpoch) {
+              setPauseReason(null);
+              busy.current = false;
+              isPausedForTtsRef.current = false;
+            }
+            if (
+              shouldAbortQueuedSectionResume({
+                runEpoch,
+                currentEpoch: playbackSeekEpochRef.current,
+                wasCancelled,
+                isSetupPaused: st.current.isSetupPaused,
+                userExplicitlyPaused: userExplicitlyPausedRef.current,
+              })
+            ) {
+              if (wasCancelled || st.current.isSetupPaused || userExplicitlyPausedRef.current)
+                return;
+            }
+            const livePlayerSec = p.getCurrentTime?.();
+            if (
+              typeof livePlayerSec === "number" &&
+              Number.isFinite(livePlayerSec) &&
+              !isAwaitingPendingSeek(livePlayerSec, pendingSeekTargetRef.current, Date.now()) &&
+              Math.abs(livePlayerSec * 1000 - lastMs.current) > 1500
+            ) {
+              const liveMs = livePlayerSec * 1000;
+              const liveIdx = findRowIndexAtTimeMs(rows, liveMs);
+              lastMs.current = liveMs;
+              lastRow.current = liveIdx;
+              setActive(liveIdx);
+              setPlaybackCurrentTime(livePlayerSec);
+              safelyResumePrimaryVideo();
+              return;
+            }
             const nextRowIdx = candidateRow + 1;
             if (nextRowIdx < rows.length && rows[nextRowIdx]) {
               const nextRow = rows[nextRowIdx];
@@ -6845,8 +7316,16 @@ function Index() {
   }, [active, autoFocus, disableScrolling, isSetupPaused]);
 
   const seek = (r: Row, i: number) => {
+    const targetSec = r.start / 1000;
+    playbackSeekEpochRef.current += 1;
+    pendingSeekTargetRef.current = {
+      targetSec,
+      requestedAt: Date.now(),
+    };
+    lastTickWallTimeRef.current = Date.now();
     cancelSpeech();
     busy.current = false;
+    isPausedForTtsRef.current = false;
     userExplicitlyPausedRef.current = false;
     setPauseReason(null);
     setIsVideoPlaying(true);
@@ -6854,13 +7333,14 @@ function Index() {
     resetTtsPlaybackProgress(getPlaybackSectionId(r));
     lastMs.current = r.start;
     setActive(i);
+    setPlaybackCurrentTime(targetSec);
     if (workflowMode === "beginner" && beginnerActiveTab !== "video") {
       setBeginnerActiveTab("video");
     }
     pendingPlayRequestedRef.current = true;
     handlePlayVideo();
     const p = player.current || multiVideoPlayerRegistry.get("primary");
-    p?.seekTo(r.start / 1000, true);
+    p?.seekTo(targetSec, true);
     p?.playVideo();
   };
 
@@ -8274,6 +8754,16 @@ function Index() {
                       onResetToKingOfComma={handleResetToKingOfComma}
                       tracks={tracks}
                       detectedTracks={detectedPlaygroundTracks}
+                      availableCaptionTracks={videoMetadata?.availableCaptionTracks}
+                      defaultApiLang={videoMetadata?.defaultSubtitleLang}
+                      observedUrl={observedUrl}
+                      youtubeTranslatedLanguages={youtubeTranslatedLanguages}
+                      networkRequests={timedTextNetworkRequests}
+                      activeApiTrackId={activeApiTrackId}
+                      onSwitchApiTrack={handleSwitchYouTubeApiTrack}
+                      onRefreshApiTracks={handleRefreshYouTubeApiTracks}
+                      isRefreshingApiTracks={isRefreshingApiTracks}
+                      switchingApiTrackId={switchingApiTrackId}
                       className="flex-1 min-w-[260px]"
                     />
                     <LanguageRatioCompositionSelector
@@ -8302,45 +8792,13 @@ function Index() {
                     pauseReason={pauseReason}
                     onTogglePlay={handleTogglePlay}
                     onSeek={handleSeek}
-                    onRewind={(sec = 5) => handleSeek(Math.max(0, playbackCurrentTime - sec))}
-                    onFastForward={(sec = 5) =>
-                      handleSeek(Math.min(playbackDuration, playbackCurrentTime + sec))
-                    }
-                    onPrevSection={() => {
-                      const prevIdx = active > 0 ? active - 1 : 0;
-                      if (rows[prevIdx]) {
-                        seek(rows[prevIdx], prevIdx);
-                      }
-                    }}
-                    onNextSection={() => {
-                      const nextIdx = active < rows.length - 1 ? active + 1 : rows.length - 1;
-                      if (rows[nextIdx]) {
-                        seek(rows[nextIdx], nextIdx);
-                      }
-                    }}
-                    onReplaySection={() => {
-                      if (active >= 0 && rows[active]) {
-                        seek(rows[active], active);
-                      }
-                    }}
-                    onStop={() => {
-                      try {
-                        player.current?.pauseVideo();
-                        player.current?.seekTo(0, true);
-                        setIsVideoPlaying(false);
-                        setPauseReason("Stopped by user");
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                    onRateChange={(rate) => {
-                      try {
-                        player.current?.setPlaybackRate?.(rate);
-                        setPlaybackRate(rate);
-                      } catch {
-                        // ignore
-                      }
-                    }}
+                    onRewind={handleRewind}
+                    onFastForward={handleFastForward}
+                    onPrevSection={handlePrevSection}
+                    onNextSection={handleNextSection}
+                    onReplaySection={handleReplaySection}
+                    onStop={handleStop}
+                    onRateChange={handleRateChange}
                     globalSpeed={rates[baseLanguage || "en"] ?? 1.0}
                     onChangeAllSpeed={handleChangeAllSpeed}
                   />
@@ -8659,6 +9117,15 @@ function Index() {
               onSwitchToViewerAtTime={handleSwitchToViewerAtTime}
               isAndroid={isAndroid}
               observedUrl={observedUrl}
+              availableCaptionTracks={videoMetadata?.availableCaptionTracks}
+              defaultApiLang={videoMetadata?.defaultSubtitleLang}
+              youtubeTranslatedLanguages={youtubeTranslatedLanguages}
+              networkRequests={timedTextNetworkRequests}
+              activeApiTrackId={activeApiTrackId}
+              onSwitchApiTrack={handleSwitchYouTubeApiTrack}
+              onRefreshApiTracks={handleRefreshYouTubeApiTracks}
+              isRefreshingApiTracks={isRefreshingApiTracks}
+              switchingApiTrackId={switchingApiTrackId}
             />
           ) : activeTopTab === "ai-punctuation" ? (
             <AiSubtitlePunctuationTab
@@ -9431,6 +9898,16 @@ function Index() {
                                     onResetToKingOfComma={handleResetToKingOfComma}
                                     tracks={tracks}
                                     detectedTracks={detectedPlaygroundTracks}
+                                    availableCaptionTracks={videoMetadata?.availableCaptionTracks}
+                                    defaultApiLang={videoMetadata?.defaultSubtitleLang}
+                                    observedUrl={observedUrl}
+                                    youtubeTranslatedLanguages={youtubeTranslatedLanguages}
+                                    networkRequests={timedTextNetworkRequests}
+                                    activeApiTrackId={activeApiTrackId}
+                                    onSwitchApiTrack={handleSwitchYouTubeApiTrack}
+                                    onRefreshApiTracks={handleRefreshYouTubeApiTracks}
+                                    isRefreshingApiTracks={isRefreshingApiTracks}
+                                    switchingApiTrackId={switchingApiTrackId}
                                     className="flex-1 min-w-[260px]"
                                   />
                                   <LanguageRatioCompositionSelector

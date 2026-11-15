@@ -186,7 +186,12 @@ export const StorybookWorkbench: React.FC = () => {
         authorization: "Bearer spk_sample_token_9876",
         "x-provider": "openrouter",
       },
-      requestBody: { text: "Hello from Storybook", lang: "en", voice: "alloy", provider: "openrouter" },
+      requestBody: {
+        text: "Hello from Storybook",
+        lang: "en",
+        voice: "alloy",
+        provider: "openrouter",
+      },
       status: 200,
       statusText: "OK",
       latencyMs: 125,
@@ -403,60 +408,103 @@ export const StorybookWorkbench: React.FC = () => {
               </h2>
             </div>
             <div className="space-y-1" data-testid="storybook-stories-list">
-              {selectedComponent === "tts_service" && [
-                { id: "lovable_auto", title: "1. Lovable Auto Public", desc: "Shows provider select; hides custom keys & voices" },
-                { id: "lovable_google", title: "2. Lovable Google Provider", desc: "Hides voice & token dropdowns; single validate button" },
-                { id: "lovable_openrouter", title: "3. Lovable OpenRouter (Keyed)", desc: "Shows provider voices & Speak API / upstream key input" },
-                { id: "lovable_openai", title: "4. Lovable OpenAI Provider", desc: "OpenAI neural voices (alloy, nova, etc.)" },
-                { id: "fallback_only", title: "5. Fallback Only Mode", desc: "Radio set to fallback mode" },
-                { id: "validation_error", title: "6. Validation Failure State", desc: "Error feedback banner and status" },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  data-testid={`story-item-${s.id}`}
-                  onClick={() => handleSelectStory(s.id)}
-                  className={`w-full text-left p-2.5 rounded-md text-xs transition-all cursor-pointer ${
-                    selectedStory === s.id
-                      ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                      : "hover:bg-muted text-foreground"
-                  }`}
-                >
-                  <div className="font-medium">{s.title}</div>
-                  <div className={`text-[10px] mt-0.5 line-clamp-1 ${selectedStory === s.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                    {s.desc}
-                  </div>
-                </button>
-              ))}
+              {selectedComponent === "tts_service" &&
+                [
+                  {
+                    id: "lovable_auto",
+                    title: "1. Lovable Auto Public",
+                    desc: "Shows provider select; hides custom keys & voices",
+                  },
+                  {
+                    id: "lovable_google",
+                    title: "2. Lovable Google Provider",
+                    desc: "Hides voice & token dropdowns; single validate button",
+                  },
+                  {
+                    id: "lovable_openrouter",
+                    title: "3. Lovable OpenRouter (Keyed)",
+                    desc: "Shows provider voices & Speak API / upstream key input",
+                  },
+                  {
+                    id: "lovable_openai",
+                    title: "4. Lovable OpenAI Provider",
+                    desc: "OpenAI neural voices (alloy, nova, etc.)",
+                  },
+                  {
+                    id: "fallback_only",
+                    title: "5. Fallback Only Mode",
+                    desc: "Radio set to fallback mode",
+                  },
+                  {
+                    id: "validation_error",
+                    title: "6. Validation Failure State",
+                    desc: "Error feedback banner and status",
+                  },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    data-testid={`story-item-${s.id}`}
+                    onClick={() => handleSelectStory(s.id)}
+                    className={`w-full text-left p-2.5 rounded-md text-xs transition-all cursor-pointer ${
+                      selectedStory === s.id
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                        : "hover:bg-muted text-foreground"
+                    }`}
+                  >
+                    <div className="font-medium">{s.title}</div>
+                    <div
+                      className={`text-[10px] mt-0.5 line-clamp-1 ${selectedStory === s.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                    >
+                      {s.desc}
+                    </div>
+                  </button>
+                ))}
 
-              {selectedComponent === "playback_controls" && [
-                { id: "playing", title: "1. Playing State", desc: "Active playback with moving scrubber" },
-                { id: "paused", title: "2. Paused with Reason", desc: "Pause explanation banner visible" },
-                { id: "narration", title: "3. Speaking Narration", desc: "TTS speech narration active" },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  data-testid={`story-item-${s.id}`}
-                  onClick={() => handleSelectStory(s.id)}
-                  className={`w-full text-left p-2.5 rounded-md text-xs transition-all cursor-pointer ${
-                    selectedStory === s.id
-                      ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-                      : "hover:bg-muted text-foreground"
-                  }`}
-                >
-                  <div className="font-medium">{s.title}</div>
-                  <div className={`text-[10px] mt-0.5 line-clamp-1 ${selectedStory === s.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                    {s.desc}
-                  </div>
-                </button>
-              ))}
+              {selectedComponent === "playback_controls" &&
+                [
+                  {
+                    id: "playing",
+                    title: "1. Playing State",
+                    desc: "Active playback with moving scrubber",
+                  },
+                  {
+                    id: "paused",
+                    title: "2. Paused with Reason",
+                    desc: "Pause explanation banner visible",
+                  },
+                  {
+                    id: "narration",
+                    title: "3. Speaking Narration",
+                    desc: "TTS speech narration active",
+                  },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    data-testid={`story-item-${s.id}`}
+                    onClick={() => handleSelectStory(s.id)}
+                    className={`w-full text-left p-2.5 rounded-md text-xs transition-all cursor-pointer ${
+                      selectedStory === s.id
+                        ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+                        : "hover:bg-muted text-foreground"
+                    }`}
+                  >
+                    <div className="font-medium">{s.title}</div>
+                    <div
+                      className={`text-[10px] mt-0.5 line-clamp-1 ${selectedStory === s.id ? "text-primary-foreground/80" : "text-muted-foreground"}`}
+                    >
+                      {s.desc}
+                    </div>
+                  </button>
+                ))}
 
               {selectedComponent !== "tts_service" && selectedComponent !== "playback_controls" && (
                 <div className="p-3 rounded-lg border border-border bg-card/60 text-xs space-y-1">
                   <div className="font-semibold text-foreground">Interactive Clean-Room Story</div>
                   <div className="text-[11px] text-muted-foreground">
-                    Direct interactive component preview with live property updates and responsive state rendering.
+                    Direct interactive component preview with live property updates and responsive
+                    state rendering.
                   </div>
                 </div>
               )}
@@ -471,10 +519,12 @@ export const StorybookWorkbench: React.FC = () => {
             </span>
             <ul className="space-y-1.5 text-[11px] text-muted-foreground list-disc pl-4">
               <li>
-                <strong>Clean Room:</strong> Rendered in isolation without host application dependencies.
+                <strong>Clean Room:</strong> Rendered in isolation without host application
+                dependencies.
               </li>
               <li>
-                <strong>Absolute Parity:</strong> Supports identical behaviors for Beginner &amp; Advanced modes.
+                <strong>Absolute Parity:</strong> Supports identical behaviors for Beginner &amp;
+                Advanced modes.
               </li>
               <li>
                 <strong>Zero Duplications:</strong> Single contextual action triggers.
@@ -621,7 +671,11 @@ export const StorybookWorkbench: React.FC = () => {
                 onRemoveCharsChange={setRemoveChars}
                 sampleCues={[
                   { text: "[Speaker 1]: >> Welcome to the video! ♪", start: 0, duration: 2500 },
-                  { text: "[Music] Hello everyone > today we learn Hebrew.", start: 2500, duration: 3000 },
+                  {
+                    text: "[Music] Hello everyone > today we learn Hebrew.",
+                    start: 2500,
+                    duration: 3000,
+                  },
                 ]}
                 onResetDefaults={() => {
                   setStripSpeakerBrackets(true);
@@ -665,6 +719,27 @@ export const StorybookWorkbench: React.FC = () => {
                 defaultLanguages={["en", "es", "he"]}
                 activeLanguage={activeDefaultSubtitle}
                 onSelectLanguage={setActiveDefaultSubtitle}
+                availableCaptionTracks={[
+                  {
+                    langCode: "en",
+                    name: "English",
+                    isDefault: true,
+                    isAsr: false,
+                    trackUrl:
+                      "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3",
+                  },
+                  {
+                    langCode: "en",
+                    name: "English (auto-generated)",
+                    isDefault: false,
+                    isAsr: true,
+                    trackUrl:
+                      "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&kind=asr&fmt=json3",
+                  },
+                ]}
+                defaultApiLang="en"
+                observedUrl="https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3"
+                youtubeTranslatedLanguages={["he", "es"]}
                 tracks={{
                   en: {
                     wireMagic: "pb3",
@@ -778,7 +853,9 @@ export const StorybookWorkbench: React.FC = () => {
                                     : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                                 }`}
                               >
-                                {idx < videoBarPos ? "Before Video (TTS)" : "After Video (Video First)"}
+                                {idx < videoBarPos
+                                  ? "Before Video (TTS)"
+                                  : "After Video (Video First)"}
                               </span>
                             </td>
                             <td className="p-2 text-right">

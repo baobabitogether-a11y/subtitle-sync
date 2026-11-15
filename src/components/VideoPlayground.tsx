@@ -22,6 +22,9 @@ import { Button } from "@/components/ui/button";
 import { LANGS, type Json3 } from "@/lib/subtitles";
 import { parseVideoId } from "@/lib/native-captions";
 import { SwitchableDefaultSubtitlesBar } from "@/components/SwitchableDefaultSubtitlesBar";
+import type { VideoCaptionTrackInfo } from "@/types";
+import type { NetworkRequestRecord } from "@/utils/networkTracker";
+import type { YouTubeApiSubtitleEntry } from "@/utils/youtubeApiSubtitleTracks";
 import { LanguageRatioCompositionSelector } from "@/components/LanguageRatioCompositionSelector";
 import {
   getActiveRatioCompositionId,
@@ -52,6 +55,15 @@ export interface VideoPlaygroundProps {
   defaultLanguages?: string[];
   activeLanguage?: string;
   onSelectDefaultLanguage?: (lang: string) => void;
+  availableCaptionTracks?: VideoCaptionTrackInfo[];
+  defaultApiLang?: string;
+  youtubeTranslatedLanguages?: string[];
+  networkRequests?: NetworkRequestRecord[];
+  activeApiTrackId?: string;
+  onSwitchApiTrack?: (entry: YouTubeApiSubtitleEntry) => void;
+  onRefreshApiTracks?: () => void;
+  isRefreshingApiTracks?: boolean;
+  switchingApiTrackId?: string | null;
 }
 
 export const PLAYGROUND_PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
@@ -69,6 +81,15 @@ export function VideoPlayground({
   defaultLanguages,
   activeLanguage = "",
   onSelectDefaultLanguage,
+  availableCaptionTracks,
+  defaultApiLang,
+  youtubeTranslatedLanguages,
+  networkRequests,
+  activeApiTrackId,
+  onSwitchApiTrack,
+  onRefreshApiTracks,
+  isRefreshingApiTracks = false,
+  switchingApiTrackId = null,
 }: VideoPlaygroundProps) {
   const [videoInput, setVideoInput] = useState(videoId);
   const [playerIframeKey, setPlayerIframeKey] = useState(0);
@@ -364,6 +385,16 @@ export function VideoPlayground({
                 }
               }}
               detectedTracks={detectedTracks}
+              availableCaptionTracks={availableCaptionTracks}
+              defaultApiLang={defaultApiLang}
+              observedUrl={observedUrl}
+              youtubeTranslatedLanguages={youtubeTranslatedLanguages}
+              networkRequests={networkRequests}
+              activeApiTrackId={activeApiTrackId}
+              onSwitchApiTrack={onSwitchApiTrack}
+              onRefreshApiTracks={onRefreshApiTracks}
+              isRefreshingApiTracks={isRefreshingApiTracks}
+              switchingApiTrackId={switchingApiTrackId}
               isPlayground
               className="flex-1 min-w-[240px]"
             />

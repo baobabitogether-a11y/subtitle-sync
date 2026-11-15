@@ -6,6 +6,7 @@
  */
 
 import { VideoMetadata, VideoCaptionTrackInfo } from "../types";
+import { trackNetworkRequest } from "./networkTracker";
 
 const METADATA_KEY_PREFIX = "yt_video_metadata_";
 const inMemoryCache = new Map<string, VideoMetadata>();
@@ -138,9 +139,11 @@ export async function fetchAvailableCaptionTracks(videoId: string): Promise<{
 
   // Attempt 1: Android native bridge if running in native app
   if (typeof window !== "undefined" && window.AndroidNativeShell?.fetchTimedTextExact) {
+    const tracker = trackNetworkRequest(trackListUrl, "GET", "native_bridge");
     try {
       const rawXml = window.AndroidNativeShell.fetchTimedTextExact(trackListUrl, true);
       if (rawXml && rawXml.includes("<transcript_list")) {
+        tracker.complete(200, rawXml);
         const tracks = parseTimedTextTrackList(rawXml, cleanId);
         const defaultTrack = tracks.find((t) => t.isDefault);
         return {
@@ -148,17 +151,21 @@ export async function fetchAvailableCaptionTracks(videoId: string): Promise<{
           defaultLang: defaultTrack?.langCode || tracks[0]?.langCode,
         };
       }
-    } catch {
+      tracker.fail("Non-transcript_list XML response from Android bridge", 200, rawXml);
+    } catch (err) {
+      tracker.fail(err instanceof Error ? err.message : "Android bridge error");
       // Fallback to fetch
     }
   }
 
   // Attempt 2: Direct client-side fetch (works when CORS is permitted or via extension/proxy)
+  const fetchTracker = trackNetworkRequest(trackListUrl, "GET", "fetch");
   try {
     const res = await fetch(trackListUrl, { method: "GET" });
     if (res.ok) {
       const xml = await res.text();
       if (xml.includes("<transcript_list")) {
+        fetchTracker.complete(res.status, xml);
         const tracks = parseTimedTextTrackList(xml, cleanId);
         const defaultTrack = tracks.find((t) => t.isDefault);
         return {
@@ -166,8 +173,12 @@ export async function fetchAvailableCaptionTracks(videoId: string): Promise<{
           defaultLang: defaultTrack?.langCode || tracks[0]?.langCode,
         };
       }
+      fetchTracker.fail("Non-transcript_list response body", res.status, xml);
+    } else {
+      fetchTracker.fail(`HTTP ${res.status}`, res.status);
     }
-  } catch {
+  } catch (err) {
+    fetchTracker.fail(err instanceof Error ? err.message : "Network or CORS error");
     // Graceful fallback: return empty tracks on network/CORS restrictions
   }
 

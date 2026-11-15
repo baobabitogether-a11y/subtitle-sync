@@ -8,8 +8,18 @@ import {
   ChevronUp,
   Crown,
   RotateCcw,
+  Globe,
+  RefreshCw,
+  ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { LANGS, type Json3 } from "@/lib/subtitles";
+import type { VideoCaptionTrackInfo } from "@/types";
+import type { NetworkRequestRecord } from "@/utils/networkTracker";
+import {
+  buildYouTubeApiSubtitleSummary,
+  type YouTubeApiSubtitleEntry,
+} from "@/utils/youtubeApiSubtitleTracks";
 import {
   analyzeDefaultSubtitlesPunctuation,
   resolveKingOfComma,
@@ -37,6 +47,16 @@ export interface SwitchableDefaultSubtitlesBarProps {
   onResetToKingOfComma?: () => void;
   tracks?: Record<string, Json3> | null;
   detectedTracks?: Record<string, DetectedSubtitleTrack>;
+  availableCaptionTracks?: VideoCaptionTrackInfo[];
+  defaultApiLang?: string;
+  observedUrl?: string;
+  youtubeTranslatedLanguages?: string[];
+  networkRequests?: NetworkRequestRecord[];
+  activeApiTrackId?: string;
+  onSwitchApiTrack?: (entry: YouTubeApiSubtitleEntry) => void;
+  onRefreshApiTracks?: () => void;
+  isRefreshingApiTracks?: boolean;
+  switchingApiTrackId?: string | null;
   className?: string;
   isPlayground?: boolean;
   defaultExpandedStats?: boolean;
@@ -63,7 +83,7 @@ function sameLanguageCode(a?: string | null, b?: string | null): boolean {
  * - Exposes full punctuation counting statistics for all default subtitle candidates.
  */
 export const SwitchableDefaultSubtitlesBar: React.FC<SwitchableDefaultSubtitlesBarProps> = ({
-  videoId: _videoId,
+  videoId,
   defaultLanguages,
   activeLanguage,
   onSelectLanguage,
@@ -71,12 +91,81 @@ export const SwitchableDefaultSubtitlesBar: React.FC<SwitchableDefaultSubtitlesB
   onResetToKingOfComma,
   tracks,
   detectedTracks,
+  availableCaptionTracks,
+  defaultApiLang,
+  observedUrl,
+  youtubeTranslatedLanguages,
+  networkRequests,
+  activeApiTrackId,
+  onSwitchApiTrack,
+  onRefreshApiTracks,
+  isRefreshingApiTracks = false,
+  switchingApiTrackId = null,
   className = "",
   isPlayground = false,
   defaultExpandedStats = false,
 }) => {
   const [showStats, setShowStats] = useState<boolean>(defaultExpandedStats);
+  const [localSelectedApiTrackId, setLocalSelectedApiTrackId] = useState<string>("");
   const statsEnabled = useIsElementEnabled("default_subtitles_stats");
+
+  const apiSummary = useMemo(
+    () =>
+      buildYouTubeApiSubtitleSummary({
+        videoId,
+        availableCaptionTracks,
+        defaultApiLang,
+        observedUrl,
+        youtubeTranslatedLanguages,
+        networkRequests,
+        tracks,
+        detectedTracks,
+      }),
+    [
+      videoId,
+      availableCaptionTracks,
+      defaultApiLang,
+      observedUrl,
+      youtubeTranslatedLanguages,
+      networkRequests,
+      tracks,
+      detectedTracks,
+    ],
+  );
+
+  const effectiveSelectedApiTrackId = useMemo(() => {
+    const explicitId = activeApiTrackId || localSelectedApiTrackId;
+    if (explicitId) {
+      const matched = apiSummary.entries.find((entry) => entry.id === explicitId);
+      if (matched && (!activeLanguage || sameLanguageCode(matched.langCode, activeLanguage))) {
+        return matched.id;
+      }
+    }
+    if (activeLanguage) {
+      const matchingLang = apiSummary.entries.filter((entry) =>
+        sameLanguageCode(entry.langCode, activeLanguage),
+      );
+      if (matchingLang.length > 0) {
+        return matchingLang[0]!.id;
+      }
+    }
+    return apiSummary.defaultEntry?.id || "";
+  }, [
+    activeApiTrackId,
+    localSelectedApiTrackId,
+    apiSummary.entries,
+    apiSummary.defaultEntry,
+    activeLanguage,
+  ]);
+
+  const handleSelectYouTubeApiTrack = (entry: YouTubeApiSubtitleEntry) => {
+    setLocalSelectedApiTrackId(entry.id);
+    if (onSwitchApiTrack) {
+      onSwitchApiTrack(entry);
+    } else {
+      onSelectLanguage(entry.langCode);
+    }
+  };
 
   // Deduplicate and merge defaultLanguages with non-empty fetched tracks
   const uniqueLangs = useMemo(() => {
@@ -365,6 +454,160 @@ export const SwitchableDefaultSubtitlesBar: React.FC<SwitchableDefaultSubtitlesB
                 <ChevronDown className="h-3 w-3 shrink-0" />
               )}
             </button>
+          )}
+        </div>
+      </div>
+
+      {/* YouTube API Default & Auto-Translation Switcher Container */}
+      <div
+        id="youtube-api-default-auto-translations-container"
+        data-testid="youtube-api-default-auto-translations-container"
+        data-api-tracks-count={apiSummary.entries.length}
+        data-auto-translation-count={apiSummary.autoTranslationCount}
+        data-active-api-track-id={effectiveSelectedApiTrackId}
+        className="w-full pt-2 border-t border-border/60 flex flex-col gap-1.5"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Globe className="h-3.5 w-3.5 text-sky-500 shrink-0" />
+            <span className="font-semibold text-[11px] text-foreground">
+              YouTube API Default & Auto-Translation ({apiSummary.entries.length}):
+            </span>
+            {apiSummary.defaultEntry && (
+              <span
+                data-testid="youtube-api-default-summary-badge"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+              >
+                Default: {apiSummary.defaultEntry.name} ({apiSummary.defaultEntry.langCode})
+              </span>
+            )}
+            {apiSummary.autoTranslationCount > 0 && (
+              <span
+                data-testid="youtube-api-auto-translation-count-badge"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium bg-violet-500/15 text-violet-700 dark:text-violet-300 border border-violet-500/30"
+              >
+                Auto-Translated: {apiSummary.autoTranslationCount}
+              </span>
+            )}
+          </div>
+
+          {onRefreshApiTracks && (
+            <button
+              type="button"
+              data-testid="refresh-youtube-api-tracks-btn"
+              onClick={onRefreshApiTracks}
+              disabled={isRefreshingApiTracks}
+              title="Query YouTube timedtext API tracklist (?type=list) for default & auto-generated/translated tracks"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background hover:bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-60"
+            >
+              <RefreshCw
+                className={`h-2.5 w-2.5 shrink-0 ${isRefreshingApiTracks ? "animate-spin text-primary" : ""}`}
+              />
+              <span>{isRefreshingApiTracks ? "Querying API..." : "Refresh API"}</span>
+            </button>
+          )}
+        </div>
+
+        <div
+          data-testid="youtube-api-tracks-switcher-list"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {apiSummary.entries.length > 0 ? (
+            apiSummary.entries.map((entry, idx) => {
+              const isSelected = effectiveSelectedApiTrackId === entry.id;
+              const isSwitching = switchingApiTrackId === entry.id;
+              const kindLabel =
+                entry.kind === "auto-translation"
+                  ? "Auto-Translation"
+                  : entry.kind === "asr"
+                    ? "Auto (ASR)"
+                    : entry.kind === "default"
+                      ? "Default"
+                      : "API Track";
+              const badgeClasses =
+                entry.kind === "auto-translation"
+                  ? isSelected
+                    ? "bg-white/20 text-white"
+                    : "bg-violet-500/20 text-violet-700 dark:text-violet-300"
+                  : entry.kind === "asr"
+                    ? isSelected
+                      ? "bg-white/20 text-white"
+                      : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                    : entry.kind === "default"
+                      ? isSelected
+                        ? "bg-white/20 text-white"
+                        : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                      : isSelected
+                        ? "bg-white/20 text-white"
+                        : "bg-sky-500/15 text-sky-700 dark:text-sky-300";
+
+              return (
+                <button
+                  key={`${entry.id}-${idx}`}
+                  type="button"
+                  data-testid={`youtube-api-track-btn-${entry.langCode}-${entry.kind}`}
+                  data-track-id={entry.id}
+                  data-track-kind={entry.kind}
+                  aria-pressed={isSelected}
+                  disabled={isSwitching}
+                  onClick={() => handleSelectYouTubeApiTrack(entry)}
+                  title={`Switch to YouTube API ${kindLabel}: ${entry.name} (${entry.langCode})${entry.sourceLang ? ` from ${entry.sourceLang}` : ""}${entry.requestUrl ? ` — ${entry.requestUrl}` : ""}`}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium border transition-all cursor-pointer disabled:opacity-60 ${
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground shadow-xs ring-1 ring-primary/40 font-semibold"
+                      : entry.isAutoTranslation
+                        ? "border-violet-500/40 bg-violet-500/5 hover:bg-violet-500/15 text-foreground hover:border-violet-500"
+                        : entry.isDefault
+                          ? "border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/15 text-foreground hover:border-emerald-500"
+                          : "border-border bg-background/80 hover:bg-muted text-foreground hover:border-primary/50"
+                  }`}
+                >
+                  {isSwitching ? (
+                    <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+                  ) : (
+                    isSelected && <Check className="h-3 w-3 shrink-0 stroke-[2.5]" />
+                  )}
+                  <span
+                    className={`rounded px-1 py-0.2 text-[9px] font-bold uppercase tracking-wide ${badgeClasses}`}
+                  >
+                    {kindLabel}
+                  </span>
+                  <span>{entry.name}</span>
+                  <span
+                    className={`font-mono text-[10px] ${
+                      isSelected ? "text-primary-foreground/85" : "text-muted-foreground"
+                    }`}
+                  >
+                    {entry.isAutoTranslation && entry.sourceLang ? (
+                      <span className="inline-flex items-center gap-0.5">
+                        {entry.sourceLang}
+                        <ArrowRight className="h-2.5 w-2.5 inline" />
+                        {entry.langCode}
+                      </span>
+                    ) : (
+                      `(${entry.langCode})`
+                    )}
+                  </span>
+                  {entry.cuesCount > 0 && (
+                    <span
+                      className={`text-[9px] px-1 rounded font-mono ${
+                        isSelected ? "bg-black/20 text-white" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {entry.cuesCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })
+          ) : (
+            <span
+              data-testid="youtube-api-tracks-empty"
+              className="text-[11px] text-muted-foreground italic py-0.5"
+            >
+              No YouTube API default or auto-translation requests recorded yet. Load captions or
+              refresh API tracks.
+            </span>
           )}
         </div>
       </div>

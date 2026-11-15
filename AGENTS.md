@@ -129,16 +129,13 @@ The application processes and presents subtitles through a strict sequential pip
 
 ## Last raw prompt
 ```
-settings:
-1. tts-service - mv upper and to its own accordion (2nd accordion)
-2. user should be able to set their own openrouter key. v upper and to its own accordion. (1st accordion)
+add container element which shows the video's default/auto translation based on youtube api request and allow to switch between them
+Apply style changes to the selected element(s).
+[AIS_METADATA_SECTION_START]
+CSS selector 1: div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > details:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div#switchable-default-subtitles-bar:nth-of-type(1)
+CSS 1: {
 
-3. using the openrouter key:
-
-- fetch free models:https://openrouter.ai/api/frontend/v1/models/find?active=true&fmt=cards&max_price=0
-- default to openrouter/auto:free
-- show dropdownlist of models (fetch on relevant component init)
-
-4. game and the use of openrouter in order to generate sentences using the words which are target to learn. (ensure fetching on demand next X=5 sentences)
+}
+[AIS_METADATA_SECTION_END]
 ```
 

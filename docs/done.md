@@ -1,5 +1,37 @@
 # Done tasks
 
+### Task 421: Prompt 209 — YouTube API Default & Auto-Translation Switcher Container Inside `#switchable-default-subtitles-bar` (`v2.1.124`)
+
+- **Prompt**:
+  ```
+  add container element which shows the video's default/auto translation based on youtube api request and allow to switch between them
+  [Focused selector: div#switchable-default-subtitles-bar]
+  ```
+- **Changes**:
+  - Created pure track classifier/aggregator module `src/utils/youtubeApiSubtitleTracks.ts` (`buildYouTubeApiSubtitleSummary`, `buildYouTubeApiSubtitleTracks`, `normalizeYouTubeApiLangCode`, `isSameYouTubeApiLang`) aggregating and classifying YouTube API Default, Auto (ASR), and Auto-Translation (`tlang=`) tracks from `timedtext?type=list` `availableCaptionTracks`, `defaultSubtitleLang`, `observedUrl`, `detectedTracks`, `youtubeTranslatedLanguages`, and live `/api/timedtext` `networkRequests` scoped to `videoId` with zero hardcoded subtitle cues.
+  - Updated `src/utils/videoMetadataManager.ts` (`fetchAvailableCaptionTracks`) to record YouTube `timedtext?type=list` API requests via `trackNetworkRequest` across both Android native bridge and browser `fetch`.
+  - Updated `src/components/SwitchableDefaultSubtitlesBar.tsx` to render a dedicated container element (`id="youtube-api-default-auto-translations-container"`, `data-testid="youtube-api-default-auto-translations-container"`) inside `#switchable-default-subtitles-bar` with kind badges (`Default`, `Auto-Translation`, `Auto (ASR)`, `API Track`), source-to-target indicators, track cues counts, `Refresh API` trigger (`refresh-youtube-api-tracks-btn`), and interactive switching across tracks.
+  - Updated Storybook first (`src/components/SwitchableDefaultSubtitlesBar.stories.tsx` with `WithYouTubeApiDefaultAndAutoTranslation` & `src/storybook/StorybookWorkbench.tsx`).
+  - Wired identical props and handlers (`timedTextNetworkRequests`, `handleRefreshYouTubeApiTracks`, `handleSwitchYouTubeApiTrack`, `activeApiTrackId`, `isRefreshingApiTracks`, `switchingApiTrackId`) across Beginner Mode, Advanced Stage 3, and `VideoPlayground` (`src/routes/index.tsx`, `src/components/VideoPlayground.tsx`).
+  - Added `scripts/verify-youtube-api-default-auto-translations-switcher.ts` (`npm run test:youtube-api-default-auto-translations`), updated `docs/files.md`, and bumped single-source version to `v2.1.124` (`code: 20224`).
+- **Verification**: `npm run test:youtube-api-default-auto-translations` (unit tests, source parity checks, and live Playwright Chromium E2E across Advanced Stage 3 & `?mode=beginner` with intercepted `timedtext?type=list`, `lang=en`, and `tlang=he` requests; zero console/page/`FloatingErrorButton` errors), `npm run test:king-of-comma-mother-tongue`, `npm run test:same-components-parity-policy`, `npm run test:agents-all` (22/22), `npm run test:no-duplicate-md`, `npm run check-version`, `npx tsc --noEmit`, `compile_applet`, and `lint_applet` (git commit/push skipped — no `.git` directory): **PASSED**.
+
+### Task 420: Prompt 208 — Fix Progress Bar Seek During TTS-Play or Video Playback Overwritten by Next Queued Section (`v2.1.123`)
+
+- **Prompt**:
+  ```
+  1.while playing is on (tts-play or video playback) it happends that moving the progress bar of the video has no effect because after the played section is over the progress bar is set to continue from the next section to play in the que
+  ```
+- **Root Cause & Changes**:
+  - Added pure seek coordination module `src/lib/playback-seek-coordinator.ts` (`findRowIndexAtTimeMs`, `isAwaitingPendingSeek`, `getEffectivePlayerTimeSec`, `detectManualProgressBarSeek`, `shouldAbortQueuedSectionResume`) to detect manual seeks across both `VideoPlaybackControls` seekbar and YouTube's native player timeline while preventing stale pre-seek `getCurrentTime()` bounce-back during async `seekTo()`.
+  - Updated `src/routes/index.tsx`:
+    - `handleSeek` and native scrub detection increment `playbackSeekEpochRef`, call `cancelSpeech()`, clear `busy.current` and `isPausedForTtsRef.current`, record `pendingSeekTargetRef`, sync `lastMs`, `lastRow`, and `active` to the sought timestamp, clear per-section handled sets, and resume playback cleanly from the new position.
+    - Excluded `didManualSeek` from triggering `candidateRow` `video-first` speech on abandoned sections, and guarded post-`speakRow` `tts-first` / `video-first` continuation blocks against superseded `runEpoch`s and live manual player position changes.
+    - Routed `initBackgroundMediaManager` `onSeek` via `handleSeekRef`, unified Beginner & Advanced `<VideoPlaybackControls>` props, and guarded `rows[...]` bounds across `getEligibleLangs`, `speakRow`, `tts-first`, and `video-first`.
+  - Updated `src/lib/playback-section-identity.ts` (`getPlaybackSectionId` safely guards `null`/`undefined` sections) and `src/utils/multiVideoPlayerManager.ts` (added optional `getDuration?(): number` to `YTPlayerLike`).
+  - Added `scripts/verify-seek-overrides-tts-queue.ts` (`npm run test:seek-overrides-tts-queue`), updated `docs/files.md`, and bumped single-source version to `v2.1.123` (`code: 20223`).
+- **Verification**: `npm run test:seek-overrides-tts-queue` (unit tests, source contracts, live Chromium E2E across Scenarios A/B/C/C2/D with `L2Ryrr6txwA` fixture & zero errors), `npm run test:video-controls`, `npm run test:no-repeated-video-section-after-tts`, `npm run test:agents-all` (22/22), `npm run test:same-components-parity-policy`, `npm run test:no-duplicate-md`, `npm run check-version`, `npx tsc --noEmit`, `compile_applet`, and `lint_applet` (git commit/push skipped — no `.git` directory): **PASSED**.
+
 ### Task 418: Prompt 207 Chapter 3 — OpenRouter Free Models Fetch (`frontend/v1/models/find`), `openrouter/auto:free` Default & Init Dropdown (`v2.1.121`)
 
 - **Prompt Chapter**: `3. using the openrouter key: - fetch free models:https://openrouter.ai/api/frontend/v1/models/find?active=true&fmt=cards&max_price=0 - default to openrouter/auto:free - show dropdownlist of models (fetch on relevant component init)`

@@ -2659,3 +2659,25 @@ settings:
 4. game and the use of openrouter in order to generate sentences using the words which are target to learn. (ensure fetching on demand next X=5 sentences)
 ```
 
+---
+
+### Prompt 208: Fix Progress Bar Seek Overwritten by Queued Next Section During Video Playback or TTS-Play
+```
+1.while playing is on (tts-play or video playback) it happends that moving the progress bar of the video has no effect because after the played section is over the progress bar is set to continue from the next section to play in the que
+```
+
+---
+
+### Prompt 209: YouTube API Default & Auto-Translation Switcher Container Inside SwitchableDefaultSubtitlesBar
+```
+add container element which shows the video's default/auto translation based on youtube api request and allow to switch between them
+Apply style changes to the selected element(s).
+[AIS_METADATA_SECTION_START]
+CSS selector 1: div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > details:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > div#switchable-default-subtitles-bar:nth-of-type(1)
+CSS 1: {
+
+}
+[AIS_METADATA_SECTION_END]
+```
+
+

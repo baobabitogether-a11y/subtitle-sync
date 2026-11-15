@@ -129,6 +129,7 @@ const SwitchableBarStoryWrapper: React.FC<Partial<SwitchableDefaultSubtitlesBarP
   props,
 ) => {
   const [activeLang, setActiveLang] = useState<string>(props.activeLanguage || "en");
+  const [activeApiTrackId, setActiveApiTrackId] = useState<string>("");
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4 bg-background">
@@ -139,11 +140,21 @@ const SwitchableBarStoryWrapper: React.FC<Partial<SwitchableDefaultSubtitlesBarP
         onSelectLanguage={setActiveLang}
         onResetToKingOfComma={() => setActiveLang("en")}
         tracks={mockTracks}
+        activeApiTrackId={activeApiTrackId}
+        onSwitchApiTrack={(entry) => {
+          setActiveApiTrackId(entry.id);
+          setActiveLang(entry.langCode);
+        }}
         {...props}
       />
       <div className="text-xs text-muted-foreground font-mono">
         Active Selected Default / Mother Tongue:{" "}
         <span className="font-semibold text-primary">{activeLang}</span>
+        {activeApiTrackId ? (
+          <span className="ml-2 text-sky-600 dark:text-sky-400">
+            (API Track: {activeApiTrackId})
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -151,6 +162,34 @@ const SwitchableBarStoryWrapper: React.FC<Partial<SwitchableDefaultSubtitlesBarP
 
 export const WithCommaRecommendation: Story = {
   render: () => <SwitchableBarStoryWrapper />,
+};
+
+export const WithYouTubeApiDefaultAndAutoTranslation: Story = {
+  render: () => (
+    <SwitchableBarStoryWrapper
+      availableCaptionTracks={[
+        {
+          langCode: "en",
+          name: "English",
+          isDefault: true,
+          isAsr: false,
+          trackUrl: "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3",
+        },
+        {
+          langCode: "en",
+          name: "English (auto-generated)",
+          isDefault: false,
+          isAsr: true,
+          trackUrl:
+            "https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&kind=asr&fmt=json3",
+        },
+      ]}
+      defaultApiLang="en"
+      observedUrl="https://www.youtube.com/api/timedtext?v=L2Ryrr6txwA&lang=en&fmt=json3"
+      youtubeTranslatedLanguages={["he", "es"]}
+      onRefreshApiTracks={() => {}}
+    />
+  ),
 };
 
 export const PreExpandedStatistics: Story = {
