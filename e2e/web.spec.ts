@@ -71,13 +71,14 @@ test("developer-only views are hidden unless debug=true is in the URL", async ({
   });
 
   await page.goto("./");
-  await expect(page.getByTestId("top-tabs-nav")).toBeVisible();
-  await expect(page.getByTestId("tab-viewer")).toBeVisible();
+  await expect(page.getByTestId("tab-viewer")).toHaveCount(0);
+  await expect(page.getByTestId("top-tabs-nav")).toHaveCount(0);
   await expect(page.getByTestId("tab-playground")).toHaveCount(0);
   await expect(page.getByTestId("tab-ai-punctuation")).toHaveCount(0);
   await expect(page.getByTestId("developer-mode-indicator")).toHaveCount(0);
 
   await page.goto("./?debug=false");
+  await expect(page.getByTestId("top-tabs-nav")).toHaveCount(0);
   await expect(page.getByTestId("tab-playground")).toHaveCount(0);
   await expect(page.getByTestId("tab-ai-punctuation")).toHaveCount(0);
 
@@ -91,6 +92,8 @@ test("developer-only views are hidden unless debug=true is in the URL", async ({
   await expect(page.getByTestId("fetch-server-url-input")).toBeVisible();
 
   await page.goto("./?debug=true");
+  await expect(page.getByTestId("top-tabs-nav")).toBeVisible();
+  await expect(page.getByTestId("tab-viewer")).toHaveCount(0);
   await expect(page.getByTestId("tab-playground")).toBeVisible();
   await expect(page.getByTestId("tab-ai-punctuation")).toBeVisible();
   await expect(page.getByTestId("developer-mode-indicator")).toHaveAttribute(
@@ -253,7 +256,8 @@ test.skip("Beginner and Advanced render the shared language selector", async ({ 
 
 test("Advanced mode mounts without a route render error", async ({ page }) => {
   await page.goto("./?mode=expert");
-  await expect(page.getByTestId("top-tabs-nav")).toBeVisible();
+  await expect(page.getByTestId("stage-step-1")).toBeVisible();
+  await expect(page.getByTestId("top-tabs-nav")).toHaveCount(0);
 });
 
 test.skip("per-language playback order is shared by Beginner and Advanced Language Settings", async ({

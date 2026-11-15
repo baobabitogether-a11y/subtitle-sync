@@ -24,6 +24,7 @@ import {
   type OpenRouterModel,
 } from "@/utils/openRouterAiService";
 import { getServerOpenRouterApiKey, hasCustomOpenRouterApiKey } from "@/lib/alternative-tts";
+import { getEffectiveOpenRouterKey, subscribeToCredentialUpdates } from "@/utils/credentialStatus";
 
 export interface OpenRouterSettingsPanelProps {
   apiKey?: string;
@@ -77,6 +78,14 @@ export const OpenRouterSettingsPanel: React.FC<OpenRouterSettingsPanelProps> = R
         setSavedEffectiveKey(apiKey.trim());
       }
     }, [apiKey]);
+
+    useEffect(() => {
+      return subscribeToCredentialUpdates(() => {
+        const next = getEffectiveOpenRouterKey();
+        setKeyInput(next);
+        setSavedEffectiveKey(next);
+      });
+    }, []);
 
     useEffect(() => {
       if (selectedModelProp && selectedModelProp.trim()) {

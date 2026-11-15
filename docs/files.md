@@ -533,9 +533,5 @@ This document serves as the master catalog and directory of all repository docum
 | `scripts/verify-listening-tts-speed-override.ts`         | Listening TTS Speed Override Suite (Task 412, Prompt 201 Ch. 3)                       | Unit-tests rate clamping, override vs configured resolution, `onSpeakText` forwarding across modes, and live Chromium E2E utterance `.rate` verification. |
 | `scripts/verify-listening-both-playback.ts`              | Listening Both Words + Sentences Playback Suite (Task 413, Prompt 201 Ch. 4)          | Verifies clicking Both triggers sequential playback of words followed by their derived sentences (`handlePlayAllBoth`), toggles cleanly to Stop, and passes Chromium E2E. |
 | `scripts/verify-listening-word-cards-ui-ux.ts`           | Listening Word Cards Two-Band UI/UX Suite (Task 409, Prompt 197 Ch. 4)                | Verifies two-band word card structure, aligned right-rail `Listen`/`Sentence` buttons, `max-h-[26rem]` list height, zero truncation/overflow, and Chromium layout metrics. |
-
-
-
-
-
-
+| `src/utils/credentialStatus.ts`                            | OpenRouter API Key & TTS-Service Token Status Utility (Task 424, Prompt 211)          | Computes `valid`/`missing`/`invalid` credential states, isolates `spk_` tokens from OpenRouter keys, caches live verification results, and broadcasts `yt-credentials-updated` sync events. |
+| `scripts/verify-prompt-211-ui-history-and-floating-tokens.ts` | Prompt 211 UI, Debug-Only History & Floating Credential Controls Suite (Tasks 422-424) | Unit-tests `credentialStatus.ts`, checks source contracts, and verifies in live Chromium: removed `tab-viewer`, debug-only History stage across Advanced/Beginner modes, and floating settings button credential status + click-to-update. |

@@ -639,6 +639,8 @@ export const StorybookWorkbench: React.FC = () => {
                   onToggleTtsPlay={() => setIsTtsPlayEnabled((t) => !t)}
                   currentTimeSec={42}
                   durationSec={180}
+                  onOpenOpenRouterSettings={() => setSelectedComponent("openrouter_settings")}
+                  onOpenTtsServiceSettings={() => setSelectedComponent("tts_service")}
                 />
               </div>
             )}
