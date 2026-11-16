@@ -12,33 +12,33 @@ async function main() {
   console.log("Checking stage stepper navigation buttons...");
   assert.ok(
     indexTsx.includes('id="stage-step-0"') &&
-      indexTsx.includes('setCurrentAccordionStage(0)') &&
-      indexTsx.includes('fetchedSubtitles: true'),
+      indexTsx.includes("setCurrentAccordionStage(0)") &&
+      indexTsx.includes("fetchedSubtitles: true"),
     "Stage step 0 button must set stage 0 and open fetchedSubtitles panel",
   );
   assert.ok(
     indexTsx.includes('id="stage-step-1"') &&
-      indexTsx.includes('setCurrentAccordionStage(1)') &&
-      indexTsx.includes('languages: true'),
+      indexTsx.includes("setCurrentAccordionStage(1)") &&
+      indexTsx.includes("languages: true"),
     "Stage step 1 button must set stage 1 and open languages panel",
   );
   assert.ok(
     indexTsx.includes('id="stage-step-2"') &&
-      indexTsx.includes('setCurrentAccordionStage(2)') &&
-      indexTsx.includes('subtitles: true'),
+      indexTsx.includes("setCurrentAccordionStage(2)") &&
+      indexTsx.includes("subtitles: true"),
     "Stage step 2 button must set stage 2 and open subtitles panel",
   );
   assert.ok(
     indexTsx.includes('id="stage-step-3"') &&
-      indexTsx.includes('setCurrentAccordionStage(3)') &&
-      indexTsx.includes('player: true'),
+      indexTsx.includes("setCurrentAccordionStage(3)") &&
+      indexTsx.includes("player: true"),
     "Stage step 3 button must set stage 3 and open player panel",
   );
   assert.ok(
-    indexTsx.includes('id="stage-step-4"') &&
-      indexTsx.includes('setCurrentAccordionStage(4)') &&
-      indexTsx.includes('playback: true, library: true') ||
-      (indexTsx.includes('playback: true') && indexTsx.includes('library: true')),
+    (indexTsx.includes('id="stage-step-4"') &&
+      indexTsx.includes("setCurrentAccordionStage(4)") &&
+      indexTsx.includes("playback: true, library: true")) ||
+      (indexTsx.includes("playback: true") && indexTsx.includes("library: true")),
     "Stage step 4 button must set stage 4 and open settings panels",
   );
   console.log("✓ Stepper button stage handlers verified");
@@ -46,8 +46,7 @@ async function main() {
   // 2. useEffect ensures stage view visibility whenever stage changes
   console.log("Checking useEffect stage synchronization guarantee...");
   assert.ok(
-    indexTsx.includes("useEffect(() => {") &&
-      indexTsx.includes("[currentAccordionStage]"),
+    indexTsx.includes("useEffect(() => {") && indexTsx.includes("[currentAccordionStage]"),
     "Must have an active useEffect listening to currentAccordionStage changes",
   );
   assert.ok(
@@ -81,51 +80,60 @@ async function main() {
   console.log("Checking in-panel progression buttons...");
   assert.ok(
     indexTsx.includes('data-testid="stage-1-next-button"') &&
-      indexTsx.includes('setCurrentAccordionStage(2)'),
+      indexTsx.includes("setCurrentAccordionStage(2)"),
     "Stage 1 NEXT button must advance to Stage 2",
   );
   assert.ok(
     indexTsx.includes('data-testid="stage-2-to-video-button"') &&
-      indexTsx.includes('setCurrentAccordionStage(3)'),
+      indexTsx.includes("setCurrentAccordionStage(3)"),
     "Stage 2 to Video button must advance to Stage 3",
   );
   assert.ok(
     indexTsx.includes('data-testid="stage-3-back-to-subtitles-btn"') &&
-      indexTsx.includes('setCurrentAccordionStage(2)'),
+      indexTsx.includes("setCurrentAccordionStage(2)"),
     "Stage 3 back button must navigate to Stage 2",
   );
   assert.ok(
     indexTsx.includes('data-testid="stage-3-to-settings-btn"') &&
-      indexTsx.includes('setCurrentAccordionStage(4)'),
+      indexTsx.includes("setCurrentAccordionStage(4)"),
     "Stage 3 to Settings button must navigate to Stage 4",
   );
   assert.ok(
     indexTsx.includes('data-testid="settings-open-stage-0-btn"') &&
-      indexTsx.includes('setCurrentAccordionStage(0)'),
+      indexTsx.includes("setCurrentAccordionStage(0)"),
     "Settings open stage 0 button must navigate to Stage 0",
   );
   console.log("✓ In-panel navigation buttons verified");
 
   // 4. Panel filtering ensures strict stage isolation without hiding active stage
   console.log("Checking panelOrder filtering logic...");
-  assert.ok(
-    indexTsx.includes('if (currentAccordionStage === 0) {\n                      return panelId === "fetchedSubtitles";\n                    }'),
+  assert.match(
+    indexTsx,
+    /if\s*\(currentAccordionStage\s*===\s*0\)\s*\{\s*return\s+panelId\s*===\s*"fetchedSubtitles";\s*\}/,
     "Must return fetchedSubtitles on stage 0",
   );
-  assert.ok(
-    indexTsx.includes('if (currentAccordionStage === 1) {\n                      return panelId === "languages";\n                    }'),
+  assert.match(
+    indexTsx,
+    /if\s*\(currentAccordionStage\s*===\s*1\)\s*\{\s*return\s+panelId\s*===\s*"languages";\s*\}/,
     "Must return languages on stage 1",
   );
-  assert.ok(
-    indexTsx.includes('if (currentAccordionStage === 2) {\n                      return panelId === "subtitles";\n                    }'),
+  assert.match(
+    indexTsx,
+    /if\s*\(currentAccordionStage\s*===\s*2\)\s*\{\s*return\s+panelId\s*===\s*"subtitles";\s*\}/,
     "Must return subtitles on stage 2",
   );
   assert.ok(
-    indexTsx.includes('if (panelId === "player") {\n                      return currentAccordionStage === 3 || currentAccordionStage === 5;\n                    }'),
-    "Must return player on stage 3 (and stage 5 learning view)",
+    /if\s*\((?:currentAccordionStage\s*!==\s*3\s*&&\s*)?panelId\s*===\s*"player"\)\s*\{\s*return\s+true;\s*\}/.test(
+      indexTsx,
+    ) &&
+      indexTsx.includes("isPlayerHiddenForStage") &&
+      indexTsx.includes("currentAccordionStage !== 3 &&") &&
+      indexTsx.includes("currentAccordionStage !== 5"),
+    "Must keep player panel mounted offscreen-hidden on non-3/5 stages so tab changes never stop playback",
   );
-  assert.ok(
-    indexTsx.includes('if (currentAccordionStage === 4) {\n                      return panelId === "playback" || panelId === "library";\n                    }'),
+  assert.match(
+    indexTsx,
+    /if\s*\(currentAccordionStage\s*===\s*4\)\s*\{\s*return\s+panelId\s*===\s*"playback"\s*\|\|\s*panelId\s*===\s*"library";\s*\}/,
     "Must return playback and library on stage 4",
   );
   console.log("✓ Panel filter logic verified");

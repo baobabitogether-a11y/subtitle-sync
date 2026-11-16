@@ -84,7 +84,9 @@ console.log("✓ PASS: All Stage 3 & Play entry points verified");
 // 4. Stage 5 still intentionally renders WordBalloonLearningView when selected
 console.log("4. Checking Stage 5 Word Game rendering remains intact...");
 assert.ok(
-  indexContent.includes("showWordBalloonLearningView || currentAccordionStage === 5 ? (") &&
+  (indexContent.includes("showWordBalloonLearningView || currentAccordionStage === 5 ? (") ||
+    indexContent.includes("(showWordBalloonLearningView || currentAccordionStage === 5) && (")) &&
+    indexContent.includes("<WordBalloonLearningView") &&
     indexContent.includes('id="stage-step-learning"'),
   "Stage 5 must still render WordBalloonLearningView when explicitly activated",
 );

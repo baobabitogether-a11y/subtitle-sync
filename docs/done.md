@@ -1,5 +1,29 @@
 # Done tasks
 
+### Task 425: Prompt 214 Chapter 1 — Fix Changing Tabs on the Demo Webpage Stopping the Video-Player (`v2.1.127`)
+
+- **Prompt**:
+  ```
+  1. on the demo webpage - when changing tabs it stops the video-player
+  ```
+- **Changes**:
+  - `src/routes/index.tsx`: Kept the viewer subtree mounted offscreen-invisible (`fixed -left-[9999px] ... pointer-events-none opacity-0`, `data-viewer-background-kept`) when `activeTopTab !== "viewer"`, removed `cancelSpeech()` / `pauseVideo()` calls from `#tab-playground` and `#tab-ai-punctuation` click handlers, kept the `"player"` panel mounted offscreen-invisible (`isPlayerHiddenForStage`, `data-player-stage-hidden`) across non-3/5 stages, and kept `#video-player-fullscreen-container` mounted offscreen instead of unmounting on Stage 5 / Word Game so active YouTube playback is never paused, destroyed, or reloaded on stage or top-tab changes.
+  - `src/components/beginner/BeginnerFlowContainer.tsx`: Kept `BeginnerVideoTab` mounted offscreen-invisible (`data-beginner-tab-hidden`) when `activeTab !== "video"` instead of hiding with `display: none` (`hidden`), preserving active playback across Beginner `Preferences` <-> `Video` tab transitions.
+  - `scripts/verify-tab-change-keeps-video-playing.ts`, `package.json`, & `docs/files.md`: Added `test:tab-change-keeps-video-playing` covering source contracts and live Playwright Chromium E2E across Advanced stages/top tabs and Beginner tabs; aligned stage visibility assertions in `scripts/verify-video-stage-visibility-no-word-game.ts`, `scripts/verify-main-stage-components-isolated.ts`, and `scripts/verify-stage-click-view-visibility.ts`; synced version `2.1.127`.
+- **Verification**: `npx tsc --noEmit`, `npm run test:stage-click-view-visibility`, `npm run test:video-stage-visibility-no-word-game`, `npm run test:main-stage-components-isolated`, `npm run test:same-components-parity-policy`, `npm run test:playground-tab`, `npm run test:tab-change-keeps-video-playing`, `npm run test:no-duplicate-md`, `npm run test:agents-all` (23/23), `compile_applet`, and `lint_applet` — all **PASSED**; git commit/push attempted and logged in `docs/git.md` (skipped: no `.git` directory).
+
+### Task 426: Prompt 214 Chapter 0 — Document Sub-Task Git Commit & `docs/git.md` Logging Rule in `AGENTS.md`
+
+- **Prompt**:
+  ```
+  0. AGENTS.md - describe it shortly in your own words: whenever try to git commit the changes and to log it on docs/git.md after every sub-task accomplishment (or else many tokens are wasted and the task doesn't end on a prompt session and also doesn't save the progress)
+  ```
+- **Changes**:
+  - `AGENTS.md`: Updated `Sub-task execution flow` steps 5–6 concisely to require attempting `git commit` (and `git push`) and logging the outcome (commit hash or exact skip/failure reason) in `docs/git.md` right after every accomplished sub-task, preventing wasted tokens, incomplete prompt sessions, and lost progress; updated `## Last raw prompt`.
+  - `docs/git.md` & `docs/files.md`: Created dedicated sub-task Git checkpoint log (`docs/git.md`) and cataloged it in `docs/files.md`.
+  - `scripts/verify-agents-git-log-rule.ts`, `scripts/verify-agents-all.ts`, & `package.json`: Added `test:agents-git-log-rule` and integrated check 23/23 into `verify-agents-all.ts`.
+- **Verification**: `npm run test:agents-git-log-rule` (PASSED), `npm run test:agents-all` (23/23 PASSED), `npm run test:no-duplicate-md` (PASSED); git commit/push attempted and logged in `docs/git.md` (skipped: no `.git` directory in workspace).
+
 ### Task 419: Prompt 207 Chapter 4 — Game & OpenRouter Target-Word Sentence Generation (On-Demand Next X=5 Sentences)
 
 - **Prompt**:

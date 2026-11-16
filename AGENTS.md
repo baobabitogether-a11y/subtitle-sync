@@ -45,8 +45,8 @@ The application processes and presents subtitles through a strict sequential pip
   2. Implement sub-task changes with minimal, targeted file edits.
   3. Add or update dedicated tests covering specific feature requirements.
   4. Test changes thoroughly with dedicated tests, verify app compilation (`compile_applet` / `npm run build`), and run code verification (`lint_applet` / `npm run lint`).
-  5. Perform dedicated Git commit (`git commit`).
-  6. After git commit, try using git push: attempt `git push` (handling failure gracefully if no remote or credentials) to keep editor and remote synchronized.
+  5. **Checkpoint Git commit & log in `docs/git.md`**: Right after accomplishing and verifying each sub-task, always try to `git commit` the changes and log the result (commit hash or exact skip/failure reason) in `docs/git.md` so progress is saved, sessions finish cleanly, and tokens are not wasted.
+  6. After git commit, try using git push: attempt `git push` (handling failure gracefully if no remote or credentials) and record the outcome in `docs/git.md` to keep editor and remote synchronized.
   7. **Mandatory migration to `docs/done.md`**: Move completed tasks and sub-tasks completely out of `current-sub-task.md`, `docs/todo.md`, and `docs/tasks.md` directly into `docs/done.md`, documenting completed changes, dedicated test command, and verification outcome. `docs/tasks.md` is strictly an active backlog containing ONLY pending, active, and upcoming tasks. Completed items must never linger in `docs/tasks.md`.
 - **Prompt task completion audit**: Before concluding any prompt or turn, the agent MUST audit and verify that EVERY task and subtask planned for the prompt in `docs/tasks.md` has been fully accomplished, thoroughly tested with its dedicated automated test, committed, and logged in `docs/done.md`.
 - **Hotfix workflow with task suspension (holding pattern)**: When defect, broken build, regression, or failing CI flow arises:
@@ -129,6 +129,8 @@ The application processes and presents subtitles through a strict sequential pip
 
 ## Last raw prompt
 ```
-go on
+0. AGENTS.md - describe it shortly in your own words: whenever try to git commit the changes and to log it on docs/git.md after every sub-task accomplishment (or else many tokens are wasted and the task doesn't end on a prompt session and also doesn't save the progress)
+1. on the demo webpage - when changing tabs it stops the video-player
+2. tts-play is presented as enabled on the floating button menu but actually it isn't active while the video player is playing
 ```
 
