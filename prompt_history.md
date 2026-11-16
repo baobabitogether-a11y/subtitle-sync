@@ -2750,3 +2750,11 @@ hotfix:  AGENTS.md - must upgrade task management: break to smaller sub-task. mv
 
 1. subtitles-table view - show/hide original subtitle record beside the filtered one
 ```
+
+---
+
+### Prompt 216: Continue Active Task (`go on` — Task 427)
+
+```
+go on
+```

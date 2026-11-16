@@ -944,7 +944,11 @@ function executeSingleSpeech(
             voices.find((x) => matchesLanguageCode(x.lang, lang));
 
           if (matchedVoice && matchesLanguageCode(matchedVoice.lang, lang)) {
-            utterance.voice = matchedVoice;
+            try {
+              utterance.voice = matchedVoice;
+            } catch {
+              // Ignore synthetic or incompatible SpeechSynthesisVoice wrappers and rely on utterance.lang
+            }
             utterance.lang = matchedVoice.lang || lang;
           } else {
             utterance.lang = lang;
@@ -3219,6 +3223,13 @@ function Index() {
           ? settings.skipIncompleteSentences
           : (savedSkipIncomplete ?? prev.skipIncompleteSentences),
     }));
+
+    const loadedAppSettings = loadAppSettings();
+    const syncedTtsPlay = loadedAppSettings.autoPlayTTS ?? true;
+    setIsTtsPlayEnabled(syncedTtsPlay);
+    if (st.current) {
+      st.current.isTtsPlayEnabled = syncedTtsPlay;
+    }
   }, [videoId]);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [theme, setTheme] = useState<Theme>("dark-blue");
@@ -3294,7 +3305,10 @@ function Index() {
         videoId,
         enabled,
       });
-      if (!enabled) {
+      if (enabled) {
+        handledTtsFirstSections.current.clear();
+        handledVideoFirstSections.current.clear();
+      } else {
         const wasPausedForTts = isPausedForTtsRef.current;
         cancelSpeech();
         busy.current = false;
@@ -6603,6 +6617,12 @@ function Index() {
               // ignore
             }
           }
+        } else if (!isPausedForTtsRef.current) {
+          lastMs.current = ms;
+          setPlaybackCurrentTime(ms / 1000);
+          const liveIdx = findRowIndexAtTimeMs(st.current.rows, ms);
+          lastRow.current = liveIdx;
+          setActive(liveIdx);
         }
         return;
       }
@@ -6698,6 +6718,8 @@ function Index() {
         if (!targetRow || playedTtsRecords.current.has(getPlaybackSectionId(targetRow))) return [];
         const baseText = st.current.rows[rowIdx]?.texts[st.current.baseLanguage] ?? "";
         let eligibleLanguages = orderedLangs.filter((l) => {
+          const langText = (st.current.rows[rowIdx]?.texts?.[l.code] ?? "").trim();
+          if (!langText) return false;
           const langMaxWords = getEffectiveLanguageMaxWords(
             l.code,
             languageMaxWordsRef.current,
@@ -6736,14 +6758,35 @@ function Index() {
             eligibleLanguages = [fallbackLang];
           }
         }
+        const hasLoadedNonBaseSpoken = spoken.some((code) =>
+          orderedLangs.some(
+            (l) =>
+              isLanguageSpoken(l.code, [code]) &&
+              isTtsSpeakableLanguage(l.code, currentBaseLanguage, currentTtsBlacklist) &&
+              !isLanguageTtsBlacklisted(l.code, currentTtsBlacklist) &&
+              (st.current.rows[rowIdx]?.texts?.[l.code] ?? "").trim().length > 0,
+          ),
+        );
         // In beginner mode or default playback, use the first available target subtitle when none are selected.
-        if (eligibleLanguages.length === 0 && spoken.length === 0 && orderedLangs.length > 0) {
+        if (
+          eligibleLanguages.length === 0 &&
+          ((spoken.length === 0 && orderedLangs.length > 0) ||
+            (!hasLoadedNonBaseSpoken && orderedLangs.length > 0))
+        ) {
           const fallbackLang =
             orderedLangs.find(
               (l) =>
                 l.code !== currentBaseLanguage &&
+                isTtsSpeakableLanguage(l.code, currentBaseLanguage, currentTtsBlacklist) &&
+                !isLanguageTtsBlacklisted(l.code, currentTtsBlacklist) &&
+                (st.current.rows[rowIdx]?.texts?.[l.code] ?? "").trim().length > 0,
+            ) ||
+            orderedLangs.find(
+              (l) =>
+                l.code !== currentBaseLanguage &&
                 !isLanguageTtsBlacklisted(l.code, currentTtsBlacklist),
-            ) || orderedLangs.find((l) => !isLanguageTtsBlacklisted(l.code, currentTtsBlacklist));
+            ) ||
+            orderedLangs.find((l) => !isLanguageTtsBlacklisted(l.code, currentTtsBlacklist));
           if (
             fallbackLang &&
             isSubtitleInstanceEligibleForTTS(
@@ -7200,6 +7243,65 @@ function Index() {
             } else {
               // End of subtitle track reached: resume normal playback until natural end
               safelyResumePrimaryVideo();
+            }
+          }
+        }
+      } else if (st.current.isTtsPlayEnabled) {
+        // Continuous playback mode (pauseMode === false): speak active/completed sections without pausing video
+        const activeRowObj = idx >= 0 ? rows[idx] : undefined;
+        const sectionId = activeRowObj ? getPlaybackSectionId(activeRowObj) : "";
+        if (
+          activeRowObj &&
+          sectionId &&
+          !playedTtsRecords.current.has(sectionId) &&
+          !handledTtsFirstSections.current.has(sectionId)
+        ) {
+          const eligibleLangs = getEligibleLangs(idx, "tts-first");
+          if (eligibleLangs.length > 0) {
+            const runEpoch = playbackSeekEpochRef.current;
+            handledTtsFirstSections.current.add(sectionId);
+            busy.current = true;
+            try {
+              await speakRow(idx, "tts-first", runEpoch);
+            } catch (err) {
+              console.warn("[TTS] Error during continuous tts-first speech:", err);
+            } finally {
+              if (playbackSeekEpochRef.current === runEpoch) {
+                busy.current = false;
+              }
+            }
+          }
+        }
+
+        const candidateRow =
+          !didManualSeek &&
+          prev >= 0 &&
+          prev < rows.length &&
+          rows[prev] &&
+          (idx !== prev || ms >= rows[prev].end - 80)
+            ? prev
+            : -1;
+        const candidateSectionId =
+          candidateRow >= 0 && rows[candidateRow] ? getPlaybackSectionId(rows[candidateRow]!) : "";
+        if (
+          candidateRow >= 0 &&
+          candidateSectionId &&
+          !playedTtsRecords.current.has(candidateSectionId) &&
+          !handledVideoFirstSections.current.has(candidateSectionId)
+        ) {
+          const eligibleLangs = getEligibleLangs(candidateRow, "video-first");
+          if (eligibleLangs.length > 0) {
+            const runEpoch = playbackSeekEpochRef.current;
+            handledVideoFirstSections.current.add(candidateSectionId);
+            busy.current = true;
+            try {
+              await speakRow(candidateRow, "video-first", runEpoch);
+            } catch (err) {
+              console.warn("[TTS] Error during continuous video-first speech:", err);
+            } finally {
+              if (playbackSeekEpochRef.current === runEpoch) {
+                busy.current = false;
+              }
             }
           }
         }

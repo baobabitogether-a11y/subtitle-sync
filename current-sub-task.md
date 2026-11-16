@@ -1,5 +1,5 @@
 # Current Subtask (`current-sub-task.md`)
 
-- **Status**: [PENDING RESUMPTION]
-- **Next Active Task**: Task 427 (Prompt 214 Chapter 2 — Fix `tts-play` appearing enabled on floating button menu while inactive during video playback)
-- **Active Step**: Prompt 215 (Hotfix + Chapter 1 `Task 428a`/`Task 428b`, `v2.1.128`) is complete and archived in `docs/done.md`; `Task 427` is restored from hold as next active backlog item.
+- **Status**: [IN PROGRESS]
+- **Active Task**: Task 427b (Prompt 214 Chapter 2, Sub-task 2/2 — Live E2E Verification, Registration, & Version Bump `v2.1.129`)
+- **Active Step**: Create `scripts/verify-floating-tts-play-active-during-video.ts`, register `test:floating-tts-play-active` in `package.json`, catalog in `docs/files.md`, verify live Playwright Chromium E2E across Advanced Stage 3 & Beginner Mode (pauseMode ON & continuous playback, toggle OFF/ON), bump to `v2.1.129`, compile + lint, log git checkpoint, and migrate `Task 427` to `docs/done.md`.

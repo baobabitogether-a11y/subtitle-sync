@@ -5,8 +5,7 @@ This file is strictly the active backlog containing pending, active, and upcomin
 ## Active Tasks
 
 - [ ] **Task 427: Prompt 214 Chapter 2 — Fix `tts-play` appearing enabled on floating button menu while inactive during video playback**
-  - Diagnose why `menu-option-tts-play` (`autoPlayTTS`) displays as enabled on `FloatingDraggablePauseButton` yet does not trigger/remain active while the video player is playing across Advanced and Beginner modes, and fix synchronization/execution.
-  - Add dedicated unit + live Playwright Chromium E2E test (`scripts/verify-floating-tts-play-active-during-video.ts`), compile, lint, bump version, attempt git commit/push, log in `docs/git.md`, and migrate to `docs/done.md`.
+  - **Sub-task 427b (E2E Verification & Version Bump)**: Add `scripts/verify-floating-tts-play-active-during-video.ts`, verify Advanced Stage 3 & Beginner Mode in live Chromium, bump version, compile, lint, checkpoint in `docs/git.md`, and migrate to `docs/done.md`.
 
 - [ ] **Task 414: Prompt 204 Chapter 1 — Fix unintended auto-scroll when interacting with controls in Learning Goals stage**
   - Identify and eliminate all unintended auto-scroll / `scrollIntoView` / focus-scroll jumps triggered by interacting with controls in the Learning Goals stage (Advanced Stage 1 `languages` & Beginner Preferences/Learning Goals), maintaining 100% parity across modes.

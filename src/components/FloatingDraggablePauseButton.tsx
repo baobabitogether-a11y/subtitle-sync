@@ -475,8 +475,7 @@ export const FloatingDraggablePauseButton: React.FC<FloatingDraggablePauseButton
     const effectiveTtsTokenStatus: CredentialHealthStatus =
       ttsTokenStatusProp ?? credentialSnapshot.ttsToken.status;
 
-    const shouldShowPlaytimeTooltip =
-      !isOpen && (isHovered || showPlaytimeMobile) && !isDragging;
+    const shouldShowPlaytimeTooltip = !isOpen && (isHovered || showPlaytimeMobile) && !isDragging;
     const formattedCurrentTime = formatPlaytimeSeconds(currentTimeSec);
     const formattedDuration = durationSec > 0 ? formatPlaytimeSeconds(durationSec) : null;
     const playtimeLabel = formattedDuration
@@ -747,8 +746,8 @@ export const FloatingDraggablePauseButton: React.FC<FloatingDraggablePauseButton
                     <p className="font-medium text-foreground mb-0.5">
                       Pause for Setup Explanation:
                     </p>
-                    Freezes video playback, text-to-speech voice synthesis, and automatic scrolling to
-                    allow configuring languages, parser criteria, and audio settings without
+                    Freezes video playback, text-to-speech voice synthesis, and automatic scrolling
+                    to allow configuring languages, parser criteria, and audio settings without
                     interruption.
                   </div>
                 )}
@@ -768,9 +767,7 @@ export const FloatingDraggablePauseButton: React.FC<FloatingDraggablePauseButton
                   <div className="flex items-center gap-2">
                     <div
                       className={`flex h-7 w-7 items-center justify-center rounded-md ${
-                        isAutoScrollEnabled
-                          ? "bg-emerald-600 text-white"
-                          : "bg-rose-600 text-white"
+                        isAutoScrollEnabled ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
                       }`}
                     >
                       <ScrollText className="h-3.5 w-3.5" />
@@ -844,9 +841,7 @@ export const FloatingDraggablePauseButton: React.FC<FloatingDraggablePauseButton
                   <div className="flex items-center gap-2">
                     <div
                       className={`flex h-7 w-7 items-center justify-center rounded-md ${
-                        isTtsPlayEnabled
-                          ? "bg-emerald-600 text-white"
-                          : "bg-rose-600 text-white"
+                        isTtsPlayEnabled ? "bg-emerald-600 text-white" : "bg-rose-600 text-white"
                       }`}
                     >
                       {isTtsPlayEnabled ? (
@@ -857,10 +852,19 @@ export const FloatingDraggablePauseButton: React.FC<FloatingDraggablePauseButton
                     </div>
                     <div>
                       <div className="text-xs font-semibold leading-tight">TTS-Play</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {isTtsPlayEnabled
-                          ? "Speak translated subtitles (ON)"
-                          : "Automatic TTS paused (OFF)"}
+                      <div
+                        data-testid="menu-option-tts-play-status"
+                        className="text-[10px] text-muted-foreground"
+                      >
+                        {!isTtsPlayEnabled
+                          ? "Automatic TTS paused (OFF)"
+                          : isSetupPaused
+                            ? "Waiting — Setup Pause is ON"
+                            : isSpeaking
+                              ? "Speaking translated subtitles now…"
+                              : isVideoPlaying
+                                ? "Active during video playback (ON)"
+                                : "Speak translated subtitles (ON)"}
                       </div>
                     </div>
                   </div>
@@ -1007,7 +1011,9 @@ export const FloatingDraggablePauseButton: React.FC<FloatingDraggablePauseButton
                           onClick={handleVerifyOpenRouter}
                           className="inline-flex items-center gap-1 rounded border border-input bg-background px-2 py-1 text-[10px] font-medium text-foreground hover:bg-muted cursor-pointer disabled:opacity-50"
                         >
-                          {isVerifyingOpenRouter && <Loader2 className="h-2.5 w-2.5 animate-spin" />}
+                          {isVerifyingOpenRouter && (
+                            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                          )}
                           <span>Verify</span>
                         </button>
                         {openRouterInput && (

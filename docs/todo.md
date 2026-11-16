@@ -1,5 +1,5 @@
 # Active Subtask Mirror (`docs/todo.md`)
 
-- **Status**: [PENDING RESUMPTION]
-- **Next Active Task**: Task 427 (Prompt 214 Chapter 2 — Fix `tts-play` appearing enabled on floating button menu while inactive during video playback)
-- **Active Step**: Prompt 215 (`Hotfix` + `Task 428a`/`428b`, `v2.1.128`) completed and migrated to `docs/done.md`; `Task 427` restored as next active task.
+- **Status**: [IN PROGRESS]
+- **Active Task**: Task 427b (Prompt 214 Chapter 2, Sub-task 2/2 — Live E2E Verification & `v2.1.129`)
+- **Active Step**: Implement & run `scripts/verify-floating-tts-play-active-during-video.ts`, register in `package.json` & `docs/files.md`, bump version `2.1.129`, run `compile_applet` + `lint_applet`, log `docs/git.md`, and archive in `docs/done.md`.

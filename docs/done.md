@@ -1,5 +1,18 @@
 # Done tasks
 
+### Task 427a: Prompt 214 Chapter 2 (Sub-task 1/2) — Fix `tts-play` Coordinator Activation & Floating Menu Live Status
+
+- **Prompt**: `2. tts-play is presented as enabled on the floating button menu but actually it isn't active while the video player is playing`
+- **Changes**:
+  - `src/routes/index.tsx`:
+    - Wrapped `utterance.voice = matchedVoice` in `try { ... } catch {}` so synthetic/stale voice objects never throw and skip Web Speech into hanging external fallback.
+    - Synced `isTtsPlayEnabled` from `loadAppSettings().autoPlayTTS ?? true` in the `videoId` settings effect, and cleared `handledTtsFirstSections` / `handledVideoFirstSections` when `onTtsPlayEnabledChange(true)` turns TTS-Play back on mid-playback.
+    - Updated `getEligibleLangs` to filter out languages with empty row text and fall back to loaded non-base speakable subtitles when `spoken` lacks any loaded non-base language (e.g., `spoken` only contains `baseLanguage` or stale codes).
+    - Kept `playbackCurrentTime` and `active` row updates alive during continuous non-blocking TTS (`busy.current && !isPausedForTtsRef.current`).
+    - Added `else if (st.current.isTtsPlayEnabled)` continuous-playback TTS coordinator branch (`pauseMode === false`) so TTS-Play speaks active/completed sections without pausing or seeking the video when Pause Mode is unchecked.
+  - `src/components/FloatingDraggablePauseButton.tsx`: Added live status text (`menu-option-tts-play-status`) reflecting Setup Pause waiting state, active speaking state, and video playback state while preserving `"Enabled"` / `"Disabled"` badges and `activeOptionsCount`.
+- **Verification**: `npm run test:floating-menu-third-option-tts-play`, `npx tsx scripts/verify-tts-language-playback-order.ts`, `npx eslint src/routes/index.tsx src/components/FloatingDraggablePauseButton.tsx` (0 errors), `npx tsc --noEmit` (0 errors) — **PASSED**; git commit/push attempted and logged in `docs/git.md`.
+
 ### Task 428b: Prompt 215 Chapter 1 (Sub-task 2/2) — Wire Side-by-Side Original Subtitles Beside Filtered, E2E Verification, & Version Bump (`v2.1.128`)
 
 - **Prompt**: `1. subtitles-table view - show/hide original subtitle record beside the filtered one`
