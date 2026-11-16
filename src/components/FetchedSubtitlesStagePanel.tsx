@@ -122,7 +122,7 @@ export const FetchedSubtitlesStagePanel: React.FC<FetchedSubtitlesStagePanelProp
     return unsubscribe;
   }, []);
 
-  const terminalEndRef = useRef<HTMLDivElement>(null);
+  const terminalBodyRef = useRef<HTMLDivElement>(null);
 
   const addLog = (
     level: "info" | "success" | "warn" | "error" | "stats" | "cache",
@@ -132,10 +132,10 @@ export const FetchedSubtitlesStagePanel: React.FC<FetchedSubtitlesStagePanelProp
     emitSubtitleFetchLog(level, message, details);
   };
 
-  // Auto-scroll terminal to bottom
+  // Auto-scroll terminal log container locally (never scroll outer page viewport)
   useEffect(() => {
-    if (terminalEndRef.current) {
-      terminalEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (terminalBodyRef.current) {
+      terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
     }
   }, [logs]);
 
@@ -840,8 +840,9 @@ export const FetchedSubtitlesStagePanel: React.FC<FetchedSubtitlesStagePanelProp
 
         {/* Terminal Body */}
         <div
+          ref={terminalBodyRef}
           data-testid="terminal-logs-body"
-          className="p-3 max-h-52 overflow-y-auto space-y-1.5 text-[11px] leading-relaxed selection:bg-cyan-900 selection:text-cyan-100"
+          className="p-3 max-h-52 overflow-y-auto space-y-1.5 text-[11px] leading-relaxed selection:bg-cyan-900 selection:text-cyan-100 [overflow-anchor:none]"
         >
           {filteredLogs.length === 0 ? (
             <div className="text-slate-500 italic py-2">No log entries matching filter.</div>
@@ -880,7 +881,6 @@ export const FetchedSubtitlesStagePanel: React.FC<FetchedSubtitlesStagePanelProp
               );
             })
           )}
-          <div ref={terminalEndRef} />
         </div>
       </div>
 

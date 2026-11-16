@@ -129,7 +129,6 @@ The application processes and presents subtitles through a strict sequential pip
 
 ## Last raw prompt
 ```
-1. go on
-2. fix it: on the demo webpage - when changing tabs it stops the video-player
+go on
 ```
 

@@ -4,6 +4,7 @@ This document establishes the lightweight, high-efficiency operational protocol 
 
 ---
 
+- Prompt 213 (Go On — Resume Active Backlog): Execute active serial tasks strictly one at a time (`Task 414` [ACTIVE] -> `Task 415` [PENDING] -> `Task 425` [PENDING]), migrating each to `docs/done.md` upon verification.
 - Prompt 212 (Go On Backlog + Task 425 — Keep Video Player Playing When Changing Tabs on Demo Webpage):
   - Chapter 1 (`1. go on`): Reconciled & migrated `Task 419` to `docs/done.md`; executing `Task 414` [ACTIVE] -> `Task 415` [PENDING] strictly serially.
   - Task 425 [PENDING]: Chapter 2 — Prevent changing tabs/stages on the demo webpage (`#accordion-stages-stepper`, `#top-tabs-nav`, Beginner `preferences`/`video` tabs, and `workflowMode` switch) from unmounting, pausing, or resetting the live YouTube video player.
