@@ -4,11 +4,6 @@ This file is strictly the active backlog containing pending, active, and upcomin
 
 ## Active Tasks
 
-- [ ] **Task 419: Prompt 207 Chapter 4 — Game & OpenRouter sentence generation using target words to learn (on-demand next X=5 sentences)**
-  - Build OpenRouter target-word sentence generation service (`X=5` per batch) & shared Game UI integration (`WordBalloonLearningView` + Storybook) using target words extracted from active subtitles.
-  - Implement on-demand next `X=5` sentence fetching (manual Next 5 trigger + auto-prefetch when remaining buffer runs low, deduplicating previously generated sentences, with TTS playback and graceful missing-key guidance).
-  - Add dedicated verification, live Playwright verification, compile, lint, bump version, and migrate to `docs/done.md`.
-
 - [ ] **Task 414: Prompt 204 Chapter 1 — Fix unintended auto-scroll when interacting with controls in Learning Goals stage**
   - Identify and eliminate all unintended auto-scroll / `scrollIntoView` / focus-scroll jumps triggered by interacting with controls in the Learning Goals stage (Advanced Stage 1 `languages` & Beginner Preferences/Learning Goals), maintaining 100% parity across modes.
   - Add dedicated unit + live Playwright Chromium regression test (`scripts/verify-learning-goals-no-autoscroll.ts`), compile, lint, and migrate to `docs/done.md` before starting Task 415.
@@ -16,6 +11,10 @@ This file is strictly the active backlog containing pending, active, and upcomin
 - [ ] **Task 415: Prompt 204 Chapter 2 — Fix enabling "Auto-Scroll Subtitles" (`menu-option-auto-scroll`) not triggering auto-scroll on Subtitles Table stage**
   - Diagnose and fix `menu-option-auto-scroll` (`autoFocus` / `onAutoFocusChange`), persistence (`getAutoScrollSetting`), interaction cooldown / button focus traps, and Subtitles Table stage scroll targeting (`#subtitles-table-panel`, `[data-row]`) across both Advanced and Beginner modes.
   - Add dedicated unit + live Playwright Chromium regression test (`scripts/verify-autoscroll-subtitles-stage.ts`), compile, lint, and migrate to `docs/done.md`.
+
+- [ ] **Task 425: Prompt 212 Chapter 2 — Fix changing tabs on the demo webpage stopping the video-player**
+  - Ensure switching stage tabs (`#accordion-stages-stepper`), debug top tabs (`#top-tabs-nav`), Beginner tabs (`preferences`/`video`), or mode (`beginner`/`expert`) keeps the persistent video player mounted and playing without pause/destroy/reload across Beginner and Advanced modes (while preserving existing stage-visibility and lifecycle contracts).
+  - Add dedicated unit + live Playwright Chromium E2E test (`scripts/verify-tab-change-keeps-video-playing.ts`), compile, lint, bump version, and migrate to `docs/done.md`.
 
 ## Later Tasks
 
