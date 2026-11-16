@@ -1,10 +1,11 @@
 # Current Subtask (`current-sub-task.md`)
 
-- **Status**: [IDLE]
-- **Active Task**: None (Prompt 211 Tasks 422–424 complete & verified; awaiting user instruction for pending backlog items `Task 419`, `Task 414`, `Task 415`).
-- **Active Step**: None
-- **Upcoming**: Pending backlog (`Task 419`, `Task 414`, `Task 415` — ask user before starting next item)
+- **Status**: [IN PROGRESS]
+- **Active Task**: Task 414 (Prompt 204 Chapter 1 — Fix unintended auto-scroll when interacting with controls in Learning Goals stage)
+- **Active Step**: Reproduce unintended auto-scroll in live Chromium on Advanced Stage 1 (`languages`) and Beginner Preferences/Learning Goals, diagnose root cause, and fix across both modes.
+- **Upcoming**: `Task 415` (Prompt 204 Ch. 2: Auto-Scroll on Subtitles Table) -> `Task 425` (Prompt 212 Ch. 2: Changing tabs keeps video-player playing)
 - **Completed**:
+  - Task 419 (Prompt 207 Ch. 4, reconciled on Prompt 212): Game & OpenRouter target-word `X=5` sentence generation verified (`test:game-openrouter-sentences` PASSED) and migrated to `docs/done.md`
   - Tasks 422–424 (Prompt 211, `v2.1.126`): Removed redundant `#tab-viewer` ("Parallel Viewer") & debug-gated `#top-tabs-nav`, restricted History stage (`stage-step-history`, Stage 6, `?stage=history`, Beginner `historyStageSlot`) to `debugMode === true`, and added OpenRouter API Key + TTS-Service Token `Valid`/`Missing`/`Invalid` indicators and click-to-update inline editors on `floating-menu-toggle-btn` / `FloatingDraggablePauseButton` + `src/utils/credentialStatus.ts` across Advanced, Beginner & Storybook (`test:prompt-211`, `test:tts-play-history-stage`, `verify-floating-menu-third-option-tts-play`, `verify-top-menu-debug-toggle`, `verify-video-playground-tab`, `test:agents-all` 22/22, `compile_applet`, `lint_applet`)
   - Hotfix (Prompt 210): Cleared container-boot Vite HMR reload & stale export `SyntaxError` cache (`unlockTtsAudioPlayback`, `splitSentenceHighlightParts`, `LISTENING_RATE_PRESETS`), verified all 8 reported modules + 179 `src/` files HTTP 200, bumped to `v2.1.125`, restarted Vite dev server, verified `test:vite-reload-modules`, `test:client-pretransform-health`, `test:dev-server-prewarming-hotfix`, `test:react-instance-and-vite-reload-hotfix`, `test:listening-game-mode`, live Chromium (`ERR_BTN: 0`), `compile_applet`, and `lint_applet`
   - Task 421 (Prompt 209): Added YouTube API Default & Auto-Translation switcher container (`youtube-api-default-auto-translations-container`) inside `#switchable-default-subtitles-bar` (`src/utils/youtubeApiSubtitleTracks.ts`, `src/utils/videoMetadataManager.ts`, `src/components/SwitchableDefaultSubtitlesBar.tsx`, `.stories.tsx`, `StorybookWorkbench.tsx`, `VideoPlayground.tsx`, `src/routes/index.tsx`, `test:youtube-api-default-auto-translations` & `test:agents-all` 22/22 PASSED, `v2.1.124`)

@@ -1,5 +1,17 @@
 # Done tasks
 
+### Task 419: Prompt 207 Chapter 4 — Game & OpenRouter Target-Word Sentence Generation (On-Demand Next X=5 Sentences)
+
+- **Prompt**:
+  ```
+  4. game and the use of openrouter in order to generate sentences using the words which are target to learn. (ensure fetching on demand next X=5 sentences)
+  ```
+- **Changes**:
+  - `src/utils/openRouterSentenceGenerator.ts`: Implemented OpenRouter target-word sentence generation (`OPENROUTER_SENTENCE_BATCH_SIZE = 5`, `OPENROUTER_PREFETCH_REMAINING_THRESHOLD = 2`), subtitle target-word extraction, deduplicated 5-sentence prompt/parser, and on-demand Batch #1 & Next-5 Batch #2 fetching.
+  - `src/components/OpenRouterSentenceGamePanel.tsx`, `src/components/OpenRouterSentenceGamePanel.stories.tsx`, `src/storybook/StorybookWorkbench.tsx`: Added shared OpenRouter sentence game UI + Storybook story & workbench integration with TTS playback and missing-key setup link.
+  - `src/components/WordBalloonLearningView.tsx`: Integrated `OpenRouterSentenceGamePanel` into the shared Game view used by both Advanced Stage 5 and Beginner Mode.
+- **Verification**: `npm run test:game-openrouter-sentences` (all 5 checks PASSED), `npm run test:agents-all` (22/22 PASSED). Reconciled and migrated from active backlog on Prompt 212 (`go on`).
+
 ### Tasks 422–424: Prompt 211 — Remove Redundant "Parallel Viewer" Tab, Debug-Only History Stage, & Floating Settings OpenRouter/TTS-Service Credential Indication + Click-to-Update (`v2.1.126`)
 
 - **Prompt**:

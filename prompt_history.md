@@ -2717,3 +2717,12 @@ CSS 1: {
 }
 [AIS_METADATA_SECTION_END]
 ```
+
+---
+
+### Prompt 212: Go On Backlog & Fix Changing Tabs Stopping Video Player on Demo Webpage
+```
+1. go on
+2. fix it: on the demo webpage - when changing tabs it stops the video-player
+```
+

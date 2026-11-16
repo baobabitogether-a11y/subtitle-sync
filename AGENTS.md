@@ -129,20 +129,7 @@ The application processes and presents subtitles through a strict sequential pip
 
 ## Last raw prompt
 ```
-the "Parallel Viewer" elementis is redundunt.
-
-show the history stage only on debug mode
-
-openrouter api key - show indication valid/missing on the floating settings button and allow to click in order to update it.
-- do the same for the tts-service token
-
-should all application settings be persistent accross app uninstall and install
-Apply style changes to the selected element(s).
-[AIS_METADATA_SECTION_START]
-CSS selector 1: div#root:nth-of-type(1) > div:nth-of-type(1) > header:nth-of-type(1) > div#top-tabs-nav:nth-of-type(2)
-CSS 1: {
-
-}
-[AIS_METADATA_SECTION_END]
+1. go on
+2. fix it: on the demo webpage - when changing tabs it stops the video-player
 ```
 

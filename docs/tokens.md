@@ -4,6 +4,9 @@ This document establishes the lightweight, high-efficiency operational protocol 
 
 ---
 
+- Prompt 212 (Go On Backlog + Task 425 — Keep Video Player Playing When Changing Tabs on Demo Webpage):
+  - Chapter 1 (`1. go on`): Reconciled & migrated `Task 419` to `docs/done.md`; executing `Task 414` [ACTIVE] -> `Task 415` [PENDING] strictly serially.
+  - Task 425 [PENDING]: Chapter 2 — Prevent changing tabs/stages on the demo webpage (`#accordion-stages-stepper`, `#top-tabs-nav`, Beginner `preferences`/`video` tabs, and `workflowMode` switch) from unmounting, pausing, or resetting the live YouTube video player.
 - Prompt 211 (Tasks 422–424 — Remove Redundant Parallel Viewer Tab, Debug-Only History Stage, & Floating Settings OpenRouter/TTS-Service Credential Indication + Click-to-Update, `v2.1.126`):
   - Task 422 [COMPLETED & VERIFIED]: Removed redundant `#tab-viewer` ("Parallel Viewer") button and gated `#top-tabs-nav` on `workflowMode === "expert" && isDeveloperMode`; developer tabs toggle back to `"viewer"` when re-clicked (`e2e/web.spec.ts`, `scripts/verify-video-playground-tab.ts`, `test:prompt-211`).
   - Task 423 [COMPLETED & VERIFIED]: Restricted History stage (`#stage-step-history`, stage 6 container, `?stage=6`/`?stage=history` URL bootstrap, and Beginner `historyStageSlot`) to `debugMode === true` only, resetting stage 6 -> stage 1 when debug mode turns off (`test:prompt-211`, `test:tts-play-history-stage`).
