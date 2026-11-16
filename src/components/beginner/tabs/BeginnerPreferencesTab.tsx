@@ -399,7 +399,7 @@ export const BeginnerPreferencesTab: React.FC<BeginnerPreferencesTabProps> = ({
 
   return (
     <div
-      className="space-y-4 max-w-4xl mx-auto p-3 rounded-2xl border border-amber-500/30 bg-amber-500/5"
+      className="space-y-4 max-w-4xl mx-auto p-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 [overflow-anchor:none]"
       data-testid="beginner-preferences-tab"
       data-control-category="new-user"
     >

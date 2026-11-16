@@ -1606,10 +1606,6 @@ function Index() {
       if (acc) {
         acc.open = true;
       }
-      const el = document.getElementById("tts-service-settings-panel");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
     }, 100);
   }, [workflowMode]);
 
@@ -1636,7 +1632,6 @@ function Index() {
       ) as HTMLDetailsElement | null;
       if (acc) {
         acc.open = true;
-        acc.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 100);
   }, [workflowMode]);
@@ -9487,13 +9482,7 @@ function Index() {
                             ? () => setSubtitlesPanelWide((wide) => !wide)
                             : undefined
                         }
-                        autoTimeout={
-                          panelId === "library"
-                            ? videoLibraryTimeoutEnabled
-                            : panelId === "languages"
-                              ? true
-                              : false
-                        }
+                        autoTimeout={panelId === "library" ? videoLibraryTimeoutEnabled : false}
                       >
                         {panelId === "fetchedSubtitles" && (
                           <FetchedSubtitlesStagePanel
@@ -12245,7 +12234,7 @@ function Index() {
                             <div
                               id="stage-2-learning-goals-card"
                               data-testid="stage-2-learning-goals-card"
-                              className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3.5 space-y-3 mb-4 shadow-sm"
+                              className="rounded-xl border-2 border-primary/30 bg-primary/5 p-3.5 space-y-3 mb-4 shadow-sm [overflow-anchor:none]"
                             >
                               <div className="flex items-center justify-between border-b border-primary/20 pb-2">
                                 <div className="flex items-center gap-2">
@@ -12389,7 +12378,7 @@ function Index() {
                                       {targetLanguages.join(", ") || "None"}
                                     </span>
                                   </div>
-                                  <div className="flex flex-col space-y-1 max-h-48 overflow-y-auto divide-y divide-border/40 border border-border/50 rounded-md bg-background/60 p-1">
+                                  <div className="flex flex-col space-y-1 max-h-48 overflow-y-auto divide-y divide-border/40 border border-border/50 rounded-md bg-background/60 p-1 [overflow-anchor:none]">
                                     {(favoriteLanguages.length > 0
                                       ? Array.from(new Set(favoriteLanguages))
                                       : ["en", "es", "he", "ar", "fr", "de", "it", "ru", "pt"]

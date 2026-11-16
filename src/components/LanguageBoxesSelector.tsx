@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutGrid,
   List,
@@ -116,8 +116,32 @@ export const LanguageBoxesSelector: React.FC<LanguageBoxesSelectorProps> = React
     return catalog.filter((l) => !favoriteLanguages.includes(l.code));
   }, [catalog, favoriteLanguages]);
 
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pendingGridScrollTopRef = useRef<number | null>(null);
+  const pendingWindowScrollRef = useRef<{ x: number; y: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (pendingGridScrollTopRef.current !== null && gridRef.current) {
+      gridRef.current.scrollTop = pendingGridScrollTopRef.current;
+      pendingGridScrollTopRef.current = null;
+    }
+    if (pendingWindowScrollRef.current !== null && typeof window !== "undefined") {
+      const { x, y } = pendingWindowScrollRef.current;
+      if (Math.abs(window.scrollY - y) > 1 || Math.abs(window.scrollX - x) > 1) {
+        window.scrollTo(x, y);
+      }
+      pendingWindowScrollRef.current = null;
+    }
+  }, [selectedLanguages, sortedCatalog]);
+
   const toggleLanguage = (code: string) => {
     recordUserInteraction(Date.now());
+    if (gridRef.current) {
+      pendingGridScrollTopRef.current = gridRef.current.scrollTop;
+    }
+    if (typeof window !== "undefined") {
+      pendingWindowScrollRef.current = { x: window.scrollX, y: window.scrollY };
+    }
     let next: string[];
     if (selectedLanguages.includes(code)) {
       next = selectedLanguages.filter((c) => c !== code);
@@ -263,7 +287,7 @@ export const LanguageBoxesSelector: React.FC<LanguageBoxesSelectorProps> = React
 
   return (
     <div
-      className={`space-y-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3 ${className || ""}`.trim()}
+      className={`space-y-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3 [overflow-anchor:none] ${className || ""}`.trim()}
       data-testid="language-boxes-selector-wrapper"
       data-control-category="daily-usage"
     >
@@ -360,12 +384,13 @@ export const LanguageBoxesSelector: React.FC<LanguageBoxesSelectorProps> = React
       {/* Boxes view: large touch targets for Android, selected kept on top */}
       {displayMode === "boxes" ? (
         <div
+          ref={gridRef}
           id="language-boxes-grid"
           data-testid="language-boxes-grid"
           data-favorites-only={isFavoritesFiltered ? "true" : "false"}
           onMouseDown={() => recordUserInteraction(Date.now())}
           onPointerDown={() => recordUserInteraction(Date.now())}
-          className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 max-h-80 overflow-y-auto p-1 rounded-md border border-border bg-muted/10"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 max-h-80 overflow-y-auto p-1 rounded-md border border-border bg-muted/10 [overflow-anchor:none]"
         >
           {sortedCatalog.map((lang, idx) => {
             const isSelected = selectedLanguages.includes(lang.code);

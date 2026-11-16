@@ -182,7 +182,7 @@ export const LearningGoalsFiltersPanel: React.FC<LearningGoalsFiltersPanelProps>
       <div
         id="learning-goals-filters-panel"
         data-testid="learning-goals-filters-panel"
-        className={`rounded-lg border border-border bg-card/60 p-3 space-y-3 ${className}`}
+        className={`rounded-lg border border-border bg-card/60 p-3 space-y-3 [overflow-anchor:none] ${className}`}
       >
         <div className="flex items-center justify-between border-b border-border/60 pb-2 gap-2 flex-wrap">
           <div className="flex items-center gap-2">
