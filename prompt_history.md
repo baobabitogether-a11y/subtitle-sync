@@ -2733,3 +2733,13 @@ CSS 1: {
 go on
 ```
 
+---
+
+### Prompt 214: AGENTS.md Git Commit & docs/git.md Logging Rule, Tab Change Video Stop Fix, & Floating Menu TTS-Play Activation Fix
+```
+0. AGENTS.md - describe it shortly in your own words: whenever try to git commit the changes and to log it on docs/git.md after every sub-task accomplishment (or else many tokens are wasted and the task doesn't end on a prompt session and also doesn't save the progress)
+1. on the demo webpage - when changing tabs it stops the video-player
+2. tts-play is presented as enabled on the floating button menu but actually it isn't active while the video player is playing
+```
+
+

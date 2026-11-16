@@ -1,10 +1,12 @@
 # Active Subtask Mirror (`docs/todo.md`)
 
 - **Status**: [IN PROGRESS]
-- **Active Task**: Task 414 (Prompt 204 Chapter 1 — Fix unintended auto-scroll when interacting with controls in Learning Goals stage)
-- **Active Step**: Reproduce unintended auto-scroll in live Chromium on Advanced Stage 1 (`languages`) and Beginner Preferences/Learning Goals, diagnose root cause, and fix across both modes.
-- **Upcoming**: `Task 415` -> `Task 425`
+- **Active Task**: Task 427 (Prompt 214 Chapter 2 — Fix `tts-play` appearing enabled on floating button menu while inactive during video playback)
+- **Active Step**: Diagnose why `menu-option-tts-play` displays as enabled on `FloatingDraggablePauseButton` yet fails to trigger/stay active during video playback across Advanced & Beginner modes, reproduce in headless Chromium, fix root causes, and verify end-to-end.
+- **Upcoming**: `Task 414` -> `Task 415`
 - **Completed**:
+  - Task 425 (Prompt 214 Ch. 1, `v2.1.127`): Kept persistent YouTube player mounted offscreen across Advanced stages/top tabs & Beginner `Preferences` <-> `Video` tabs (`test:tab-change-keeps-video-playing`, `compile_applet`, `lint_applet`, logged in `docs/git.md`)
+  - Task 426 (Prompt 214 Ch. 0): Added sub-task `git commit` & `docs/git.md` logging rule in `AGENTS.md`, created `docs/git.md`, cataloged in `docs/files.md`, verified `test:agents-git-log-rule` & `test:agents-all` (23/23 PASSED)
   - Task 419 (Prompt 207 Ch. 4, reconciled on Prompt 212): Game & OpenRouter target-word `X=5` sentence generation verified (`test:game-openrouter-sentences` PASSED) and migrated to `docs/done.md`
   - Tasks 422–424 (Prompt 211, `v2.1.126`): Removed redundant `#tab-viewer` ("Parallel Viewer") & debug-gated `#top-tabs-nav`, restricted History stage (`stage-step-history`, Stage 6, `?stage=history`, Beginner `historyStageSlot`) to `debugMode === true`, and added OpenRouter API Key + TTS-Service Token `Valid`/`Missing`/`Invalid` indicators and click-to-update inline editors on `floating-menu-toggle-btn` (`test:prompt-211`, `test:agents-all` 22/22, `compile_applet`, `lint_applet`)
   - Hotfix (Prompt 210): Cleared container-boot Vite HMR reload & stale export `SyntaxError` cache (`unlockTtsAudioPlayback`, `splitSentenceHighlightParts`, `LISTENING_RATE_PRESETS`), verified all 8 reported modules HTTP 200, bumped to `v2.1.125`, restarted Vite dev server (`ERR_BTN: 0`)

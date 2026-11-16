@@ -30,13 +30,15 @@ async function main() {
   const indexTsx = fs.readFileSync(indexTsxPath, "utf8");
 
   // 1. Locate the panelOrder.filter block
-  const filterBlockMatch = indexTsx.match(/panelOrder\s*\.filter\(\(panelId\)\s*=>\s*\{([\s\S]*?)\}\s*\)\s*\.map/);
+  const filterBlockMatch = indexTsx.match(
+    /panelOrder[\s\S]{0,80}?\.filter\(\(panelId(?::\s*PanelId)?\)\s*=>\s*\{([\s\S]*?)\}\s*\)\s*\.map/,
+  );
   assert.ok(filterBlockMatch, "Must find panelOrder.filter block in src/routes/index.tsx");
   const filterBody = filterBlockMatch[1];
 
   // 2. Test Stage 0: fetchedSubtitles ONLY
   assert.ok(
-    filterBody.includes('if (currentAccordionStage === 0)') &&
+    filterBody.includes("if (currentAccordionStage === 0)") &&
       filterBody.includes('return panelId === "fetchedSubtitles";'),
     "Stage 0 must strictly return panelId === 'fetchedSubtitles'",
   );
@@ -44,7 +46,7 @@ async function main() {
 
   // 3. Test Stage 1: languages ONLY
   assert.ok(
-    filterBody.includes('if (currentAccordionStage === 1)') &&
+    filterBody.includes("if (currentAccordionStage === 1)") &&
       filterBody.includes('return panelId === "languages";'),
     "Stage 1 must strictly return panelId === 'languages'",
   );
@@ -52,27 +54,31 @@ async function main() {
 
   // 4. Test Stage 2: subtitles table ONLY
   assert.ok(
-    filterBody.includes('if (currentAccordionStage === 2)') &&
+    filterBody.includes("if (currentAccordionStage === 2)") &&
       filterBody.includes('return panelId === "subtitles";'),
     "Stage 2 must strictly return panelId === 'subtitles'",
   );
   console.log("✅ PASS: Stage 2 strictly isolates to Parallel Subtitles Table");
 
-  // 5. Test Stage 3: player ONLY (NO subtitles table leakage on stage 3)
+  // 5. Test Stage 3: player ONLY (NO subtitles table leakage on stage 3), and player visually hidden offscreen on other non-3/5 stages
   assert.ok(
-    filterBody.includes('if (currentAccordionStage === 3)') &&
-      filterBody.includes('return panelId === "player";'),
-    "Stage 3 must strictly return panelId === 'player' (no subtitles table on stage 3)",
+    filterBody.includes("if (currentAccordionStage === 3)") &&
+      filterBody.includes('return panelId === "player";') &&
+      indexTsx.includes("const isPlayerHiddenForStage =") &&
+      indexTsx.includes("currentAccordionStage !== 3 &&"),
+    "Stage 3 must strictly isolate to panelId === 'player' and visually hide player offscreen on non-3/5 stages",
   );
   assert.ok(
-    !/if\s*\(currentAccordionStage\s*===\s*3\)[\s\S]*?panelId\s*===\s*["']subtitles["']/.test(filterBody),
+    !/if\s*\(currentAccordionStage\s*===\s*3\)[\s\S]*?panelId\s*===\s*["']subtitles["']/.test(
+      filterBody,
+    ),
     "Subtitles table must NOT be returned on Stage 3 filter",
   );
   console.log("✅ PASS: Stage 3 strictly isolates to Video Player (no subtitles table on stage 3)");
 
   // 6. Test Stage 4: settings ONLY (playback and library)
   assert.ok(
-    filterBody.includes('if (currentAccordionStage === 4)') &&
+    filterBody.includes("if (currentAccordionStage === 4)") &&
       filterBody.includes('return panelId === "playback" || panelId === "library";'),
     "Stage 4 must strictly return playback and library settings panels",
   );
@@ -81,19 +87,20 @@ async function main() {
   // 7. Verify stage 3 stepper opens player exclusively
   const stage3StepperSnippet = indexTsx.slice(
     indexTsx.indexOf('id="stage-step-3"'),
-    indexTsx.indexOf('id="stage-step-3"') + 400,
+    indexTsx.indexOf('id="stage-step-3"') + 750,
   );
   assert.ok(
-    stage3StepperSnippet.includes('player: true') && !stage3StepperSnippet.includes('subtitles: true'),
+    stage3StepperSnippet.includes("player: true") &&
+      !stage3StepperSnippet.includes("subtitles: true"),
     "Stage 3 stepper click must open player panel exclusively (not subtitles)",
   );
   console.log("✅ PASS: Stage 3 stepper button opens player panel exclusively");
 
   // 8. Verify Stage 2 to Video button opens player exclusively
   const stage2BtnIdx = indexTsx.indexOf('id="stage-2-to-video-button"');
-  const stage2OnClick = indexTsx.slice(stage2BtnIdx, stage2BtnIdx + 600);
+  const stage2OnClick = indexTsx.slice(stage2BtnIdx, stage2BtnIdx + 1800);
   assert.ok(
-    stage2OnClick.includes('player: true') && !stage2OnClick.includes('subtitles: true'),
+    stage2OnClick.includes("player: true") && !stage2OnClick.includes("subtitles: true"),
     "Stage 2 to Video button must open player panel exclusively",
   );
   console.log("✅ PASS: Stage 2 to Video button opens player panel exclusively");
@@ -111,7 +118,9 @@ async function main() {
     indexTsx.includes('data-testid="stage-3-to-settings-btn"'),
     "Stage 3 must include forward to settings button (stage-3-to-settings-btn)",
   );
-  console.log("✅ PASS: Stage 3 contains navigation bar with back to subtitles table and forward to settings");
+  console.log(
+    "✅ PASS: Stage 3 contains navigation bar with back to subtitles table and forward to settings",
+  );
 
   console.log("=========================================================================");
   console.log("🎉 ALL CHECKS PASSED: Main stage components strictly isolated to their own stages!");

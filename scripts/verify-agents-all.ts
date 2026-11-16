@@ -102,6 +102,11 @@ const CHECKS: ScriptCheck[] = [
     name: "Same Components Policy (Beginner & Advanced)",
     file: "scripts/verify-same-components-parity-policy.ts",
   },
+  {
+    id: "23",
+    name: "Sub-Task Git Commit & docs/git.md Log Rule",
+    file: "scripts/verify-agents-git-log-rule.ts",
+  },
 ];
 
 function run() {
