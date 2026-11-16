@@ -68,6 +68,7 @@ const KEYS = {
   ttsVolumes: "yt_tts_volumes_v1",
   tableDisplayMode: "yt_table_display_mode_v1",
   criteriaMatchAction: "yt_criteria_match_action_v1",
+  showOriginalSubtitles: "yt_show_original_subtitles_v1",
 } as const;
 
 const memoryStorage = new Map<string, string>();
@@ -1278,6 +1279,30 @@ export function setCriteriaMatchActionPreference(action: CriteriaMatchAction): v
     s.setItem(KEYS.criteriaMatchAction, action);
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(CRITERIA_MATCH_ACTION_EVENT, { detail: action }));
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export const SHOW_ORIGINAL_SUBTITLES_EVENT = "yt-show-original-subtitles-changed";
+
+export function getShowOriginalSubtitlesPreference(): boolean {
+  const s = getStorage();
+  try {
+    return s.getItem(KEYS.showOriginalSubtitles) === "true";
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
+export function setShowOriginalSubtitlesPreference(show: boolean): void {
+  const s = getStorage();
+  try {
+    s.setItem(KEYS.showOriginalSubtitles, show ? "true" : "false");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(SHOW_ORIGINAL_SUBTITLES_EVENT, { detail: show }));
     }
   } catch {
     // ignore

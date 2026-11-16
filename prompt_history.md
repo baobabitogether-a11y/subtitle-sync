@@ -2742,4 +2742,11 @@ go on
 2. tts-play is presented as enabled on the floating button menu but actually it isn't active while the video player is playing
 ```
 
+---
 
+### Prompt 215: Hotfix AGENTS.md Task Management & Anti-Token-Exhaustion Cure + Subtitles-Table Show/Hide Original Record Beside Filtered
+```
+hotfix:  AGENTS.md - must upgrade task management: break to smaller sub-task. mv any sub-task section to done immidiatly upon completion. never keep done tasks on tasks.md. find a cure to the situation where prompt processing takes too long and ends with no changes because token were run out.
+
+1. subtitles-table view - show/hide original subtitle record beside the filtered one
+```

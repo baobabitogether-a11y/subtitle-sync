@@ -35,30 +35,25 @@ The application processes and presents subtitles through a strict sequential pip
 
 - **Check pending pull requests before starting features**: Check `https://github.com/mostuf2556/subtitle-sync/pulls` before starting features.
 - **New chat window for each sub-task**: Keep each sub-task scoped, resumable, and independent.
-- **Resume after interruption**: Read this section, `current-sub-task.md`, `docs/todo.md`, and active entries in `docs/tasks.md` to identify the source of truth for where to continue.
-- **Mandatory location of all .md files under `docs/*.md` & zero duplicates policy**: ALL documentation, specification, design, operational, and architectural Markdown files MUST be located strictly under `docs/*.md`. There must be ZERO duplicate `.md` files in the repository. Only `README.md`, `AGENTS.md`, `current-sub-task.md`, `temp.md`, `chat.md`, and `prompt_history.md` are permitted in root. Key specs live in `docs/tokens.md`, `docs/android.md`, `docs/parser.md`.
-- **Mandatory token economy flow on every prompt (`docs/tokens.md`)**: Activate token economy flow in `docs/tokens.md` and maintain `current-sub-task.md` on every prompt.
-- **Task management protocol with `current-sub-task.md` & `temp.md`**: Break prompts into clear numbered tasks/sub-tasks in `docs/tasks.md` before actions. Maintain `current-sub-task.md` (and `docs/todo.md`) by staging active sub-task before executing any step. Use `temp.md` as ephemeral scratchpad.
-- **Enforce updating .md tracking files first before action**: BEFORE jumping to any code edits, actions, or test implementations on a prompt, the agent MUST update `docs/tokens.md`, `docs/tasks.md`, `current-sub-task.md`, and `docs/todo.md`.
-- **Sub-task execution flow**:
-  1. Ensure sub-task is explicitly staged in `current-sub-task.md` (and `docs/todo.md`) first.
-  2. Implement sub-task changes with minimal, targeted file edits.
-  3. Add or update dedicated tests covering specific feature requirements.
-  4. Test changes thoroughly with dedicated tests, verify app compilation (`compile_applet` / `npm run build`), and run code verification (`lint_applet` / `npm run lint`).
-  5. **Checkpoint Git commit & log in `docs/git.md`**: Right after accomplishing and verifying each sub-task, always try to `git commit` the changes and log the result (commit hash or exact skip/failure reason) in `docs/git.md` so progress is saved, sessions finish cleanly, and tokens are not wasted.
-  6. After git commit, try using git push: attempt `git push` (handling failure gracefully if no remote or credentials) and record the outcome in `docs/git.md` to keep editor and remote synchronized.
-  7. **Mandatory migration to `docs/done.md`**: Move completed tasks and sub-tasks completely out of `current-sub-task.md`, `docs/todo.md`, and `docs/tasks.md` directly into `docs/done.md`, documenting completed changes, dedicated test command, and verification outcome. `docs/tasks.md` is strictly an active backlog containing ONLY pending, active, and upcoming tasks. Completed items must never linger in `docs/tasks.md`.
-- **Prompt task completion audit**: Before concluding any prompt or turn, the agent MUST audit and verify that EVERY task and subtask planned for the prompt in `docs/tasks.md` has been fully accomplished, thoroughly tested with its dedicated automated test, committed, and logged in `docs/done.md`.
-- **Hotfix workflow with task suspension (holding pattern)**: When defect, broken build, regression, or failing CI flow arises:
-  1. **Suspend current task**: Place active task/sub-task in `current-sub-task.md` **ON HOLD** (marked `[ON HOLD]`), saving state and resumption notes.
-  2. **Stage hotfix**: Stage dedicated `Hotfix: <issue>` subtask in `docs/tasks.md`, `current-sub-task.md`, and `docs/todo.md`.
-  3. **Execute in isolation**: Implement minimal targeted fix, verify with dedicated automated test, compile (`compile_applet`), and lint (`lint_applet`).
-  4. **Commit and document**: Dedicated git commit (`fix(hotfix): <description>`), move hotfix directly out of `current-sub-task.md`, `docs/todo.md`, and `docs/tasks.md` into `docs/done.md` under `### Hotfix: <issue>`.
-  5. **Resume held task**: Restore suspended task back to active status in `current-sub-task.md` and `docs/todo.md`, and resume work.
-- **Always keep last raw prompt in AGENTS.md**: `AGENTS.md` must continuously record and preserve the exact, unedited raw text of the user's latest prompt in a dedicated `## Last raw prompt` section on EVERY single prompt received.
-- **Later tasks protocol**: Store later tasks under `## Later Tasks` in `docs/tasks.md` (and `docs/later.md`). Ask user whether to proceed when active tasks complete.
-- **No more tasks "go on" handling**: In case no more tasks are left (active backlog in `docs/tasks.md` and `current-sub-task.md` is empty), if prompt is "go on", then just summarize that there are no more tasks left. No need to show anything else.
-- **Numbered chapters as serial tasks protocol**: When user prompt consists of numbered chapters (e.g. `1. ...`, `2. ...`), treat each as a separate distinct task in `docs/tasks.md`, divided into sub-tasks worked on strictly serially: execute, test, verify, compile, lint, commit, and migrate to `docs/done.md` BEFORE proceeding to the next numbered chapter.
+- **Resume after interruption**: Read this section, `current-sub-task.md`, `docs/todo.md`, and active entries in `docs/tasks.md` to continue from the active sub-task.
+- **Mandatory location of all .md files under `docs/*.md` & zero duplicates policy**: All docs must live under `docs/*.md` (zero duplicates; Only `README.md`, `AGENTS.md`, `current-sub-task.md`, `temp.md`, `chat.md`, and `prompt_history.md` are permitted in root). Key specs: `docs/tokens.md`, `docs/android.md`, `docs/parser.md`.
+- **Mandatory token economy flow (`docs/tokens.md`) & anti-token-exhaustion cure**:
+  - **Smaller atomic sub-tasks**: Break every prompt/task into tiny atomic sub-tasks (max 1–2 files / 1 testable behavior each) in `docs/tasks.md`; stage only the active sub-task in `current-sub-task.md` & `docs/todo.md`. Use `temp.md` as scratchpad.
+  - **Write-Early Checkpointed Execution (cure for zero-change token exhaustion)**: Never read monolithic files (`src/routes/index.tsx`, `docs/done.md`, `prompt_history.md`) in full — use `grep` + <=150-line slices. Start the first edit within 1–2 targeted read rounds; never accumulate `Completed:` dumps in `current-sub-task.md`, `docs/todo.md`, `docs/tasks.md`, or `docs/tokens.md`.
+- **Enforce updating .md tracking files first before action**: BEFORE any code edit or test, update `docs/tokens.md`, `docs/tasks.md`, `current-sub-task.md`, and `docs/todo.md`.
+- **Sub-task execution flow (execute & archive ONE sub-task at a time)**:
+  1. Stage ONLY the active sub-task in `current-sub-task.md` and `docs/todo.md`.
+  2. Implement minimal targeted changes for that single sub-task.
+  3. Add/update its dedicated test and verify (`compile_applet` / `lint_applet` on code edits).
+  4. **Checkpoint Git commit & log in `docs/git.md`**: Immediately after every sub-task, run `git commit` and log the result in `docs/git.md` so progress is saved and tokens are never wasted.
+  5. After git commit, try using git push: attempt `git push` gracefully and record outcome in `docs/git.md`.
+  6. **Mandatory migration to `docs/done.md` immediately upon sub-task completion**: Move completed tasks and sub-tasks completely out of `current-sub-task.md`, `docs/todo.md`, and `docs/tasks.md` directly into `docs/done.md` before starting the next sub-task. `docs/tasks.md` is strictly an active backlog containing ONLY pending, active, and upcoming tasks — never keep done tasks in `docs/tasks.md`.
+- **Prompt task completion audit**: Before concluding, verify EVERY task and subtask planned for the prompt in `docs/tasks.md` is accomplished, tested, committed, and moved to `docs/done.md`.
+- **Hotfix workflow with task suspension**: 1. **Suspend current task** (`[ON HOLD]` in `current-sub-task.md`); 2. Stage `Hotfix: <issue>` in `docs/tasks.md`/`current-sub-task.md`/`docs/todo.md`; 3. Fix, test, compile, lint; 4. Commit, log `docs/git.md`, move hotfix immediately to `docs/done.md`; 5. **Resume held task**.
+- **Always keep last raw prompt in AGENTS.md**: Preserve exact unedited latest prompt under `## Last raw prompt`.
+- **Later tasks protocol**: Keep deferred items under `## Later Tasks` (`docs/tasks.md`, `docs/later.md`); ask user whether to proceed when active tasks complete.
+- **No more tasks "go on" handling**: In case no more tasks are left (`docs/tasks.md` and `current-sub-task.md` empty), if prompt is "go on", then just summarize that there are no more tasks left. No need to show anything else.
+- **Numbered chapters as serial tasks protocol**: Treat numbered chapters as separate tasks in `docs/tasks.md`, divided into atomic sub-tasks executed, tested, committed, and moved to `docs/done.md` serially before the next chapter.
 
 ## Parallel AI agent coordination & lock mechanism (chat.md)
 
@@ -129,8 +124,7 @@ The application processes and presents subtitles through a strict sequential pip
 
 ## Last raw prompt
 ```
-0. AGENTS.md - describe it shortly in your own words: whenever try to git commit the changes and to log it on docs/git.md after every sub-task accomplishment (or else many tokens are wasted and the task doesn't end on a prompt session and also doesn't save the progress)
-1. on the demo webpage - when changing tabs it stops the video-player
-2. tts-play is presented as enabled on the floating button menu but actually it isn't active while the video player is playing
-```
+hotfix:  AGENTS.md - must upgrade task management: break to smaller sub-task. mv any sub-task section to done immidiatly upon completion. never keep done tasks on tasks.md. find a cure to the situation where prompt processing takes too long and ends with no changes because token were run out.
 
+1. subtitles-table view - show/hide original subtitle record beside the filtered one
+```

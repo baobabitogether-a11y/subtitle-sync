@@ -1,5 +1,37 @@
 # Done tasks
 
+### Task 428b: Prompt 215 Chapter 1 (Sub-task 2/2) — Wire Side-by-Side Original Subtitles Beside Filtered, E2E Verification, & Version Bump (`v2.1.128`)
+
+- **Prompt**: `1. subtitles-table view - show/hide original subtitle record beside the filtered one`
+- **Changes**:
+  - `src/routes/index.tsx`: Added shared `showOriginalSubtitles` state (`getShowOriginalSubtitlesPreference` / `setShowOriginalSubtitlesPreference`) and `unfilteredOriginalRows` memo (`simpleAlign` with `maxWordsPerSentence: 0, skipIncompleteSentences: false`), wired identically to BOTH Beginner `subtitlesTableSlot` and Advanced Stage 2 `SubtitlesTablePanel` instances.
+  - `src/components/SubtitlesTablePanel.tsx`: Derived `originalSourceRows` from unfiltered `rawRows` fallback to `displayedRows` so records discarded by row criteria filtering (`maxWordsPerSentence`, `skipIncompleteSentences`) remain visible beside the filtered table with `Kept`/`Filtered` status badges, raw `tracks` cue text (`getOriginalTrackTextForRange`), and aligned text.
+  - `scripts/verify-subtitles-table-original-beside-filtered.ts` & `package.json`: Added `test:subtitles-table-original-beside-filtered` covering unit tests, Storybook/mode parity checks, and live Playwright Chromium E2E across Advanced Stage 2 and Beginner Mode (`L2Ryrr6txwA`, `filtered=432`, `original=539`, side-by-side bounding box check, zero console/page/`FloatingErrorButton` errors); cataloged in `docs/files.md`.
+  - Version synced to `v2.1.128` (`code: 20228` via `npx tsx scripts/sync-version.ts 2.1.128`).
+- **Verification**: `npm run test:subtitles-table-original-beside-filtered` (PASSED), `npm run test:same-components-parity-policy` (PASSED), `npm run test:single-vs-multiple-tables` (PASSED), `npm run check-version` (PASSED), `npm run test:agents-all` (23/23 PASSED), `npx tsc --noEmit`, `compile_applet`, and `lint_applet` — all **PASSED**; git commit/push attempted and logged in `docs/git.md` (skipped: no `.git` directory).
+
+### Task 428a: Prompt 215 Chapter 1 (Sub-task 1/2) — UI & Storybook for Show/Hide Original Subtitle Record Beside the Filtered One
+
+- **Prompt**: `1. subtitles-table view - show/hide original subtitle record beside the filtered one`
+- **Changes**:
+  - `src/lib/playback-preferences.ts`: Added `showOriginalSubtitles` (`yt_show_original_subtitles_v1`) persistence + `getShowOriginalSubtitlesPreference` / `setShowOriginalSubtitlesPreference` / `SHOW_ORIGINAL_SUBTITLES_EVENT`.
+  - `src/lib/subtitles.ts`: Added `getOriginalTrackTextForRange` pure helper to extract raw uncleaned `json3` track cues overlapping a row's `[start, end]` range.
+  - `src/components/SubtitlesTablePanel.tsx`: Added `"Show Original" / "Hide Original"` toggle button (`toggle-original-subtitle-record-btn`) in `#subtitles-position-actions-bar` and responsive side-by-side `subtitles-table-comparison-grid` rendering `original-subtitles-pane` (`original-subtitles-table`, unfiltered `displayedRows` + `rawRows` / raw `tracks` cue text + `Kept`/`Filtered` status badge + click-to-seek) right beside `filtered-subtitles-pane` across both `"single"` and `"multiple"` table modes.
+  - `src/components/SubtitlesTablePanel.stories.tsx`: Added `WithOriginalBesideFiltered` Storybook story demonstrating raw cue tracks + row criteria filtering beside original records.
+- **Verification**: `npx prettier --write`, `npx eslint`, `npx tsc --noEmit`, `npm run test:single-vs-multiple-tables` — **PASSED**; git commit/push attempted and logged in `docs/git.md` (skipped: no `.git` directory).
+
+### Hotfix: Upgrade `AGENTS.md` & `docs/tokens.md` Task Management + Anti-Token-Exhaustion Cure (Prompt 215)
+
+- **Prompt**:
+  ```
+  hotfix:  AGENTS.md - must upgrade task management: break to smaller sub-task. mv any sub-task section to done immidiatly upon completion. never keep done tasks on tasks.md. find a cure to the situation where prompt processing takes too long and ends with no changes because token were run out.
+  ```
+- **Root Cause & Changes**:
+  - **Context Bloat Diagnosed**: `docs/tokens.md` had accumulated 42KB (268 lines) of old prompt logs, and `current-sub-task.md` / `docs/todo.md` each held ~8KB of stale `Completed:` history already in `docs/done.md`, burning tokens at the start of every session and violating `test:lean-tokens` (`< 12KB`, `< 200 lines`).
+  - **Upgraded `AGENTS.md` (`## Work tracking` & `## Last raw prompt`)**: Enforced breaking every task into tiny atomic sub-tasks (`<= 1–2` files / 1 testable behavior each), immediate migration of every completed sub-task out of `current-sub-task.md`, `docs/todo.md`, and `docs/tasks.md` into `docs/done.md` (zero done tasks left in `docs/tasks.md`), and the **Write-Early Checkpointed Execution** cure (use `grep` + `<=150`-line slices instead of full reads of monolithic files, start the first edit within 1–2 targeted read rounds, checkpoint via `git commit` + `docs/git.md` + `docs/done.md` after every single sub-task). Stayed safely within the `< 21,000` byte budget.
+  - **Cleaned `docs/tokens.md`, `current-sub-task.md`, `docs/todo.md`, & `prompt_history.md`**: Stripped historical task dumps from `docs/tokens.md` (now `10,115` bytes / `131` lines), cleared completed dumps from `current-sub-task.md` & `docs/todo.md`, and recorded Prompt 215 in `prompt_history.md`.
+- **Verification**: `npm run test:agents-all` (23/23 PASSED), `npm run test:lean-tokens` (PASSED), `npm run test:task-management-workflow` (PASSED), `npm run test:hotfix-workflow` (PASSED), `npm run test:no-duplicate-md` (PASSED); git commit/push attempted and logged in `docs/git.md` (skipped: no `.git` directory).
+
 ### Task 425: Prompt 214 Chapter 1 — Fix Changing Tabs on the Demo Webpage Stopping the Video-Player (`v2.1.127`)
 
 - **Prompt**:

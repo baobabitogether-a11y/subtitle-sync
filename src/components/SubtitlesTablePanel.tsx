@@ -10,9 +10,19 @@ import {
   ChevronUp,
   LayoutGrid,
   Table as TableIcon,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
-import { type Row, type Json3, subtitleColumnName } from "@/lib/subtitles";
+import {
+  type Row,
+  type Json3,
+  subtitleColumnName,
+  subtitleTextForColumn,
+  getOriginalTrackTextForRange,
+  fmt,
+  RTL,
+} from "@/lib/subtitles";
 import { SubtitleRow, type SubtitleColumn } from "@/components/SubtitleRow";
 import { type SpeechProgress } from "@/components/HighlightedSubtitle";
 import {
@@ -34,6 +44,8 @@ import {
   getCriteriaMatchActionPreference,
   setCriteriaMatchActionPreference,
   type CriteriaMatchAction,
+  getShowOriginalSubtitlesPreference,
+  setShowOriginalSubtitlesPreference,
 } from "@/lib/playback-preferences";
 import { getLanguageColorPalette } from "@/utils/languageColors";
 
@@ -74,6 +86,9 @@ export interface SubtitlesTablePanelProps {
   languageSkipIncomplete?: Record<string, boolean>;
   onLanguageSkipIncompleteChange?: (langCode: string, val: boolean | undefined) => void;
   onResetAllLanguageCriteria?: () => void;
+  rawRows?: Row[];
+  showOriginalRecords?: boolean;
+  onShowOriginalRecordsChange?: (show: boolean) => void;
 }
 
 export const SubtitlesTablePanel = React.memo(function SubtitlesTablePanel({
@@ -112,6 +127,9 @@ export const SubtitlesTablePanel = React.memo(function SubtitlesTablePanel({
   languageSkipIncomplete,
   onLanguageSkipIncompleteChange,
   onResetAllLanguageCriteria,
+  rawRows,
+  showOriginalRecords: externalShowOriginalRecords,
+  onShowOriginalRecordsChange,
 }: SubtitlesTablePanelProps) {
   const [localParserConfig, setLocalParserConfig] = React.useState<SimpleParserConfig>(
     DEFAULT_SIMPLE_PARSER_CONFIG,
@@ -125,9 +143,18 @@ export const SubtitlesTablePanel = React.memo(function SubtitlesTablePanel({
     React.useState<CriteriaMatchAction>(() => {
       return externalCriteriaMatchAction || getCriteriaMatchActionPreference();
     });
+  const [internalShowOriginalRecords, setInternalShowOriginalRecords] = React.useState<boolean>(
+    () => {
+      return externalShowOriginalRecords ?? getShowOriginalSubtitlesPreference();
+    },
+  );
 
   const activeDisplayMode = externalTableDisplayMode || internalDisplayMode;
   const activeCriteriaMatchAction = externalCriteriaMatchAction || internalCriteriaMatchAction;
+  const activeShowOriginalRecords =
+    typeof externalShowOriginalRecords === "boolean"
+      ? externalShowOriginalRecords
+      : internalShowOriginalRecords;
 
   const handleDisplayModeToggle = (mode: TableDisplayMode) => {
     setInternalDisplayMode(mode);
@@ -139,6 +166,13 @@ export const SubtitlesTablePanel = React.memo(function SubtitlesTablePanel({
     setInternalCriteriaMatchAction(action);
     setCriteriaMatchActionPreference(action);
     onCriteriaMatchActionChange?.(action);
+  };
+
+  const handleShowOriginalToggle = () => {
+    const next = !activeShowOriginalRecords;
+    setInternalShowOriginalRecords(next);
+    setShowOriginalSubtitlesPreference(next);
+    onShowOriginalRecordsChange?.(next);
   };
 
   const shouldFreezeColumns = !isAndroid && freezeColumns;
@@ -183,6 +217,15 @@ export const SubtitlesTablePanel = React.memo(function SubtitlesTablePanel({
     languageMaxWords,
     languageSkipIncomplete,
   ]);
+
+  const originalSourceRows = React.useMemo(() => {
+    const source = rawRows && rawRows.length >= displayedRows.length ? rawRows : displayedRows;
+    if (isAndroid && subtitlesLimit > 0 && source === rawRows) {
+      const start = Math.max(0, (subtitlesPage - 1) * subtitlesLimit);
+      return source.slice(start, start + subtitlesLimit);
+    }
+    return source;
+  }, [rawRows, displayedRows, isAndroid, subtitlesLimit, subtitlesPage]);
 
   return (
     <>
@@ -542,393 +585,596 @@ export const SubtitlesTablePanel = React.memo(function SubtitlesTablePanel({
                 </span>
               </button>
 
+              <button
+                type="button"
+                data-testid="toggle-original-subtitle-record-btn"
+                aria-pressed={activeShowOriginalRecords}
+                onClick={handleShowOriginalToggle}
+                className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium transition-colors cursor-pointer ${
+                  activeShowOriginalRecords
+                    ? "border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                title={
+                  activeShowOriginalRecords
+                    ? "Hide original unfiltered subtitle records beside the filtered table"
+                    : "Show original unfiltered subtitle records beside the filtered table"
+                }
+              >
+                {activeShowOriginalRecords ? (
+                  <EyeOff className="h-3 w-3" />
+                ) : (
+                  <Eye className="h-3 w-3" />
+                )}
+                <span>{activeShowOriginalRecords ? "Hide Original" : "Show Original"}</span>
+              </button>
+
               <span className="text-[11px] text-muted-foreground font-mono">
-                {rows.length} {rows.length === 1 ? "sentence" : "sentences"}
+                {effectiveDisplayedRows.length !== displayedRows.length
+                  ? `${effectiveDisplayedRows.length} / ${displayedRows.length}`
+                  : rows.length}{" "}
+                {rows.length === 1 ? "sentence" : "sentences"}
               </span>
             </div>
           </div>
         )}
-        {activeDisplayMode === "single" ? (
-          <table
-            data-testid="subtitles-table"
-            onClick={(e) => {
-              if (
-                (e.target as HTMLElement).closest("button") ||
-                (e.target as HTMLElement).closest("input") ||
-                (e.target as HTMLElement).closest("select")
-              ) {
-                return;
-              }
-              onTablePlay?.();
-            }}
-            className="w-full border-collapse text-sm cursor-pointer"
+        <div
+          data-testid="subtitles-table-comparison-grid"
+          className={
+            activeShowOriginalRecords
+              ? "grid grid-cols-1 md:grid-cols-2 gap-3 items-start"
+              : undefined
+          }
+        >
+          <div
+            data-testid="filtered-subtitles-pane"
+            className={
+              activeShowOriginalRecords
+                ? "min-w-0 overflow-x-auto rounded-lg border border-border/70 bg-background/50"
+                : undefined
+            }
           >
-            <thead
-              data-testid="subtitles-table-head"
-              className="sticky top-0 z-20 bg-secondary/95 backdrop-blur-md shadow-xs border-b border-border/70"
-            >
-              <tr>
-                <th
-                  data-testid="table-header-index"
-                  className={`w-14 min-w-[3.5rem] max-w-[3.5rem] px-2.5 py-2.5 text-center font-semibold text-xs tracking-wider uppercase text-muted-foreground ${
-                    shouldFreezeColumns
-                      ? "sticky left-0 z-30 bg-secondary/95 backdrop-blur-md shadow-[1px_0_0_0_rgba(0,0,0,0.1)]"
-                      : ""
-                  }`}
-                  title="Sentence Running Index"
+            {activeShowOriginalRecords && (
+              <div
+                data-testid="filtered-subtitles-pane-header"
+                className="flex items-center justify-between gap-2 px-3 py-1.5 bg-primary/10 border-b border-border/70 text-[11px] font-semibold text-foreground"
+              >
+                <span>Filtered Subtitles</span>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {effectiveDisplayedRows.length} of {displayedRows.length} rows
+                </span>
+              </div>
+            )}
+            {activeDisplayMode === "single" ? (
+              <table
+                data-testid="subtitles-table"
+                onClick={(e) => {
+                  if (
+                    (e.target as HTMLElement).closest("button") ||
+                    (e.target as HTMLElement).closest("input") ||
+                    (e.target as HTMLElement).closest("select")
+                  ) {
+                    return;
+                  }
+                  onTablePlay?.();
+                }}
+                className="w-full border-collapse text-sm cursor-pointer"
+              >
+                <thead
+                  data-testid="subtitles-table-head"
+                  className="sticky top-0 z-20 bg-secondary/95 backdrop-blur-md shadow-xs border-b border-border/70"
                 >
-                  #
-                </th>
-                <th
-                  data-testid="table-header-time"
-                  className={`w-28 min-w-[7rem] max-w-[7rem] px-3 py-2.5 text-left font-semibold text-xs tracking-wider uppercase text-muted-foreground ${
-                    shouldFreezeColumns
-                      ? "sticky left-14 z-30 bg-secondary/95 backdrop-blur-md shadow-[1px_0_0_0_rgba(0,0,0,0.1)]"
-                      : ""
-                  }`}
-                >
-                  Time
-                </th>
-                {cols.map((l, idx) => {
-                  const isFirstCol = idx === 0;
-                  const isDefault = l.code === baseLanguage || (isFirstCol && !baseLanguage);
-                  const palette = getLanguageColorPalette(l.code);
-                  return (
+                  <tr>
                     <th
-                      key={`${l.code}-${idx}`}
-                      data-testid={`table-header-col-${l.code}`}
-                      data-lang-col={l.code}
-                      className={`px-3 py-2.5 text-left font-semibold text-xs min-w-[12rem] border-b-2 ${palette.headerBorder} ${palette.headerBg} ${palette.headerText} ${
-                        shouldFreezeColumns && isFirstCol
-                          ? "sticky left-42 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]"
+                      data-testid="table-header-index"
+                      className={`w-14 min-w-[3.5rem] max-w-[3.5rem] px-2.5 py-2.5 text-center font-semibold text-xs tracking-wider uppercase text-muted-foreground ${
+                        shouldFreezeColumns
+                          ? "sticky left-0 z-30 bg-secondary/95 backdrop-blur-md shadow-[1px_0_0_0_rgba(0,0,0,0.1)]"
+                          : ""
+                      }`}
+                      title="Sentence Running Index"
+                    >
+                      #
+                    </th>
+                    <th
+                      data-testid="table-header-time"
+                      className={`w-28 min-w-[7rem] max-w-[7rem] px-3 py-2.5 text-left font-semibold text-xs tracking-wider uppercase text-muted-foreground ${
+                        shouldFreezeColumns
+                          ? "sticky left-14 z-30 bg-secondary/95 backdrop-blur-md shadow-[1px_0_0_0_rgba(0,0,0,0.1)]"
                           : ""
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                        <span className="inline-flex items-center gap-1.5 font-medium">
-                          <span
-                            className={`inline-block w-2 h-2 rounded-full ${palette.dot || palette.accentBar}`}
-                            aria-hidden="true"
-                          />
-                          {subtitleColumnName(l.code, l.name)}
-                          {l.isYouTubeOrJson && (
-                            <span title="Parsed from YouTube subtitles or .json artifact">
-                              <FileCode
-                                className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
-                                aria-label="YouTube subtitles or JSON artifact"
-                                data-testid={`column-source-youtube-or-json-${l.code}`}
-                              />
-                            </span>
-                          )}
-                          {l.isOnDemandTranslation && (
-                            <span title="On-demand translation">
-                              <Sparkles
-                                className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400"
-                                aria-label="On-demand translation"
-                                data-testid={`column-source-on-demand-${l.code}`}
-                              />
-                            </span>
-                          )}
-                          {l.isYouTubeTranslated && (
-                            <span title="Translated by YouTube">
-                              <Languages
-                                className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400"
-                                aria-label="YouTube translation"
-                                data-testid={`youtube-translation-indicator-${l.code}`}
-                              />
-                            </span>
-                          )}
-                        </span>
-                        {isDefault ? (
-                          <span
-                            data-testid={`table-col-default-badge-${l.code}`}
-                            className="inline-flex items-center gap-1 rounded bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-tight"
-                            title="Active Default Translation Source"
-                          >
-                            <Check className="h-2.5 w-2.5" />
-                            <span>Default</span>
-                          </span>
-                        ) : onSelectBaseLanguage ? (
-                          <button
-                            type="button"
-                            data-testid={`table-set-default-btn-${l.code}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectBaseLanguage(l.code);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background/80 hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
-                            title={`Set ${l.name || l.code} as default translation source`}
-                          >
-                            Set Default
-                          </button>
-                        ) : null}
-                        {getZeroKnowledgeInLang(l.code) && (
-                          <span
-                            data-testid={`table-col-zero-knowledge-badge-${l.code}`}
-                            className="inline-flex items-center gap-1 rounded bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 px-1 py-0.2 text-[9px] font-semibold"
-                            title={`Zero Knowledge Mode (${getPickWordStrategy(l.code)} word): Learns words rather than sentences`}
-                          >
-                            Words ({getPickWordStrategy(l.code)})
-                          </span>
-                        )}
-                      </div>
+                      Time
                     </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody data-testid="subtitles-table-body">
-              {effectiveDisplayedRows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={Math.max(1, cols.length + 2)}
-                    className="py-12 text-center text-sm text-muted-foreground"
-                    data-testid="subtitles-table-empty-notice"
-                  >
-                    {displayedRows.length === 0
-                      ? "No subtitles loaded for this video."
-                      : `No subtitle records match current row criteria (max ${activeParserConfig.maxWordsPerSentence ?? 10} words).`}
-                  </td>
-                </tr>
-              ) : (
-                effectiveDisplayedRows.map((r, i) => {
-                  const actualIndex =
-                    isAndroid && subtitlesLimit > 0 ? (subtitlesPage - 1) * subtitlesLimit + i : i;
-                  const isMatched = hasActiveCriteria
-                    ? isSubtitleRowMatchingCriteria(
-                        r,
-                        defaultLang,
-                        activeParserConfig?.maxWordsPerSentence,
-                        Boolean(activeParserConfig?.skipIncompleteSentences),
-                        languageMaxWords,
-                        languageSkipIncomplete,
-                      )
-                    : false;
-                  return (
-                    <SubtitleRow
-                      key={actualIndex}
-                      r={r}
-                      actualIndex={actualIndex}
-                      isActive={actualIndex === active}
-                      cols={cols}
-                      baseLanguage={baseLanguage}
-                      speechProgress={speechProgress}
-                      tracks={tracks}
-                      onSeek={onSeek}
-                      spokenLangs={spokenLangs}
-                      ttsRatios={ttsRatios}
-                      primaryTtsLang={primaryTtsLang}
-                      blacklist={blacklist}
-                      onSpeakCue={onSpeakCue}
-                      freezeColumns={shouldFreezeColumns}
-                      isCriteriaMatched={isMatched}
-                      isCriteriaHighlightMode={activeCriteriaMatchAction === "highlight"}
-                    />
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        ) : (
-          <div
-            data-testid="subtitles-multiple-tables-container"
-            className="flex flex-col gap-5 p-2"
-          >
-            {cols.length === 0 ? (
-              <div
-                data-testid="subtitles-multiple-tables-empty"
-                className="py-12 text-center text-sm text-muted-foreground"
-              >
-                No subtitle columns selected or loaded.
-              </div>
-            ) : (
-              cols.map((col, colIdx) => {
-                const isFirstCol = colIdx === 0;
-                const isDefault = col.code === baseLanguage || (isFirstCol && !baseLanguage);
-                const palette = getLanguageColorPalette(col.code);
-                return (
-                  <div
-                    key={`${col.code}-${colIdx}`}
-                    data-testid={`subtitles-single-lang-card-${col.code}`}
-                    className="rounded-xl border border-border/80 bg-card/60 shadow-xs overflow-hidden"
-                  >
-                    <div
-                      className={`px-3 py-2 border-b flex items-center justify-between flex-wrap gap-2 ${palette.headerBg} ${palette.headerBorder}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-block w-2.5 h-2.5 rounded-full ${palette.dot || palette.accentBar}`}
-                          aria-hidden="true"
-                        />
-                        <span className={`font-semibold text-xs ${palette.headerText}`}>
-                          {subtitleColumnName(col.code, col.name)}
-                        </span>
-                        {col.isYouTubeOrJson && (
-                          <span title="Parsed from YouTube subtitles or .json artifact">
-                            <FileCode
-                              className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
-                              aria-label="YouTube subtitles or JSON artifact"
-                              data-testid={`column-source-youtube-or-json-${col.code}`}
-                            />
-                          </span>
-                        )}
-                        {col.isOnDemandTranslation && (
-                          <span title="On-demand translation">
-                            <Sparkles
-                              className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400"
-                              aria-label="On-demand translation"
-                              data-testid={`column-source-on-demand-${col.code}`}
-                            />
-                          </span>
-                        )}
-                        {col.isYouTubeTranslated && (
-                          <span title="Translated by YouTube">
-                            <Languages
-                              className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400"
-                              aria-label="YouTube translation"
-                              data-testid={`youtube-translation-indicator-${col.code}`}
-                            />
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {isDefault ? (
-                          <span
-                            data-testid={`table-col-default-badge-${col.code}`}
-                            className="inline-flex items-center gap-1 rounded bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-tight"
-                            title="Active Default Translation Source"
-                          >
-                            <Check className="h-2.5 w-2.5" />
-                            <span>Default</span>
-                          </span>
-                        ) : onSelectBaseLanguage ? (
-                          <button
-                            type="button"
-                            data-testid={`table-set-default-btn-${col.code}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSelectBaseLanguage(col.code);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background/80 hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
-                            title={`Set ${col.name || col.code} as default translation source`}
-                          >
-                            Set Default
-                          </button>
-                        ) : null}
-                        {getZeroKnowledgeInLang(col.code) && (
-                          <span
-                            data-testid={`table-col-zero-knowledge-badge-${col.code}`}
-                            className="inline-flex items-center gap-1 rounded bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 px-1 py-0.2 text-[9px] font-semibold"
-                            title={`Zero Knowledge Mode (${getPickWordStrategy(col.code)} word): Learns words rather than sentences`}
-                          >
-                            Words ({getPickWordStrategy(col.code)})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table
-                        data-testid={`subtitles-table-${col.code}`}
-                        onClick={(e) => {
-                          if (
-                            (e.target as HTMLElement).closest("button") ||
-                            (e.target as HTMLElement).closest("input") ||
-                            (e.target as HTMLElement).closest("select")
-                          ) {
-                            return;
-                          }
-                          onTablePlay?.();
-                        }}
-                        className="w-full border-collapse text-sm cursor-pointer"
-                      >
-                        <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md shadow-xs border-b border-border/70">
-                          <tr>
-                            <th
-                              data-testid={`table-header-index-${col.code}`}
-                              className="w-14 min-w-[3.5rem] max-w-[3.5rem] px-2.5 py-2 text-center font-semibold text-xs tracking-wider uppercase text-muted-foreground"
-                              title="Sentence Running Index"
-                            >
-                              #
-                            </th>
-                            <th
-                              data-testid={`table-header-time-${col.code}`}
-                              className="w-28 min-w-[7rem] max-w-[7rem] px-3 py-2 text-left font-semibold text-xs tracking-wider uppercase text-muted-foreground"
-                            >
-                              Time
-                            </th>
-                            <th
-                              data-testid={`table-header-col-${col.code}`}
-                              data-lang-col={col.code}
-                              className="px-3 py-2 text-left font-semibold text-xs"
-                            >
-                              {subtitleColumnName(col.code, col.name)}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody data-testid={`subtitles-table-body-${col.code}`}>
-                          {effectiveDisplayedRows.length === 0 ? (
-                            <tr>
-                              <td
-                                colSpan={3}
-                                className="py-8 text-center text-sm text-muted-foreground"
-                                data-testid={`subtitles-table-empty-notice-${col.code}`}
+                    {cols.map((l, idx) => {
+                      const isFirstCol = idx === 0;
+                      const isDefault = l.code === baseLanguage || (isFirstCol && !baseLanguage);
+                      const palette = getLanguageColorPalette(l.code);
+                      return (
+                        <th
+                          key={`${l.code}-${idx}`}
+                          data-testid={`table-header-col-${l.code}`}
+                          data-lang-col={l.code}
+                          className={`px-3 py-2.5 text-left font-semibold text-xs min-w-[12rem] border-b-2 ${palette.headerBorder} ${palette.headerBg} ${palette.headerText} ${
+                            shouldFreezeColumns && isFirstCol
+                              ? "sticky left-42 z-30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                              <span
+                                className={`inline-block w-2 h-2 rounded-full ${palette.dot || palette.accentBar}`}
+                                aria-hidden="true"
+                              />
+                              {subtitleColumnName(l.code, l.name)}
+                              {l.isYouTubeOrJson && (
+                                <span title="Parsed from YouTube subtitles or .json artifact">
+                                  <FileCode
+                                    className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
+                                    aria-label="YouTube subtitles or JSON artifact"
+                                    data-testid={`column-source-youtube-or-json-${l.code}`}
+                                  />
+                                </span>
+                              )}
+                              {l.isOnDemandTranslation && (
+                                <span title="On-demand translation">
+                                  <Sparkles
+                                    className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400"
+                                    aria-label="On-demand translation"
+                                    data-testid={`column-source-on-demand-${l.code}`}
+                                  />
+                                </span>
+                              )}
+                              {l.isYouTubeTranslated && (
+                                <span title="Translated by YouTube">
+                                  <Languages
+                                    className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400"
+                                    aria-label="YouTube translation"
+                                    data-testid={`youtube-translation-indicator-${l.code}`}
+                                  />
+                                </span>
+                              )}
+                            </span>
+                            {isDefault ? (
+                              <span
+                                data-testid={`table-col-default-badge-${l.code}`}
+                                className="inline-flex items-center gap-1 rounded bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-tight"
+                                title="Active Default Translation Source"
                               >
-                                {displayedRows.length === 0
-                                  ? "No subtitles loaded for this video."
-                                  : `No subtitle records match current row criteria (max ${activeParserConfig.maxWordsPerSentence ?? 10} words).`}
-                              </td>
-                            </tr>
-                          ) : (
-                            effectiveDisplayedRows.map((r, i) => {
-                              const actualIndex =
-                                isAndroid && subtitlesLimit > 0
-                                  ? (subtitlesPage - 1) * subtitlesLimit + i
-                                  : i;
-                              const isMatched = hasActiveCriteria
-                                ? isSubtitleRowMatchingCriteria(
-                                    r,
-                                    defaultLang,
-                                    activeParserConfig?.maxWordsPerSentence,
-                                    Boolean(activeParserConfig?.skipIncompleteSentences),
-                                    languageMaxWords,
-                                    languageSkipIncomplete,
-                                  )
-                                : false;
-                              return (
-                                <SubtitleRow
-                                  key={actualIndex}
-                                  r={r}
-                                  actualIndex={actualIndex}
-                                  isActive={actualIndex === active}
-                                  cols={[col]}
-                                  baseLanguage={baseLanguage}
-                                  speechProgress={speechProgress}
-                                  tracks={tracks}
-                                  onSeek={onSeek}
-                                  spokenLangs={spokenLangs}
-                                  ttsRatios={ttsRatios}
-                                  primaryTtsLang={primaryTtsLang}
-                                  blacklist={blacklist}
-                                  onSpeakCue={onSpeakCue}
-                                  freezeColumns={false}
-                                  isCriteriaMatched={isMatched}
-                                  isCriteriaHighlightMode={
-                                    activeCriteriaMatchAction === "highlight"
-                                  }
-                                />
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                                <Check className="h-2.5 w-2.5" />
+                                <span>Default</span>
+                              </span>
+                            ) : onSelectBaseLanguage ? (
+                              <button
+                                type="button"
+                                data-testid={`table-set-default-btn-${l.code}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectBaseLanguage(l.code);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background/80 hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+                                title={`Set ${l.name || l.code} as default translation source`}
+                              >
+                                Set Default
+                              </button>
+                            ) : null}
+                            {getZeroKnowledgeInLang(l.code) && (
+                              <span
+                                data-testid={`table-col-zero-knowledge-badge-${l.code}`}
+                                className="inline-flex items-center gap-1 rounded bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 px-1 py-0.2 text-[9px] font-semibold"
+                                title={`Zero Knowledge Mode (${getPickWordStrategy(l.code)} word): Learns words rather than sentences`}
+                              >
+                                Words ({getPickWordStrategy(l.code)})
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody data-testid="subtitles-table-body">
+                  {effectiveDisplayedRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={Math.max(1, cols.length + 2)}
+                        className="py-12 text-center text-sm text-muted-foreground"
+                        data-testid="subtitles-table-empty-notice"
+                      >
+                        {displayedRows.length === 0
+                          ? "No subtitles loaded for this video."
+                          : `No subtitle records match current row criteria (max ${activeParserConfig.maxWordsPerSentence ?? 10} words).`}
+                      </td>
+                    </tr>
+                  ) : (
+                    effectiveDisplayedRows.map((r, i) => {
+                      const actualIndex =
+                        isAndroid && subtitlesLimit > 0
+                          ? (subtitlesPage - 1) * subtitlesLimit + i
+                          : i;
+                      const isMatched = hasActiveCriteria
+                        ? isSubtitleRowMatchingCriteria(
+                            r,
+                            defaultLang,
+                            activeParserConfig?.maxWordsPerSentence,
+                            Boolean(activeParserConfig?.skipIncompleteSentences),
+                            languageMaxWords,
+                            languageSkipIncomplete,
+                          )
+                        : false;
+                      return (
+                        <SubtitleRow
+                          key={actualIndex}
+                          r={r}
+                          actualIndex={actualIndex}
+                          isActive={actualIndex === active}
+                          cols={cols}
+                          baseLanguage={baseLanguage}
+                          speechProgress={speechProgress}
+                          tracks={tracks}
+                          onSeek={onSeek}
+                          spokenLangs={spokenLangs}
+                          ttsRatios={ttsRatios}
+                          primaryTtsLang={primaryTtsLang}
+                          blacklist={blacklist}
+                          onSpeakCue={onSpeakCue}
+                          freezeColumns={shouldFreezeColumns}
+                          isCriteriaMatched={isMatched}
+                          isCriteriaHighlightMode={activeCriteriaMatchAction === "highlight"}
+                        />
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <div
+                data-testid="subtitles-multiple-tables-container"
+                className="flex flex-col gap-5 p-2"
+              >
+                {cols.length === 0 ? (
+                  <div
+                    data-testid="subtitles-multiple-tables-empty"
+                    className="py-12 text-center text-sm text-muted-foreground"
+                  >
+                    No subtitle columns selected or loaded.
                   </div>
-                );
-              })
+                ) : (
+                  cols.map((col, colIdx) => {
+                    const isFirstCol = colIdx === 0;
+                    const isDefault = col.code === baseLanguage || (isFirstCol && !baseLanguage);
+                    const palette = getLanguageColorPalette(col.code);
+                    return (
+                      <div
+                        key={`${col.code}-${colIdx}`}
+                        data-testid={`subtitles-single-lang-card-${col.code}`}
+                        className="rounded-xl border border-border/80 bg-card/60 shadow-xs overflow-hidden"
+                      >
+                        <div
+                          className={`px-3 py-2 border-b flex items-center justify-between flex-wrap gap-2 ${palette.headerBg} ${palette.headerBorder}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`inline-block w-2.5 h-2.5 rounded-full ${palette.dot || palette.accentBar}`}
+                              aria-hidden="true"
+                            />
+                            <span className={`font-semibold text-xs ${palette.headerText}`}>
+                              {subtitleColumnName(col.code, col.name)}
+                            </span>
+                            {col.isYouTubeOrJson && (
+                              <span title="Parsed from YouTube subtitles or .json artifact">
+                                <FileCode
+                                  className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"
+                                  aria-label="YouTube subtitles or JSON artifact"
+                                  data-testid={`column-source-youtube-or-json-${col.code}`}
+                                />
+                              </span>
+                            )}
+                            {col.isOnDemandTranslation && (
+                              <span title="On-demand translation">
+                                <Sparkles
+                                  className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400"
+                                  aria-label="On-demand translation"
+                                  data-testid={`column-source-on-demand-${col.code}`}
+                                />
+                              </span>
+                            )}
+                            {col.isYouTubeTranslated && (
+                              <span title="Translated by YouTube">
+                                <Languages
+                                  className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400"
+                                  aria-label="YouTube translation"
+                                  data-testid={`youtube-translation-indicator-${col.code}`}
+                                />
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {isDefault ? (
+                              <span
+                                data-testid={`table-col-default-badge-${col.code}`}
+                                className="inline-flex items-center gap-1 rounded bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-semibold tracking-tight"
+                                title="Active Default Translation Source"
+                              >
+                                <Check className="h-2.5 w-2.5" />
+                                <span>Default</span>
+                              </span>
+                            ) : onSelectBaseLanguage ? (
+                              <button
+                                type="button"
+                                data-testid={`table-set-default-btn-${col.code}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSelectBaseLanguage(col.code);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-background/80 hover:bg-muted text-[10px] text-muted-foreground hover:text-foreground px-2 py-0.5 transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+                                title={`Set ${col.name || col.code} as default translation source`}
+                              >
+                                Set Default
+                              </button>
+                            ) : null}
+                            {getZeroKnowledgeInLang(col.code) && (
+                              <span
+                                data-testid={`table-col-zero-knowledge-badge-${col.code}`}
+                                className="inline-flex items-center gap-1 rounded bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 px-1 py-0.2 text-[9px] font-semibold"
+                                title={`Zero Knowledge Mode (${getPickWordStrategy(col.code)} word): Learns words rather than sentences`}
+                              >
+                                Words ({getPickWordStrategy(col.code)})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table
+                            data-testid={`subtitles-table-${col.code}`}
+                            onClick={(e) => {
+                              if (
+                                (e.target as HTMLElement).closest("button") ||
+                                (e.target as HTMLElement).closest("input") ||
+                                (e.target as HTMLElement).closest("select")
+                              ) {
+                                return;
+                              }
+                              onTablePlay?.();
+                            }}
+                            className="w-full border-collapse text-sm cursor-pointer"
+                          >
+                            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md shadow-xs border-b border-border/70">
+                              <tr>
+                                <th
+                                  data-testid={`table-header-index-${col.code}`}
+                                  className="w-14 min-w-[3.5rem] max-w-[3.5rem] px-2.5 py-2 text-center font-semibold text-xs tracking-wider uppercase text-muted-foreground"
+                                  title="Sentence Running Index"
+                                >
+                                  #
+                                </th>
+                                <th
+                                  data-testid={`table-header-time-${col.code}`}
+                                  className="w-28 min-w-[7rem] max-w-[7rem] px-3 py-2 text-left font-semibold text-xs tracking-wider uppercase text-muted-foreground"
+                                >
+                                  Time
+                                </th>
+                                <th
+                                  data-testid={`table-header-col-${col.code}`}
+                                  data-lang-col={col.code}
+                                  className="px-3 py-2 text-left font-semibold text-xs"
+                                >
+                                  {subtitleColumnName(col.code, col.name)}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody data-testid={`subtitles-table-body-${col.code}`}>
+                              {effectiveDisplayedRows.length === 0 ? (
+                                <tr>
+                                  <td
+                                    colSpan={3}
+                                    className="py-8 text-center text-sm text-muted-foreground"
+                                    data-testid={`subtitles-table-empty-notice-${col.code}`}
+                                  >
+                                    {displayedRows.length === 0
+                                      ? "No subtitles loaded for this video."
+                                      : `No subtitle records match current row criteria (max ${activeParserConfig.maxWordsPerSentence ?? 10} words).`}
+                                  </td>
+                                </tr>
+                              ) : (
+                                effectiveDisplayedRows.map((r, i) => {
+                                  const actualIndex =
+                                    isAndroid && subtitlesLimit > 0
+                                      ? (subtitlesPage - 1) * subtitlesLimit + i
+                                      : i;
+                                  const isMatched = hasActiveCriteria
+                                    ? isSubtitleRowMatchingCriteria(
+                                        r,
+                                        defaultLang,
+                                        activeParserConfig?.maxWordsPerSentence,
+                                        Boolean(activeParserConfig?.skipIncompleteSentences),
+                                        languageMaxWords,
+                                        languageSkipIncomplete,
+                                      )
+                                    : false;
+                                  return (
+                                    <SubtitleRow
+                                      key={actualIndex}
+                                      r={r}
+                                      actualIndex={actualIndex}
+                                      isActive={actualIndex === active}
+                                      cols={[col]}
+                                      baseLanguage={baseLanguage}
+                                      speechProgress={speechProgress}
+                                      tracks={tracks}
+                                      onSeek={onSeek}
+                                      spokenLangs={spokenLangs}
+                                      ttsRatios={ttsRatios}
+                                      primaryTtsLang={primaryTtsLang}
+                                      blacklist={blacklist}
+                                      onSpeakCue={onSpeakCue}
+                                      freezeColumns={false}
+                                      isCriteriaMatched={isMatched}
+                                      isCriteriaHighlightMode={
+                                        activeCriteriaMatchAction === "highlight"
+                                      }
+                                    />
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
-        )}
+          {activeShowOriginalRecords && (
+            <div
+              data-testid="original-subtitles-pane"
+              className="min-w-0 overflow-x-auto rounded-lg border border-amber-500/40 bg-amber-500/[0.04]"
+            >
+              <div
+                data-testid="original-subtitles-pane-header"
+                className="flex items-center justify-between gap-2 px-3 py-1.5 bg-amber-500/15 border-b border-amber-500/30 text-[11px] font-semibold text-amber-900 dark:text-amber-200"
+              >
+                <span>Original Subtitle Records</span>
+                <span className="font-mono text-[10px]">
+                  {originalSourceRows.length}{" "}
+                  {originalSourceRows.length === 1 ? "record" : "records"}
+                </span>
+              </div>
+              <table
+                data-testid="original-subtitles-table"
+                className="w-full border-collapse text-sm"
+              >
+                <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur-md shadow-xs border-b border-border/70">
+                  <tr>
+                    <th className="w-16 px-2.5 py-2 text-center font-semibold text-xs tracking-wider uppercase text-muted-foreground">
+                      #
+                    </th>
+                    <th className="w-24 px-2.5 py-2 text-left font-semibold text-xs tracking-wider uppercase text-muted-foreground">
+                      Time
+                    </th>
+                    {cols.map((col, colIdx) => (
+                      <th
+                        key={`orig-hdr-${col.code}-${colIdx}`}
+                        data-testid={`original-table-header-col-${col.code}`}
+                        className="px-3 py-2 text-left font-semibold text-xs min-w-[10rem]"
+                      >
+                        {subtitleColumnName(col.code, col.name)} (Original)
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody data-testid="original-subtitles-table-body">
+                  {originalSourceRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={Math.max(1, cols.length + 2)}
+                        className="py-12 text-center text-sm text-muted-foreground"
+                        data-testid="original-subtitles-empty-notice"
+                      >
+                        No original subtitle records loaded.
+                      </td>
+                    </tr>
+                  ) : (
+                    originalSourceRows.map((origRow, i) => {
+                      const actualIndex =
+                        isAndroid && subtitlesLimit > 0
+                          ? (subtitlesPage - 1) * subtitlesLimit + i
+                          : i;
+                      const preCleanRow = origRow;
+                      const isKeptByCriteria = hasActiveCriteria
+                        ? isSubtitleRowMatchingCriteria(
+                            origRow,
+                            defaultLang,
+                            activeParserConfig?.maxWordsPerSentence,
+                            Boolean(activeParserConfig?.skipIncompleteSentences),
+                            languageMaxWords,
+                            languageSkipIncomplete,
+                          )
+                        : true;
+                      const isRowActive = actualIndex === active;
+                      return (
+                        <tr
+                          key={`orig-row-${actualIndex}`}
+                          data-testid={`original-subtitle-row-${actualIndex}`}
+                          data-original-row-kept={isKeptByCriteria ? "true" : "false"}
+                          onClick={() => onSeek(origRow, actualIndex)}
+                          className={`cursor-pointer border-t border-border/70 align-top transition-colors ${
+                            isRowActive
+                              ? "bg-primary/[0.08] dark:bg-primary/[0.14]"
+                              : !isKeptByCriteria
+                                ? "bg-muted/30 opacity-75 hover:opacity-100"
+                                : "hover:bg-muted/40"
+                          }`}
+                        >
+                          <td className="whitespace-nowrap px-2.5 py-2 text-center tabular-nums text-xs font-mono text-muted-foreground">
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span>{actualIndex + 1}</span>
+                              {hasActiveCriteria && (
+                                <span
+                                  data-testid={`original-row-status-${actualIndex}`}
+                                  className={`inline-flex items-center rounded px-1 py-0.2 text-[9px] font-semibold ${
+                                    isKeptByCriteria
+                                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                      : "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {isKeptByCriteria ? "Kept" : "Filtered"}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-2.5 py-2 tabular-nums text-xs font-mono text-muted-foreground">
+                            {fmt(origRow.start)}–{fmt(origRow.end)}
+                          </td>
+                          {cols.map((col, colIdx) => {
+                            const preCleanText = subtitleTextForColumn(preCleanRow, col.code);
+                            const rawTrackCueText = getOriginalTrackTextForRange(
+                              tracks?.[col.code],
+                              origRow.start,
+                              origRow.end,
+                            );
+                            const displayOriginal = rawTrackCueText || preCleanText;
+                            const showPreCleanToo =
+                              Boolean(rawTrackCueText) &&
+                              Boolean(preCleanText) &&
+                              rawTrackCueText !== preCleanText;
+                            return (
+                              <td
+                                key={`orig-cell-${actualIndex}-${col.code}-${colIdx}`}
+                                dir={RTL.has(col.code) ? "rtl" : "ltr"}
+                                data-testid={`subtitle-cell-original-${actualIndex}-${col.code}`}
+                                className="px-3 py-2 text-sm leading-relaxed border-r border-border/40"
+                              >
+                                <div className="space-y-0.5">
+                                  <div className="text-foreground/90">
+                                    {displayOriginal || (
+                                      <span className="text-[11px] text-muted-foreground/60 italic">
+                                        —
+                                      </span>
+                                    )}
+                                  </div>
+                                  {showPreCleanToo && (
+                                    <div className="text-[11px] text-muted-foreground font-mono">
+                                      Aligned: {preCleanText}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

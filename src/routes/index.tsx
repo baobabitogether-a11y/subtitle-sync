@@ -396,6 +396,8 @@ import {
   setTableDisplayModePreference,
   getCriteriaMatchActionPreference,
   setCriteriaMatchActionPreference,
+  getShowOriginalSubtitlesPreference,
+  setShowOriginalSubtitlesPreference,
   type TableDisplayMode,
   type CriteriaMatchAction,
   type SectionOrder,
@@ -1796,6 +1798,15 @@ function Index() {
   const handleCriteriaMatchActionChange = useCallback((action: CriteriaMatchAction) => {
     setCriteriaMatchAction(action);
     setCriteriaMatchActionPreference(action);
+  }, []);
+
+  const [showOriginalSubtitles, setShowOriginalSubtitles] = useState<boolean>(() => {
+    return getShowOriginalSubtitlesPreference();
+  });
+
+  const handleShowOriginalSubtitlesChange = useCallback((show: boolean) => {
+    setShowOriginalSubtitles(show);
+    setShowOriginalSubtitlesPreference(show);
   }, []);
 
   const [manualBaseOverrideVideoId, setManualBaseOverrideVideoId] = useState<string>("");
@@ -5429,6 +5440,18 @@ function Index() {
     [tracks, baseLanguage, simpleParserConfig],
   );
 
+  const unfilteredOriginalRows = useMemo<Row[]>(
+    () =>
+      tracks && baseLanguage
+        ? simpleAlign(tracks, baseLanguage, {
+            ...simpleParserConfig,
+            maxWordsPerSentence: 0,
+            skipIncompleteSentences: false,
+          })
+        : [],
+    [tracks, baseLanguage, simpleParserConfig],
+  );
+
   const rows = useMemo<Row[]>(() => {
     const cleanedRows = rawRows.map((row) => {
       let changed = false;
@@ -9055,6 +9078,9 @@ function Index() {
                 languageSkipIncomplete={languageSkipIncomplete}
                 onLanguageSkipIncompleteChange={handleLanguageSkipIncompleteChange}
                 onResetAllLanguageCriteria={handleResetAllLanguageCriteria}
+                rawRows={unfilteredOriginalRows}
+                showOriginalRecords={showOriginalSubtitles}
+                onShowOriginalRecordsChange={handleShowOriginalSubtitlesChange}
               />
             }
             historyStageSlot={
@@ -14698,6 +14724,9 @@ function Index() {
                               languageSkipIncomplete={languageSkipIncomplete}
                               onLanguageSkipIncompleteChange={handleLanguageSkipIncompleteChange}
                               onResetAllLanguageCriteria={handleResetAllLanguageCriteria}
+                              rawRows={unfilteredOriginalRows}
+                              showOriginalRecords={showOriginalSubtitles}
+                              onShowOriginalRecordsChange={handleShowOriginalSubtitlesChange}
                             />
                             {currentAccordionStage === 2 && (
                               <div

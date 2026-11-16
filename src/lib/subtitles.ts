@@ -810,6 +810,38 @@ export function align(
   return rows;
 }
 
+export function getOriginalTrackTextForRange(
+  track: Json3 | undefined,
+  startMs: number,
+  endMs: number,
+): string {
+  if (!track?.events || track.events.length === 0) return "";
+  const safeStart = Number.isFinite(startMs) ? startMs : 0;
+  const safeEnd = Number.isFinite(endMs) && endMs > safeStart ? endMs : safeStart + 1;
+  const parts: string[] = [];
+
+  for (const ev of track.events) {
+    if (!ev?.segs || ev.segs.length === 0) continue;
+    const evStart = ev.tStartMs ?? 0;
+    const evDur = ev.dDurationMs ?? 0;
+    const evEnd = evDur > 0 ? evStart + evDur : evStart + 1;
+    // Overlap check with slight 100ms tolerance for split sentence boundaries
+    const overlaps = evEnd > safeStart + 50 && evStart < safeEnd - 50;
+    const exactMatch = Math.abs(evStart - safeStart) < 50;
+    if (!overlaps && !exactMatch) continue;
+    const raw = ev.segs
+      .map((s) => s.utf8 ?? "")
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (raw) {
+      parts.push(raw);
+    }
+  }
+
+  return parts.join(" ").replace(/\s+/g, " ").trim();
+}
+
 export function fmt(ms: number) {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;

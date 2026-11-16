@@ -107,3 +107,57 @@ export const Interactive: Story = {
   render: () => <InteractiveWrapper />,
 };
 
+export const WithOriginalBesideFiltered: Story = {
+  render: () => (
+    <InteractiveWrapper
+      showOriginalRecords={true}
+      criteriaMatchAction="filter"
+      parserConfig={{
+        enabled: true,
+        splitOnDot: true,
+        splitOnQuestion: true,
+        splitOnExclamation: true,
+        splitOnComma: true,
+        splitOnColonSemicolon: true,
+        splitIntraCue: true,
+        shortCompleteSentences: true,
+        maxWordsPerSentence: 10,
+        skipIncompleteSentences: false,
+        customDelimiters: "",
+        dotAbbreviationExceptions: "dr., mrs., mr., ms., prof., etc., e.g., i.e.",
+        wrapCoupledPunctuation: true,
+      }}
+      tracks={{
+        en: {
+          events: [
+            {
+              tStartMs: 0,
+              dDurationMs: 3500,
+              segs: [
+                {
+                  utf8: "[Music] >> Hello and welcome to language learning with parallel subtitles.",
+                },
+              ],
+            },
+            {
+              tStartMs: 3500,
+              dDurationMs: 3700,
+              segs: [
+                {
+                  utf8: ">> You can toggle between one unified table and multiple dedicated tables.",
+                },
+              ],
+            },
+            {
+              tStartMs: 7200,
+              dDurationMs: 3800,
+              segs: [
+                { utf8: "Every row remains perfectly synchronized across all language tracks." },
+              ],
+            },
+          ],
+        },
+      }}
+    />
+  ),
+};
